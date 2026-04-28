@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard C4 · Evaluación Jefes de Área · MSS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sb">
+  <div class="sb-head">
+    <div class="sb-logo">
+      <div class="sb-escudo">MSS</div>
+      <div class="sb-name">
+        <h2>C4 Surco</h2>
+        <p>Seguridad Ciudadana</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-sub">Evaluación</div>
+
+  <div class="nav-item active" onclick="showPanel('resumen',this)">
+    <i data-lucide="layout-dashboard" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    Resumen General
+  </div>
+  <div class="nav-item" onclick="showPanel('seguridad',this)">
+    <i data-lucide="shield" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    Seguridad y Delito
+  </div>
+  <div class="nav-item" onclick="showPanel('operaciones',this)">
+    <i data-lucide="clock" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    Desempeño Operativo
+  </div>
+  <div class="nav-item" onclick="showPanel('personal',this)">
+    <i data-lucide="users" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    Gestión de Personal
+  </div>
+  <div class="nav-item" onclick="showPanel('coordinacion',this)">
+    <i data-lucide="handshake" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    Coordinación PNP
+  </div>
+  <div class="nav-item" onclick="showPanel('estrategia',this)">
+    <i data-lucide="trending-up" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    Gestión Estratégica
+  </div>
+  <div class="nav-item" onclick="showPanel('ranking',this)">
+    <i data-lucide="bar-chart-3" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    Ranking Sectores
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title">
+      <h1>Dashboard de Evaluación · Jefes de Área</h1>
+      <p>Municipalidad de Santiago de Surco — División C4</p>
+    </div>
+    <select id="selJefe" class="tb-select" onchange="updateDash()">
+      <option value="0">Todos los Sectores</option>
+      <option value="1">Sector 1 — Supervisor Mendoza</option>
+      <option value="2">Sector 2 — Supervisor Quispe</option>
+      <option value="3">Sector 3 — Supervisor Torres</option>
+      <option value="4">Sector 4 — Supervisor Flores</option>
+      <option value="5">Sector 5 — Supervisor Silva</option>
+      <option value="6">Sector 6 — Supervisor Castro</option>
+      <option value="7">Sector 7 — Supervisor Paz</option>
+      <option value="8">Sector 8 — Supervisor Vargas</option>
+      <option value="9">Sector 9 — Supervisor Reyes</option>
+    </select>
+    <select id="selPeriodo" class="tb-select" onchange="updateDash()">
+      <option value="sem">Semanal</option>
+      <option value="quin">Quincenal</option>
+      <option value="men" selected>Mensual</option>
+    </select>
+    <div class="badge-period" id="badgePeriod">Abril 2025</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ━━━━ RESUMEN ━━━━ -->
+    <div class="section-panel active" id="panel-resumen">
+      <div id="sel-info-box"></div>
+      <div class="kpi-row" id="kpi-row"></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Tendencia Delictiva Semanal <span class="badge-cat">Seguridad</span></div>
+          <div class="chart-wrap" style="height:200px;">
+            <canvas id="chartTendencia"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Puntuación por Sector <span class="badge-cat">Ranking</span></div>
+          <div class="chart-wrap" style="height:200px;">
+            <canvas id="chartRankBar"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">Delitos por Tipo</div>
+          <div class="chart-wrap" style="height:170px;">
+            <canvas id="chartDelitos"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Asistencia del Personal</div>
+          <div id="asistencia-prog" class="prog-wrap"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Compromisos de Mejora</div>
+          <div id="compromisos-mini"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ━━━━ SEGURIDAD ━━━━ -->
+    <div class="section-panel" id="panel-seguridad">
+      <div class="section-header">
+        <h2>Seguridad y Control del Delito</h2>
+        <p>Índice delictivo, efectividad del patrullaje e intervenciones preventivas</p>
+      </div>
+      <div class="grid-4 mb14">
+        <div class="mm"><div class="ml">Incidentes (mes)</div><div class="mv" id="s-incidentes">—</div><div class="ms" id="s-inc-var">vs. mes anterior</div></div>
+        <div class="mm"><div class="ml">Tasa de respuesta</div><div class="mv" id="s-respuesta">—</div><div class="ms">minutos prom.</div></div>
+        <div class="mm"><div class="ml">Robos frustrados</div><div class="mv" id="s-frustrados">—</div><div class="ms">este mes</div></div>
+        <div class="mm"><div class="ml">Intervenciones prev.</div><div class="mv" id="s-intervenciones">—</div><div class="ms">identificaciones/ctrl.</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Incidentes por Semana</div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="chartSemanas"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Delitos por Franja Horaria</div>
+          <div id="franja-chart"></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Tipos de Delito</div>
+          <div class="chart-wrap" style="height:210px;"><canvas id="chartTiposDelito"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Cobertura de Patrullaje</div>
+          <div class="grid-2" style="gap:10px;margin-bottom:0;">
+            <div class="mm"><div class="ml">Rutas cumplidas</div><div class="mv" id="s-rutas">—</div><div class="ms">% del plan</div></div>
+            <div class="mm"><div class="ml">Cobertura GPS</div><div class="mv">96%</div><div class="ms">validado</div></div>
+          </div>
+          <div style="height:140px;margin-top:14px;"><canvas id="chartCobertura"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ━━━━ OPERACIONES ━━━━ -->
+    <div class="section-panel" id="panel-operaciones">
+      <div class="section-header">
+        <h2>Desempeño Operativo del Jefe de Área</h2>
+        <p>Supervisión, control de protocolos, capturas y operativos conjuntos</p>
+      </div>
+      <div class="grid-4 mb14">
+        <div class="mm"><div class="ml">Supervisiones realizadas</div><div class="mv" id="o-sup">—</div><div class="ms" id="o-sup-plan">de — planificadas</div></div>
+        <div class="mm"><div class="ml">Hallazgos detectados</div><div class="mv" id="o-hallazgos">—</div><div class="ms">incidencias corregidas</div></div>
+        <div class="mm"><div class="ml">Capturas/retenciones</div><div class="mv" id="o-capturas">—</div><div class="ms">documentadas</div></div>
+        <div class="mm"><div class="ml">Coordinaciones PNP</div><div class="mv" id="o-coord">—</div><div class="ms">reuniones mes</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Cumplimiento de Supervisiones</div>
+          <div class="chart-wrap" style="height:210px;"><canvas id="chartSupervisiones"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Operativos Conjuntos con PNP</div>
+          <div id="operativos-list" style="margin-bottom:12px;"></div>
+          <div class="chart-wrap" style="height:130px;"><canvas id="chartOperativos"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Cumplimiento de Protocolos</div>
+        <div class="grid-3" style="gap:10px;margin-bottom:0;">
+          <div class="mm"><div class="ml">Uso de radio</div><div class="mv">97%</div><div class="ms">reportes completados</div></div>
+          <div class="mm"><div class="ml">Reportes diarios</div><div class="mv" id="o-reportes">—</div><div class="ms">vs. plan</div></div>
+          <div class="mm"><div class="ml">Tiempos de parada</div><div class="mv">Cumple</div><div class="ms">dentro de protocolo</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ━━━━ PERSONAL ━━━━ -->
+    <div class="section-panel" id="panel-personal">
+      <div class="section-header">
+        <h2>Gestión del Personal</h2>
+        <p>Asistencia, disciplina, rendimiento por supervisor y rotación</p>
+      </div>
+      <div class="grid-4 mb14">
+        <div class="mm"><div class="ml">Asistencia general</div><div class="mv" id="p-asist">—</div><div class="ms">% mensual</div></div>
+        <div class="mm"><div class="ml">Índice de tardanzas</div><div class="mv" id="p-tard">—</div><div class="ms">% por turno</div></div>
+        <div class="mm"><div class="ml">Incidencias discipl.</div><div class="mv" id="p-disc">—</div><div class="ms">llamadas / faltas</div></div>
+        <div class="mm"><div class="ml">Rotación personal</div><div class="mv" id="p-rot">—</div><div class="ms">cambios/reemplazos</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Ranking de Asistencia — Supervisores</div>
+          <div id="rank-asistencia" class="prog-wrap"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Asistencia por Turno</div>
+          <div class="chart-wrap" style="height:220px;"><canvas id="chartTurnos"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Evaluación de Rendimiento por Supervisor</div>
+        <div style="overflow-x:auto;">
+          <table class="tbl" id="tbl-rendimiento"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ━━━━ COORDINACIÓN ━━━━ -->
+    <div class="section-panel" id="panel-coordinacion">
+      <div class="section-header">
+        <h2>Coordinación Interinstitucional</h2>
+        <p>Reuniones con comisarías, patrullaje integrado y resultados conjuntos</p>
+      </div>
+      <div class="grid-4 mb14">
+        <div class="mm"><div class="ml">Reuniones comisaría</div><div class="mv" id="c-reuniones">—</div><div class="ms">este mes</div></div>
+        <div class="mm"><div class="ml">Patrullaje integrado</div><div class="mv" id="c-pat">—</div><div class="ms">% cumplimiento</div></div>
+        <div class="mm"><div class="ml">Zonas reforzadas</div><div class="mv" id="c-zonas">—</div><div class="ms">puntos críticos</div></div>
+        <div class="mm"><div class="ml">Acuerdos activos</div><div class="mv" id="c-acuerdos">—</div><div class="ms">con comisarías</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Patrullaje Integrado vs Planificado</div>
+          <div class="chart-wrap" style="height:220px;"><canvas id="chartPatInt"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Acuerdos y Compromisos con Comisarías</div>
+          <div id="acuerdos-list"></div>
+          <hr class="divider">
+          <div class="card-title" style="margin-top:4px;">Comisarías Involucradas</div>
+          <div id="comisarias-tags"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Resultados del Patrullaje Integrado</div>
+        <div class="grid-3" style="gap:10px;margin-bottom:0;">
+          <div class="mm"><div class="ml">Intervenciones conjuntas</div><div class="mv" id="c-intconj">—</div><div class="ms">PNP + Serenazgo</div></div>
+          <div class="mm"><div class="ml">Incidentes evitados</div><div class="mv" id="c-evitados">—</div><div class="ms">estimado</div></div>
+          <div class="mm"><div class="ml">Tiempo de respuesta</div><div class="mv">6.2 min</div><div class="ms">patrullaje integrado</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ━━━━ ESTRATEGIA ━━━━ -->
+    <div class="section-panel" id="panel-estrategia">
+      <div class="section-header">
+        <h2>Gestión Estratégica — Compromisos de Mejora</h2>
+        <p>Seguimiento de compromisos asumidos, avance y cumplimiento</p>
+      </div>
+      <div class="grid-4 mb14">
+        <div class="mm"><div class="ml">Total compromisos</div><div class="mv" id="e-total">—</div><div class="ms">activos</div></div>
+        <div class="mm"><div class="ml">Cumplidos</div><div class="mv" id="e-cumplidos">—</div><div class="ms">al 100%</div></div>
+        <div class="mm"><div class="ml">En progreso</div><div class="mv" id="e-progreso">—</div><div class="ms">parcial</div></div>
+        <div class="mm"><div class="ml">Promedio avance</div><div class="mv" id="e-prom">—</div><div class="ms">% general</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Compromisos por Sector</div>
+          <div class="chart-wrap" style="height:220px;"><canvas id="chartComp"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Detalle de Compromisos</div>
+          <div id="compromisos-detail"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Impacto de las Mejoras Implementadas</div>
+        <div class="grid-3" style="gap:10px;margin-bottom:0;">
+          <div class="mm"><div class="ml">Reducción incidentes</div><div class="mv" id="e-red">—</div><div class="ms">% vs. período anterior</div></div>
+          <div class="mm"><div class="ml">Aumento intervenciones</div><div class="mv" id="e-aum">—</div><div class="ms">% más que antes</div></div>
+          <div class="mm"><div class="ml">Mejora disciplina</div><div class="mv" id="e-disc">—</div><div class="ms">% reducción tardanzas</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ━━━━ RANKING ━━━━ -->
+    <div class="section-panel" id="panel-ranking">
+      <div class="section-header">
+        <h2>Ranking General por Sector</h2>
+        <p>Comparativo integral de todos los jefes de área — período mensual</p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Puntuación Global por Sector</div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="chartRankGlobal"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Radar Multidimensional</div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="chartRadar"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Tabla Comparativa — KPIs por Sector</div>
+        <table class="tbl" id="tbl-ranking">
+          <thead>
+            <tr>
+              <th>#</th><th>Jefe de Área</th><th>Sector</th>
+              <th class="num">Seguridad</th><th class="num">Operaciones</th>
+              <th class="num">Personal</th><th class="num">Coordinación</th>
+              <th class="num">Estrategia</th><th class="num">Puntaje</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-ranking"></tbody>
+        </table>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <div class="card-title">Medición Semanal — Checklist</div>
+        <div id="checklist-semanal"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+  <div class="footer">Dashboard C4 · Municipalidad de Santiago de Surco · Versión 1.0 · Abril 2025</div>
+</div><!-- /main -->
+
+<script src="script.js"></script>
+</body>
+</html>
