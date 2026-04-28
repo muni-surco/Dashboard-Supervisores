@@ -77,11 +77,11 @@
       <option value="8">Sector 8 — Supervisor Vargas</option>
       <option value="9">Sector 9 — Supervisor Reyes</option>
     </select>
-    <select id="selPeriodo" class="tb-select" onchange="updateDash()">
-      <option value="sem">Semanal</option>
-      <option value="quin">Quincenal</option>
-      <option value="men" selected>Mensual</option>
-    </select>
+    <div class="date-range">
+      <input type="date" id="fechaInicio" class="tb-date" onchange="updateDash()">
+      <span>al</span>
+      <input type="date" id="fechaFin" class="tb-date" onchange="updateDash()">
+    </div>
     <div class="badge-period" id="badgePeriod">Abril 2025</div>
   </div>
 

@@ -124,7 +124,7 @@ body {
 .topbar-title h1 { font-size: var(--tbase); font-weight: 700; color: var(--cp); }
 .topbar-title p  { font-size: var(--txs); color: var(--g5); margin-top: 2px; }
 
-.tb-select {
+.tb-select, .tb-date {
   background: var(--g1);
   border: 1px solid var(--g3);
   border-radius: var(--rmd);
@@ -136,7 +136,18 @@ body {
   outline: none;
   transition: border-color .15s;
 }
-.tb-select:focus { border-color: var(--cp); }
+.tb-select:focus, .tb-date:focus { border-color: var(--cp); }
+
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.date-range span {
+  font-size: var(--txs);
+  color: var(--g5);
+  font-weight: 600;
+}
 
 .badge-period {
   background: var(--cp);

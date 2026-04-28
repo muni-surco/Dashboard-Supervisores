@@ -1266,9 +1266,16 @@ function chartDefaults(){ return {
 // ─── UPDATE ───
 function updateDash(){
   const s = getSectorData();
-  const period = document.getElementById('selPeriodo').value;
-  document.getElementById('badgePeriod').textContent =
-    period==='sem'?'Sem. 16, 2025':period==='quin'?'1–15 Abr 2025':'Abril 2025';
+  const fStart = document.getElementById('fechaInicio').value;
+  const fEnd = document.getElementById('fechaFin').value;
+
+  if (fStart && fEnd) {
+    const d1 = new Date(fStart + 'T00:00:00');
+    const d2 = new Date(fEnd + 'T00:00:00');
+    const opt = { day: 'numeric', month: 'short' };
+    document.getElementById('badgePeriod').textContent =
+      `${d1.toLocaleDateString('es-ES', opt)} — ${d2.toLocaleDateString('es-ES', opt)} ${d2.getFullYear()}`;
+  }
   renderSelInfo(s);
   renderKPIs(s);
   renderResumen(s);
@@ -1625,6 +1632,14 @@ function showPanel(id, el){
 
 // ── INIT ──
 window.addEventListener('load', ()=>{
+  // Inicializar fechas: primer y último día del mes actual
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  document.getElementById('fechaInicio').value = firstDay.toISOString().split('T')[0];
+  document.getElementById('fechaFin').value = lastDay.toISOString().split('T')[0];
+
   updateDash();
   lucide.createIcons();
 });
