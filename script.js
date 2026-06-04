@@ -15,1212 +15,433 @@ const DS = {
 // ━━━━━━━━━━ DATA ━━━━━━━━━━
 const SECTORES = [
   {
-    "id": 1,
-    "nombre": "Supervisor Mendoza",
-    "sector": "Sector 1",
-    "initials": "SM",
-    "score": 68,
-    "kpis": {
-      "redDelict": 10,
-      "superv": 90,
-      "asistencia": 95,
-      "operativos": 4,
-      "compromisos": 80
-    },
-    "status": {
-      "redDelict": "verde",
-      "superv": "verde",
-      "asistencia": "verde",
-      "operativos": "verde",
-      "compromisos": "verde"
-    },
-    "incidentes": [
-      40,
-      42,
-      38,
-      35,
-      33,
-      30,
-      28
-    ],
-    "incTotal": 28,
-    "incVar": -5,
-    "tasaResp": 8.5,
-    "frustrados": 5,
-    "interv": 30,
-    "cobertura": 90,
-    "franjas": [
-      {
-        "l": "00–06h",
-        "v": 8,
-        "c": DS.primaryD
-      },
-      {
-        "l": "06–12h",
-        "v": 15,
-        "c": DS.success
-      },
-      {
-        "l": "12–18h",
-        "v": 22,
-        "c": DS.warning
-      },
-      {
-        "l": "18–24h",
-        "v": 31,
-        "c": DS.danger
-      }
-    ],
-    "tiposDelito": {
-      "Robos": 12,
-      "Hurtos": 8,
-      "Violencia": 5,
-      "Daños": 3,
-      "Otros": 2
-    },
-    "supRealizadas": 45,
-    "supPlan": 50,
-    "hallazgos": 10,
-    "capturas": 6,
-    "coordPNP": 5,
-    "operativosTipo": [
-      "Control de zona",
-      "Alcoholemia",
-      "Zonas críticas"
-    ],
-    "reportes": "90%",
-    "supervisores": [
-      {
-        "n": "Supervisor Mendoza",
-        "ast": 95
-      }
-    ],
-    "tardanzas": 2.5,
-    "disciplinarias": 1,
-    "rotacion": 0,
-    "rendimiento": [
-      {
-        "sup": "Supervisor Mendoza",
-        "rutas": 95,
-        "reportes": 95,
-        "actitud": 95,
-        "total": 95
-      }
-    ],
-    "reunionesComis": 3,
-    "patrInt": 85,
-    "zonasRef": 4,
-    "acuerdos": 2,
-    "acuerdosList": [
-      "Operativo semanal",
-      "Protocolo de alertas"
-    ],
-    "comisarias": [
-      "PNP Sector 1"
-    ],
-    "intConj": 15,
-    "evitados": 8,
-    "compromisos": [
-      {
-        "desc": "Aumentar supervisiones",
-        "pct": 90,
-        "st": "verde"
-      },
-      {
-        "desc": "Reducir tardanzas",
-        "pct": 80,
-        "st": "amarillo"
-      },
-      {
-        "desc": "Ruta nueva",
-        "pct": 100,
-        "st": "verde"
-      }
-    ],
-    "impReduc": 10,
-    "impAum": 15,
-    "impDisc": 10,
-    "dims": [
-      85,
-      90,
-      95,
-      80,
-      85
-    ]
-  },
-  {
-    "id": 2,
-    "nombre": "Supervisor Quispe",
-    "sector": "Sector 2",
-    "initials": "SQ",
-    "score": 84,
-    "kpis": {
-      "redDelict": 10,
-      "superv": 90,
-      "asistencia": 95,
-      "operativos": 4,
-      "compromisos": 80
-    },
-    "status": {
-      "redDelict": "verde",
-      "superv": "verde",
-      "asistencia": "verde",
-      "operativos": "verde",
-      "compromisos": "verde"
-    },
-    "incidentes": [
-      40,
-      42,
-      38,
-      35,
-      33,
-      30,
-      28
-    ],
-    "incTotal": 28,
-    "incVar": -5,
-    "tasaResp": 8.5,
-    "frustrados": 5,
-    "interv": 30,
-    "cobertura": 90,
-    "franjas": [
-      {
-        "l": "00–06h",
-        "v": 8,
-        "c": DS.primaryD
-      },
-      {
-        "l": "06–12h",
-        "v": 15,
-        "c": DS.success
-      },
-      {
-        "l": "12–18h",
-        "v": 22,
-        "c": DS.warning
-      },
-      {
-        "l": "18–24h",
-        "v": 31,
-        "c": DS.danger
-      }
-    ],
-    "tiposDelito": {
-      "Robos": 12,
-      "Hurtos": 8,
-      "Violencia": 5,
-      "Daños": 3,
-      "Otros": 2
-    },
-    "supRealizadas": 45,
-    "supPlan": 50,
-    "hallazgos": 10,
-    "capturas": 6,
-    "coordPNP": 5,
-    "operativosTipo": [
-      "Control de zona",
-      "Alcoholemia",
-      "Zonas críticas"
-    ],
-    "reportes": "90%",
-    "supervisores": [
-      {
-        "n": "Supervisor Quispe",
-        "ast": 95
-      }
-    ],
-    "tardanzas": 2.5,
-    "disciplinarias": 1,
-    "rotacion": 0,
-    "rendimiento": [
-      {
-        "sup": "Supervisor Quispe",
-        "rutas": 95,
-        "reportes": 95,
-        "actitud": 95,
-        "total": 95
-      }
-    ],
-    "reunionesComis": 3,
-    "patrInt": 85,
-    "zonasRef": 4,
-    "acuerdos": 2,
-    "acuerdosList": [
-      "Operativo semanal",
-      "Protocolo de alertas"
-    ],
-    "comisarias": [
-      "PNP Sector 2"
-    ],
-    "intConj": 15,
-    "evitados": 8,
-    "compromisos": [
-      {
-        "desc": "Aumentar supervisiones",
-        "pct": 90,
-        "st": "verde"
-      },
-      {
-        "desc": "Reducir tardanzas",
-        "pct": 80,
-        "st": "amarillo"
-      },
-      {
-        "desc": "Ruta nueva",
-        "pct": 100,
-        "st": "verde"
-      }
-    ],
-    "impReduc": 10,
-    "impAum": 15,
-    "impDisc": 10,
-    "dims": [
-      85,
-      90,
-      95,
-      80,
-      85
-    ]
-  },
-  {
-    "id": 3,
-    "nombre": "Supervisor Torres",
-    "sector": "Sector 3",
-    "initials": "ST",
-    "score": 78,
-    "kpis": {
-      "redDelict": 10,
-      "superv": 90,
-      "asistencia": 95,
-      "operativos": 4,
-      "compromisos": 80
-    },
-    "status": {
-      "redDelict": "verde",
-      "superv": "verde",
-      "asistencia": "verde",
-      "operativos": "verde",
-      "compromisos": "verde"
-    },
-    "incidentes": [
-      40,
-      42,
-      38,
-      35,
-      33,
-      30,
-      28
-    ],
-    "incTotal": 28,
-    "incVar": -5,
-    "tasaResp": 8.5,
-    "frustrados": 5,
-    "interv": 30,
-    "cobertura": 90,
-    "franjas": [
-      {
-        "l": "00–06h",
-        "v": 8,
-        "c": DS.primaryD
-      },
-      {
-        "l": "06–12h",
-        "v": 15,
-        "c": DS.success
-      },
-      {
-        "l": "12–18h",
-        "v": 22,
-        "c": DS.warning
-      },
-      {
-        "l": "18–24h",
-        "v": 31,
-        "c": DS.danger
-      }
-    ],
-    "tiposDelito": {
-      "Robos": 12,
-      "Hurtos": 8,
-      "Violencia": 5,
-      "Daños": 3,
-      "Otros": 2
-    },
-    "supRealizadas": 45,
-    "supPlan": 50,
-    "hallazgos": 10,
-    "capturas": 6,
-    "coordPNP": 5,
-    "operativosTipo": [
-      "Control de zona",
-      "Alcoholemia",
-      "Zonas críticas"
-    ],
-    "reportes": "90%",
-    "supervisores": [
-      {
-        "n": "Supervisor Torres",
-        "ast": 95
-      }
-    ],
-    "tardanzas": 2.5,
-    "disciplinarias": 1,
-    "rotacion": 0,
-    "rendimiento": [
-      {
-        "sup": "Supervisor Torres",
-        "rutas": 95,
-        "reportes": 95,
-        "actitud": 95,
-        "total": 95
-      }
-    ],
-    "reunionesComis": 3,
-    "patrInt": 85,
-    "zonasRef": 4,
-    "acuerdos": 2,
-    "acuerdosList": [
-      "Operativo semanal",
-      "Protocolo de alertas"
-    ],
-    "comisarias": [
-      "PNP Sector 3"
-    ],
-    "intConj": 15,
-    "evitados": 8,
-    "compromisos": [
-      {
-        "desc": "Aumentar supervisiones",
-        "pct": 90,
-        "st": "verde"
-      },
-      {
-        "desc": "Reducir tardanzas",
-        "pct": 80,
-        "st": "amarillo"
-      },
-      {
-        "desc": "Ruta nueva",
-        "pct": 100,
-        "st": "verde"
-      }
-    ],
-    "impReduc": 10,
-    "impAum": 15,
-    "impDisc": 10,
-    "dims": [
-      85,
-      90,
-      95,
-      80,
-      85
-    ]
-  },
-  {
-    "id": 4,
-    "nombre": "Supervisor Flores",
-    "sector": "Sector 4",
-    "initials": "SF",
+    "id": "1a",
+    "nombre": "Carlos Mendoza",
+    "sector": "Sector 1a",
+    "initials": "CM",
     "score": 82,
-    "kpis": {
-      "redDelict": 10,
-      "superv": 90,
-      "asistencia": 95,
-      "operativos": 4,
-      "compromisos": 80
-    },
-    "status": {
-      "redDelict": "verde",
-      "superv": "verde",
-      "asistencia": "verde",
-      "operativos": "verde",
-      "compromisos": "verde"
-    },
-    "incidentes": [
-      40,
-      42,
-      38,
-      35,
-      33,
-      30,
-      28
-    ],
-    "incTotal": 28,
-    "incVar": -5,
-    "tasaResp": 8.5,
-    "frustrados": 5,
-    "interv": 30,
-    "cobertura": 90,
+    "kpis": { "redDelict": 10, "superv": 92, "asistencia": 94, "operativos": 4, "compromisos": 85 },
+    "status": { "redDelict": "verde", "superv": "verde", "asistencia": "verde", "operativos": "verde", "compromisos": "verde" },
+    "incidentes": [38,40,36,34,31,28,26],
+    "incTotal": 26, "incVar": -4, "tasaResp": 7.5, "frustrados": 6, "interv": 32, "cobertura": 88,
     "franjas": [
-      {
-        "l": "00–06h",
-        "v": 8,
-        "c": DS.primaryD
-      },
-      {
-        "l": "06–12h",
-        "v": 15,
-        "c": DS.success
-      },
-      {
-        "l": "12–18h",
-        "v": 22,
-        "c": DS.warning
-      },
-      {
-        "l": "18–24h",
-        "v": 31,
-        "c": DS.danger
-      }
+      {"l":"00–06h","v":7,"c":DS.primaryD},{"l":"06–12h","v":14,"c":DS.success},
+      {"l":"12–18h","v":20,"c":DS.warning},{"l":"18–24h","v":28,"c":DS.danger}
     ],
-    "tiposDelito": {
-      "Robos": 12,
-      "Hurtos": 8,
-      "Violencia": 5,
-      "Daños": 3,
-      "Otros": 2
-    },
-    "supRealizadas": 45,
-    "supPlan": 50,
-    "hallazgos": 10,
-    "capturas": 6,
-    "coordPNP": 5,
-    "operativosTipo": [
-      "Control de zona",
-      "Alcoholemia",
-      "Zonas críticas"
+    "tiposDelito": {"Robos":11,"Hurtos":7,"Violencia":5,"Daños":3,"Otros":2},
+    "supRealizadas":44,"supPlan":48,"hallazgos":9,"capturas":5,"coordPNP":4,
+    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
+    "reportes":"88%",
+    "supervisores":[
+      {"n":"García (M)","ast":94},{"n":"López (T)","ast":87},{"n":"Martínez (N)","ast":91}
     ],
-    "reportes": "90%",
-    "supervisores": [
-      {
-        "n": "Supervisor Flores",
-        "ast": 95
-      }
+    "tardanzas":2.8,"disciplinarias":1,"rotacion":0,
+    "rendimiento":[
+      {"sup":"García (M)","rutas":92,"reportes":90,"actitud":95,"total":92},
+      {"sup":"López (T)","rutas":85,"reportes":88,"actitud":90,"total":88},
+      {"sup":"Martínez (N)","rutas":90,"reportes":92,"actitud":88,"total":90}
     ],
-    "tardanzas": 2.5,
-    "disciplinarias": 1,
-    "rotacion": 0,
-    "rendimiento": [
-      {
-        "sup": "Supervisor Flores",
-        "rutas": 95,
-        "reportes": 95,
-        "actitud": 95,
-        "total": 95
-      }
+    "reunionesComis":3,"patrInt":86,"zonasRef":4,"acuerdos":2,
+    "acuerdosList":["Operativo semanal","Protocolo de alertas"],
+    "comisarias":["PNP Sector 1a"],"intConj":15,"evitados":8,
+    "compromisos":[
+      {"desc":"Aumentar supervisiones","pct":90,"st":"verde"},
+      {"desc":"Reducir tardanzas","pct":80,"st":"amarillo"},
+      {"desc":"Ruta nueva","pct":100,"st":"verde"}
     ],
-    "reunionesComis": 3,
-    "patrInt": 85,
-    "zonasRef": 4,
-    "acuerdos": 2,
-    "acuerdosList": [
-      "Operativo semanal",
-      "Protocolo de alertas"
-    ],
-    "comisarias": [
-      "PNP Sector 4"
-    ],
-    "intConj": 15,
-    "evitados": 8,
-    "compromisos": [
-      {
-        "desc": "Aumentar supervisiones",
-        "pct": 90,
-        "st": "verde"
-      },
-      {
-        "desc": "Reducir tardanzas",
-        "pct": 80,
-        "st": "amarillo"
-      },
-      {
-        "desc": "Ruta nueva",
-        "pct": 100,
-        "st": "verde"
-      }
-    ],
-    "impReduc": 10,
-    "impAum": 15,
-    "impDisc": 10,
-    "dims": [
-      85,
-      90,
-      95,
-      80,
-      85
-    ]
+    "impReduc":10,"impAum":15,"impDisc":10,
+    "dims":[82,78,85,80,82]
   },
   {
-    "id": 5,
-    "nombre": "Supervisor Silva",
+    "id": "1b",
+    "nombre": "Rosa Quispe",
+    "sector": "Sector 1b",
+    "initials": "RQ",
+    "score": 75,
+    "kpis": { "redDelict": 8, "superv": 85, "asistencia": 90, "operativos": 3, "compromisos": 78 },
+    "status": { "redDelict": "amarillo", "superv": "verde", "asistencia": "verde", "operativos": "amarillo", "compromisos": "verde" },
+    "incidentes": [42,44,40,38,36,33,30],
+    "incTotal": 30, "incVar": -3, "tasaResp": 8.2, "frustrados": 4, "interv": 28, "cobertura": 82,
+    "franjas": [
+      {"l":"00–06h","v":9,"c":DS.primaryD},{"l":"06–12h","v":16,"c":DS.success},
+      {"l":"12–18h","v":23,"c":DS.warning},{"l":"18–24h","v":30,"c":DS.danger}
+    ],
+    "tiposDelito": {"Robos":13,"Hurtos":9,"Violencia":4,"Daños":3,"Otros":3},
+    "supRealizadas":40,"supPlan":48,"hallazgos":11,"capturas":4,"coordPNP":3,
+    "operativosTipo":["Control de zona","Alcoholemia"],
+    "reportes":"85%",
+    "supervisores":[
+      {"n":"Rodríguez (M)","ast":92},{"n":"Fernández (T)","ast":84},{"n":"Pérez (N)","ast":88}
+    ],
+    "tardanzas":4.5,"disciplinarias":2,"rotacion":1,
+    "rendimiento":[
+      {"sup":"Rodríguez (M)","rutas":88,"reportes":85,"actitud":90,"total":88},
+      {"sup":"Fernández (T)","rutas":82,"reportes":84,"actitud":86,"total":84},
+      {"sup":"Pérez (N)","rutas":86,"reportes":88,"actitud":84,"total":86}
+    ],
+    "reunionesComis":2,"patrInt":78,"zonasRef":3,"acuerdos":1,
+    "acuerdosList":["Operativo semanal"],
+    "comisarias":["PNP Sector 1b"],"intConj":12,"evitados":6,
+    "compromisos":[
+      {"desc":"Mejorar cobertura","pct":75,"st":"amarillo"},
+      {"desc":"Reducir tardanzas","pct":70,"st":"amarillo"},
+      {"desc":"Coord. con PNP","pct":60,"st":"amarillo"}
+    ],
+    "impReduc":8,"impAum":12,"impDisc":8,
+    "dims":[75,72,70,68,78]
+  },
+  {
+    "id": "2a",
+    "nombre": "Juan Torres",
+    "sector": "Sector 2a",
+    "initials": "JT",
+    "score": 88,
+    "kpis": { "redDelict": 12, "superv": 95, "asistencia": 97, "operativos": 5, "compromisos": 92 },
+    "status": { "redDelict": "verde", "superv": "verde", "asistencia": "verde", "operativos": "verde", "compromisos": "verde" },
+    "incidentes": [35,37,33,30,28,25,22],
+    "incTotal": 22, "incVar": -6, "tasaResp": 6.8, "frustrados": 7, "interv": 36, "cobertura": 94,
+    "franjas": [
+      {"l":"00–06h","v":6,"c":DS.primaryD},{"l":"06–12h","v":12,"c":DS.success},
+      {"l":"12–18h","v":18,"c":DS.warning},{"l":"18–24h","v":25,"c":DS.danger}
+    ],
+    "tiposDelito": {"Robos":9,"Hurtos":6,"Violencia":4,"Daños":2,"Otros":2},
+    "supRealizadas":47,"supPlan":50,"hallazgos":7,"capturas":7,"coordPNP":5,
+    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas","Operativo nocturno"],
+    "reportes":"95%",
+    "supervisores":[
+      {"n":"Díaz (M)","ast":97},{"n":"Sánchez (T)","ast":92},{"n":"Torres (N)","ast":94}
+    ],
+    "tardanzas":1.5,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[
+      {"sup":"Díaz (M)","rutas":96,"reportes":95,"actitud":98,"total":96},
+      {"sup":"Sánchez (T)","rutas":92,"reportes":90,"actitud":94,"total":92},
+      {"sup":"Torres (N)","rutas":94,"reportes":93,"actitud":92,"total":93}
+    ],
+    "reunionesComis":4,"patrInt":92,"zonasRef":5,"acuerdos":3,
+    "acuerdosList":["Operativo semanal","Protocolo de alertas","Patrullaje mixto"],
+    "comisarias":["PNP Sector 2a","PNP Zona Norte"],"intConj":18,"evitados":10,
+    "compromisos":[
+      {"desc":"Mantener tendencia","pct":95,"st":"verde"},
+      {"desc":"Capacitar personal","pct":85,"st":"verde"},
+      {"desc":"Ampliar cobertura","pct":90,"st":"verde"}
+    ],
+    "impReduc":12,"impAum":18,"impDisc":12,
+    "dims":[88,85,92,88,86]
+  },
+  {
+    "id": "2b",
+    "nombre": "María Flores",
+    "sector": "Sector 2b",
+    "initials": "MF",
+    "score": 70,
+    "kpis": { "redDelict": 7, "superv": 80, "asistencia": 88, "operativos": 3, "compromisos": 72 },
+    "status": { "redDelict": "amarillo", "superv": "amarillo", "asistencia": "verde", "operativos": "amarillo", "compromisos": "amarillo" },
+    "incidentes": [45,47,43,41,39,37,35],
+    "incTotal": 35, "incVar": -2, "tasaResp": 9.0, "frustrados": 3, "interv": 24, "cobertura": 78,
+    "franjas": [
+      {"l":"00–06h","v":10,"c":DS.primaryD},{"l":"06–12h","v":18,"c":DS.success},
+      {"l":"12–18h","v":25,"c":DS.warning},{"l":"18–24h","v":33,"c":DS.danger}
+    ],
+    "tiposDelito": {"Robos":14,"Hurtos":10,"Violencia":6,"Daños":4,"Otros":3},
+    "supRealizadas":38,"supPlan":48,"hallazgos":12,"capturas":3,"coordPNP":3,
+    "operativosTipo":["Control de zona","Alcoholemia"],
+    "reportes":"82%",
+    "supervisores":[
+      {"n":"Ramírez (M)","ast":90},{"n":"Morales (T)","ast":82},{"n":"Castillo (N)","ast":85}
+    ],
+    "tardanzas":5.2,"disciplinarias":2,"rotacion":1,
+    "rendimiento":[
+      {"sup":"Ramírez (M)","rutas":85,"reportes":82,"actitud":88,"total":85},
+      {"sup":"Morales (T)","rutas":80,"reportes":80,"actitud":82,"total":81},
+      {"sup":"Castillo (N)","rutas":83,"reportes":85,"actitud":80,"total":83}
+    ],
+    "reunionesComis":2,"patrInt":72,"zonasRef":3,"acuerdos":1,
+    "acuerdosList":["Operativo semanal"],
+    "comisarias":["PNP Sector 2b"],"intConj":10,"evitados":5,
+    "compromisos":[
+      {"desc":"Mejorar supervisión","pct":65,"st":"amarillo"},
+      {"desc":"Reducir incidentes","pct":55,"st":"rojo"},
+      {"desc":"Fortalecer coord.","pct":70,"st":"amarillo"}
+    ],
+    "impReduc":6,"impAum":10,"impDisc":5,
+    "dims":[70,68,65,72,74]
+  },
+  {
+    "id": "3",
+    "nombre": "Pedro Silva",
+    "sector": "Sector 3",
+    "initials": "PS",
+    "score": 79,
+    "kpis": { "redDelict": 9, "superv": 88, "asistencia": 93, "operativos": 4, "compromisos": 82 },
+    "status": { "redDelict": "verde", "superv": "verde", "asistencia": "verde", "operativos": "verde", "compromisos": "verde" },
+    "incidentes": [40,42,38,36,34,31,29],
+    "incTotal": 29, "incVar": -4, "tasaResp": 7.8, "frustrados": 5, "interv": 30, "cobertura": 86,
+    "franjas": [
+      {"l":"00–06h","v":8,"c":DS.primaryD},{"l":"06–12h","v":15,"c":DS.success},
+      {"l":"12–18h","v":21,"c":DS.warning},{"l":"18–24h","v":29,"c":DS.danger}
+    ],
+    "tiposDelito": {"Robos":12,"Hurtos":8,"Violencia":5,"Daños":3,"Otros":2},
+    "supRealizadas":43,"supPlan":50,"hallazgos":10,"capturas":5,"coordPNP":4,
+    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
+    "reportes":"90%",
+    "supervisores":[
+      {"n":"Ortiz (M)","ast":95},{"n":"Vega (T)","ast":88},{"n":"Ramos (N)","ast":90}
+    ],
+    "tardanzas":3.0,"disciplinarias":1,"rotacion":0,
+    "rendimiento":[
+      {"sup":"Ortiz (M)","rutas":93,"reportes":90,"actitud":95,"total":93},
+      {"sup":"Vega (T)","rutas":86,"reportes":88,"actitud":88,"total":87},
+      {"sup":"Ramos (N)","rutas":90,"reportes":91,"actitud":86,"total":89}
+    ],
+    "reunionesComis":3,"patrInt":82,"zonasRef":4,"acuerdos":2,
+    "acuerdosList":["Operativo semanal","Protocolo de alertas"],
+    "comisarias":["PNP Sector 3"],"intConj":14,"evitados":7,
+    "compromisos":[
+      {"desc":"Aumentar supervisiones","pct":88,"st":"verde"},
+      {"desc":"Reducir tardanzas","pct":78,"st":"amarillo"},
+      {"desc":"Ruta nueva","pct":95,"st":"verde"}
+    ],
+    "impReduc":9,"impAum":14,"impDisc":9,
+    "dims":[79,76,80,78,82]
+  },
+  {
+    "id": "4",
+    "nombre": "Pedro Silva",
+    "sector": "Sector 4",
+    "initials": "PS",
+    "score": 76,
+    "kpis": { "redDelict": 8, "superv": 86, "asistencia": 92, "operativos": 3, "compromisos": 80 },
+    "status": { "redDelict": "amarillo", "superv": "verde", "asistencia": "verde", "operativos": "amarillo", "compromisos": "verde" },
+    "incidentes": [41,43,39,37,35,32,30],
+    "incTotal": 30, "incVar": -3, "tasaResp": 8.0, "frustrados": 5, "interv": 28, "cobertura": 84,
+    "franjas": [
+      {"l":"00–06h","v":8,"c":DS.primaryD},{"l":"06–12h","v":15,"c":DS.success},
+      {"l":"12–18h","v":22,"c":DS.warning},{"l":"18–24h","v":30,"c":DS.danger}
+    ],
+    "tiposDelito": {"Robos":12,"Hurtos":8,"Violencia":5,"Daños":4,"Otros":2},
+    "supRealizadas":41,"supPlan":48,"hallazgos":10,"capturas":4,"coordPNP":4,
+    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
+    "reportes":"88%",
+    "supervisores":[
+      {"n":"Medina (M)","ast":93},{"n":"Cruz (T)","ast":86},{"n":"Rivas (N)","ast":89}
+    ],
+    "tardanzas":3.5,"disciplinarias":1,"rotacion":0,
+    "rendimiento":[
+      {"sup":"Medina (M)","rutas":90,"reportes":88,"actitud":92,"total":90},
+      {"sup":"Cruz (T)","rutas":84,"reportes":86,"actitud":88,"total":86},
+      {"sup":"Rivas (N)","rutas":88,"reportes":90,"actitud":85,"total":88}
+    ],
+    "reunionesComis":3,"patrInt":80,"zonasRef":4,"acuerdos":2,
+    "acuerdosList":["Operativo semanal","Protocolo de alertas"],
+    "comisarias":["PNP Sector 4"],"intConj":13,"evitados":7,
+    "compromisos":[
+      {"desc":"Aumentar supervisiones","pct":85,"st":"verde"},
+      {"desc":"Reducir tardanzas","pct":75,"st":"amarillo"},
+      {"desc":"Coord. vecinal","pct":80,"st":"amarillo"}
+    ],
+    "impReduc":8,"impAum":13,"impDisc":8,
+    "dims":[76,74,78,76,80]
+  },
+  {
+    "id": "5",
+    "nombre": "Ana Castro",
     "sector": "Sector 5",
-    "initials": "SS",
-    "score": 80,
-    "kpis": {
-      "redDelict": 10,
-      "superv": 90,
-      "asistencia": 95,
-      "operativos": 4,
-      "compromisos": 80
-    },
-    "status": {
-      "redDelict": "verde",
-      "superv": "verde",
-      "asistencia": "verde",
-      "operativos": "verde",
-      "compromisos": "verde"
-    },
-    "incidentes": [
-      40,
-      42,
-      38,
-      35,
-      33,
-      30,
-      28
-    ],
-    "incTotal": 28,
-    "incVar": -5,
-    "tasaResp": 8.5,
-    "frustrados": 5,
-    "interv": 30,
-    "cobertura": 90,
+    "initials": "AC",
+    "score": 84,
+    "kpis": { "redDelict": 11, "superv": 92, "asistencia": 95, "operativos": 5, "compromisos": 88 },
+    "status": { "redDelict": "verde", "superv": "verde", "asistencia": "verde", "operativos": "verde", "compromisos": "verde" },
+    "incidentes": [37,39,35,33,30,27,24],
+    "incTotal": 24, "incVar": -5, "tasaResp": 7.2, "frustrados": 6, "interv": 34, "cobertura": 90,
     "franjas": [
-      {
-        "l": "00–06h",
-        "v": 8,
-        "c": DS.primaryD
-      },
-      {
-        "l": "06–12h",
-        "v": 15,
-        "c": DS.success
-      },
-      {
-        "l": "12–18h",
-        "v": 22,
-        "c": DS.warning
-      },
-      {
-        "l": "18–24h",
-        "v": 31,
-        "c": DS.danger
-      }
+      {"l":"00–06h","v":7,"c":DS.primaryD},{"l":"06–12h","v":13,"c":DS.success},
+      {"l":"12–18h","v":19,"c":DS.warning},{"l":"18–24h","v":27,"c":DS.danger}
     ],
-    "tiposDelito": {
-      "Robos": 12,
-      "Hurtos": 8,
-      "Violencia": 5,
-      "Daños": 3,
-      "Otros": 2
-    },
-    "supRealizadas": 45,
-    "supPlan": 50,
-    "hallazgos": 10,
-    "capturas": 6,
-    "coordPNP": 5,
-    "operativosTipo": [
-      "Control de zona",
-      "Alcoholemia",
-      "Zonas críticas"
+    "tiposDelito": {"Robos":10,"Hurtos":7,"Violencia":4,"Daños":3,"Otros":2},
+    "supRealizadas":46,"supPlan":50,"hallazgos":8,"capturas":6,"coordPNP":5,
+    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas","Operativo nocturno"],
+    "reportes":"93%",
+    "supervisores":[
+      {"n":"Campos (M)","ast":96},{"n":"Chávez (T)","ast":90},{"n":"Acosta (N)","ast":93}
     ],
-    "reportes": "90%",
-    "supervisores": [
-      {
-        "n": "Supervisor Silva",
-        "ast": 95
-      }
+    "tardanzas":2.0,"disciplinarias":1,"rotacion":0,
+    "rendimiento":[
+      {"sup":"Campos (M)","rutas":94,"reportes":93,"actitud":96,"total":94},
+      {"sup":"Chávez (T)","rutas":90,"reportes":88,"actitud":92,"total":90},
+      {"sup":"Acosta (N)","rutas":92,"reportes":91,"actitud":90,"total":91}
     ],
-    "tardanzas": 2.5,
-    "disciplinarias": 1,
-    "rotacion": 0,
-    "rendimiento": [
-      {
-        "sup": "Supervisor Silva",
-        "rutas": 95,
-        "reportes": 95,
-        "actitud": 95,
-        "total": 95
-      }
+    "reunionesComis":4,"patrInt":88,"zonasRef":5,"acuerdos":2,
+    "acuerdosList":["Operativo semanal","Patrullaje mixto"],
+    "comisarias":["PNP Sector 5","PNP Zona Sur"],"intConj":16,"evitados":9,
+    "compromisos":[
+      {"desc":"Mantener reducción","pct":92,"st":"verde"},
+      {"desc":"Capacitar supervisores","pct":85,"st":"verde"},
+      {"desc":"Nuevas rutas","pct":88,"st":"verde"}
     ],
-    "reunionesComis": 3,
-    "patrInt": 85,
-    "zonasRef": 4,
-    "acuerdos": 2,
-    "acuerdosList": [
-      "Operativo semanal",
-      "Protocolo de alertas"
-    ],
-    "comisarias": [
-      "PNP Sector 5"
-    ],
-    "intConj": 15,
-    "evitados": 8,
-    "compromisos": [
-      {
-        "desc": "Aumentar supervisiones",
-        "pct": 90,
-        "st": "verde"
-      },
-      {
-        "desc": "Reducir tardanzas",
-        "pct": 80,
-        "st": "amarillo"
-      },
-      {
-        "desc": "Ruta nueva",
-        "pct": 100,
-        "st": "verde"
-      }
-    ],
-    "impReduc": 10,
-    "impAum": 15,
-    "impDisc": 10,
-    "dims": [
-      85,
-      90,
-      95,
-      80,
-      85
-    ]
+    "impReduc":11,"impAum":16,"impDisc":11,
+    "dims":[84,82,88,84,84]
   },
   {
-    "id": 6,
-    "nombre": "Supervisor Castro",
+    "id": "6",
+    "nombre": "Luis Paz",
     "sector": "Sector 6",
-    "initials": "SC",
-    "score": 62,
-    "kpis": {
-      "redDelict": 10,
-      "superv": 90,
-      "asistencia": 95,
-      "operativos": 4,
-      "compromisos": 80
-    },
-    "status": {
-      "redDelict": "verde",
-      "superv": "verde",
-      "asistencia": "verde",
-      "operativos": "verde",
-      "compromisos": "verde"
-    },
-    "incidentes": [
-      40,
-      42,
-      38,
-      35,
-      33,
-      30,
-      28
-    ],
-    "incTotal": 28,
-    "incVar": -5,
-    "tasaResp": 8.5,
-    "frustrados": 5,
-    "interv": 30,
-    "cobertura": 90,
+    "initials": "LP",
+    "score": 65,
+    "kpis": { "redDelict": 6, "superv": 78, "asistencia": 85, "operativos": 2, "compromisos": 68 },
+    "status": { "redDelict": "rojo", "superv": "amarillo", "asistencia": "verde", "operativos": "rojo", "compromisos": "amarillo" },
+    "incidentes": [48,50,46,44,42,39,37],
+    "incTotal": 37, "incVar": -2, "tasaResp": 9.5, "frustrados": 3, "interv": 22, "cobertura": 72,
     "franjas": [
-      {
-        "l": "00–06h",
-        "v": 8,
-        "c": DS.primaryD
-      },
-      {
-        "l": "06–12h",
-        "v": 15,
-        "c": DS.success
-      },
-      {
-        "l": "12–18h",
-        "v": 22,
-        "c": DS.warning
-      },
-      {
-        "l": "18–24h",
-        "v": 31,
-        "c": DS.danger
-      }
+      {"l":"00–06h","v":11,"c":DS.primaryD},{"l":"06–12h","v":19,"c":DS.success},
+      {"l":"12–18h","v":26,"c":DS.warning},{"l":"18–24h","v":35,"c":DS.danger}
     ],
-    "tiposDelito": {
-      "Robos": 12,
-      "Hurtos": 8,
-      "Violencia": 5,
-      "Daños": 3,
-      "Otros": 2
-    },
-    "supRealizadas": 45,
-    "supPlan": 50,
-    "hallazgos": 10,
-    "capturas": 6,
-    "coordPNP": 5,
-    "operativosTipo": [
-      "Control de zona",
-      "Alcoholemia",
-      "Zonas críticas"
+    "tiposDelito": {"Robos":15,"Hurtos":11,"Violencia":7,"Daños":4,"Otros":3},
+    "supRealizadas":35,"supPlan":46,"hallazgos":14,"capturas":3,"coordPNP":2,
+    "operativosTipo":["Control de zona"],
+    "reportes":"78%",
+    "supervisores":[
+      {"n":"Salazar (M)","ast":87},{"n":"Guerrero (T)","ast":80},{"n":"Paredes (N)","ast":82}
     ],
-    "reportes": "90%",
-    "supervisores": [
-      {
-        "n": "Supervisor Castro",
-        "ast": 95
-      }
+    "tardanzas":6.0,"disciplinarias":3,"rotacion":2,
+    "rendimiento":[
+      {"sup":"Salazar (M)","rutas":82,"reportes":78,"actitud":85,"total":82},
+      {"sup":"Guerrero (T)","rutas":78,"reportes":76,"actitud":80,"total":78},
+      {"sup":"Paredes (N)","rutas":80,"reportes":80,"actitud":78,"total":79}
     ],
-    "tardanzas": 2.5,
-    "disciplinarias": 1,
-    "rotacion": 0,
-    "rendimiento": [
-      {
-        "sup": "Supervisor Castro",
-        "rutas": 95,
-        "reportes": 95,
-        "actitud": 95,
-        "total": 95
-      }
+    "reunionesComis":2,"patrInt":68,"zonasRef":3,"acuerdos":1,
+    "acuerdosList":["Operativo semanal"],
+    "comisarias":["PNP Sector 6"],"intConj":9,"evitados":4,
+    "compromisos":[
+      {"desc":"Reducir incidentes","pct":50,"st":"rojo"},
+      {"desc":"Mejorar asistencia","pct":65,"st":"amarillo"},
+      {"desc":"Coord. con PNP","pct":55,"st":"rojo"}
     ],
-    "reunionesComis": 3,
-    "patrInt": 85,
-    "zonasRef": 4,
-    "acuerdos": 2,
-    "acuerdosList": [
-      "Operativo semanal",
-      "Protocolo de alertas"
-    ],
-    "comisarias": [
-      "PNP Sector 6"
-    ],
-    "intConj": 15,
-    "evitados": 8,
-    "compromisos": [
-      {
-        "desc": "Aumentar supervisiones",
-        "pct": 90,
-        "st": "verde"
-      },
-      {
-        "desc": "Reducir tardanzas",
-        "pct": 80,
-        "st": "amarillo"
-      },
-      {
-        "desc": "Ruta nueva",
-        "pct": 100,
-        "st": "verde"
-      }
-    ],
-    "impReduc": 10,
-    "impAum": 15,
-    "impDisc": 10,
-    "dims": [
-      85,
-      90,
-      95,
-      80,
-      85
-    ]
+    "impReduc":5,"impAum":8,"impDisc":4,
+    "dims":[65,62,60,64,70]
   },
   {
-    "id": 7,
-    "nombre": "Supervisor Paz",
+    "id": "7",
+    "nombre": "Carmen Vargas",
     "sector": "Sector 7",
-    "initials": "SP",
-    "score": 63,
-    "kpis": {
-      "redDelict": 10,
-      "superv": 90,
-      "asistencia": 95,
-      "operativos": 4,
-      "compromisos": 80
-    },
-    "status": {
-      "redDelict": "verde",
-      "superv": "verde",
-      "asistencia": "verde",
-      "operativos": "verde",
-      "compromisos": "verde"
-    },
-    "incidentes": [
-      40,
-      42,
-      38,
-      35,
-      33,
-      30,
-      28
-    ],
-    "incTotal": 28,
-    "incVar": -5,
-    "tasaResp": 8.5,
-    "frustrados": 5,
-    "interv": 30,
-    "cobertura": 90,
+    "initials": "CV",
+    "score": 68,
+    "kpis": { "redDelict": 7, "superv": 80, "asistencia": 87, "operativos": 3, "compromisos": 70 },
+    "status": { "redDelict": "amarillo", "superv": "amarillo", "asistencia": "verde", "operativos": "amarillo", "compromisos": "amarillo" },
+    "incidentes": [46,48,44,42,40,37,34],
+    "incTotal": 34, "incVar": -3, "tasaResp": 9.2, "frustrados": 4, "interv": 24, "cobertura": 74,
     "franjas": [
-      {
-        "l": "00–06h",
-        "v": 8,
-        "c": DS.primaryD
-      },
-      {
-        "l": "06–12h",
-        "v": 15,
-        "c": DS.success
-      },
-      {
-        "l": "12–18h",
-        "v": 22,
-        "c": DS.warning
-      },
-      {
-        "l": "18–24h",
-        "v": 31,
-        "c": DS.danger
-      }
+      {"l":"00–06h","v":10,"c":DS.primaryD},{"l":"06–12h","v":17,"c":DS.success},
+      {"l":"12–18h","v":24,"c":DS.warning},{"l":"18–24h","v":32,"c":DS.danger}
     ],
-    "tiposDelito": {
-      "Robos": 12,
-      "Hurtos": 8,
-      "Violencia": 5,
-      "Daños": 3,
-      "Otros": 2
-    },
-    "supRealizadas": 45,
-    "supPlan": 50,
-    "hallazgos": 10,
-    "capturas": 6,
-    "coordPNP": 5,
-    "operativosTipo": [
-      "Control de zona",
-      "Alcoholemia",
-      "Zonas críticas"
+    "tiposDelito": {"Robos":14,"Hurtos":9,"Violencia":6,"Daños":3,"Otros":3},
+    "supRealizadas":37,"supPlan":46,"hallazgos":13,"capturas":3,"coordPNP":3,
+    "operativosTipo":["Control de zona","Alcoholemia"],
+    "reportes":"80%",
+    "supervisores":[
+      {"n":"Huamán (M)","ast":88},{"n":"Córdova (T)","ast":82},{"n":"Tapia (N)","ast":85}
     ],
-    "reportes": "90%",
-    "supervisores": [
-      {
-        "n": "Supervisor Paz",
-        "ast": 95
-      }
+    "tardanzas":5.5,"disciplinarias":2,"rotacion":1,
+    "rendimiento":[
+      {"sup":"Huamán (M)","rutas":84,"reportes":80,"actitud":86,"total":83},
+      {"sup":"Córdova (T)","rutas":80,"reportes":78,"actitud":82,"total":80},
+      {"sup":"Tapia (N)","rutas":82,"reportes":84,"actitud":80,"total":82}
     ],
-    "tardanzas": 2.5,
-    "disciplinarias": 1,
-    "rotacion": 0,
-    "rendimiento": [
-      {
-        "sup": "Supervisor Paz",
-        "rutas": 95,
-        "reportes": 95,
-        "actitud": 95,
-        "total": 95
-      }
+    "reunionesComis":2,"patrInt":70,"zonasRef":3,"acuerdos":1,
+    "acuerdosList":["Operativo semanal"],
+    "comisarias":["PNP Sector 7"],"intConj":10,"evitados":5,
+    "compromisos":[
+      {"desc":"Reducir incidentes","pct":60,"st":"amarillo"},
+      {"desc":"Mejorar supervisión","pct":70,"st":"amarillo"},
+      {"desc":"Coord. vecinal","pct":65,"st":"amarillo"}
     ],
-    "reunionesComis": 3,
-    "patrInt": 85,
-    "zonasRef": 4,
-    "acuerdos": 2,
-    "acuerdosList": [
-      "Operativo semanal",
-      "Protocolo de alertas"
-    ],
-    "comisarias": [
-      "PNP Sector 7"
-    ],
-    "intConj": 15,
-    "evitados": 8,
-    "compromisos": [
-      {
-        "desc": "Aumentar supervisiones",
-        "pct": 90,
-        "st": "verde"
-      },
-      {
-        "desc": "Reducir tardanzas",
-        "pct": 80,
-        "st": "amarillo"
-      },
-      {
-        "desc": "Ruta nueva",
-        "pct": 100,
-        "st": "verde"
-      }
-    ],
-    "impReduc": 10,
-    "impAum": 15,
-    "impDisc": 10,
-    "dims": [
-      85,
-      90,
-      95,
-      80,
-      85
-    ]
+    "impReduc":6,"impAum":10,"impDisc":6,
+    "dims":[68,66,64,68,72]
   },
   {
-    "id": 8,
-    "nombre": "Supervisor Vargas",
+    "id": "8",
+    "nombre": "José Reyes",
     "sector": "Sector 8",
-    "initials": "SV",
-    "score": 64,
-    "kpis": {
-      "redDelict": 10,
-      "superv": 90,
-      "asistencia": 95,
-      "operativos": 4,
-      "compromisos": 80
-    },
-    "status": {
-      "redDelict": "verde",
-      "superv": "verde",
-      "asistencia": "verde",
-      "operativos": "verde",
-      "compromisos": "verde"
-    },
-    "incidentes": [
-      40,
-      42,
-      38,
-      35,
-      33,
-      30,
-      28
-    ],
-    "incTotal": 28,
-    "incVar": -5,
-    "tasaResp": 8.5,
-    "frustrados": 5,
-    "interv": 30,
-    "cobertura": 90,
+    "initials": "JR",
+    "score": 73,
+    "kpis": { "redDelict": 8, "superv": 84, "asistencia": 90, "operativos": 3, "compromisos": 76 },
+    "status": { "redDelict": "amarillo", "superv": "verde", "asistencia": "verde", "operativos": "amarillo", "compromisos": "verde" },
+    "incidentes": [43,45,41,39,37,34,32],
+    "incTotal": 32, "incVar": -3, "tasaResp": 8.5, "frustrados": 4, "interv": 26, "cobertura": 80,
     "franjas": [
-      {
-        "l": "00–06h",
-        "v": 8,
-        "c": DS.primaryD
-      },
-      {
-        "l": "06–12h",
-        "v": 15,
-        "c": DS.success
-      },
-      {
-        "l": "12–18h",
-        "v": 22,
-        "c": DS.warning
-      },
-      {
-        "l": "18–24h",
-        "v": 31,
-        "c": DS.danger
-      }
+      {"l":"00–06h","v":9,"c":DS.primaryD},{"l":"06–12h","v":16,"c":DS.success},
+      {"l":"12–18h","v":22,"c":DS.warning},{"l":"18–24h","v":31,"c":DS.danger}
     ],
-    "tiposDelito": {
-      "Robos": 12,
-      "Hurtos": 8,
-      "Violencia": 5,
-      "Daños": 3,
-      "Otros": 2
-    },
-    "supRealizadas": 45,
-    "supPlan": 50,
-    "hallazgos": 10,
-    "capturas": 6,
-    "coordPNP": 5,
-    "operativosTipo": [
-      "Control de zona",
-      "Alcoholemia",
-      "Zonas críticas"
+    "tiposDelito": {"Robos":13,"Hurtos":8,"Violencia":5,"Daños":3,"Otros":3},
+    "supRealizadas":40,"supPlan":48,"hallazgos":11,"capturas":4,"coordPNP":3,
+    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
+    "reportes":"85%",
+    "supervisores":[
+      {"n":"Molina (M)","ast":91},{"n":"Delgado (T)","ast":84},{"n":"Navarro (N)","ast":87}
     ],
-    "reportes": "90%",
-    "supervisores": [
-      {
-        "n": "Supervisor Vargas",
-        "ast": 95
-      }
+    "tardanzas":4.0,"disciplinarias":1,"rotacion":1,
+    "rendimiento":[
+      {"sup":"Molina (M)","rutas":88,"reportes":85,"actitud":90,"total":88},
+      {"sup":"Delgado (T)","rutas":82,"reportes":84,"actitud":86,"total":84},
+      {"sup":"Navarro (N)","rutas":86,"reportes":87,"actitud":84,"total":86}
     ],
-    "tardanzas": 2.5,
-    "disciplinarias": 1,
-    "rotacion": 0,
-    "rendimiento": [
-      {
-        "sup": "Supervisor Vargas",
-        "rutas": 95,
-        "reportes": 95,
-        "actitud": 95,
-        "total": 95
-      }
+    "reunionesComis":3,"patrInt":76,"zonasRef":3,"acuerdos":2,
+    "acuerdosList":["Operativo semanal","Protocolo de alertas"],
+    "comisarias":["PNP Sector 8"],"intConj":12,"evitados":6,
+    "compromisos":[
+      {"desc":"Aumentar supervisiones","pct":82,"st":"verde"},
+      {"desc":"Reducir tardanzas","pct":72,"st":"amarillo"},
+      {"desc":"Mejorar cobertura","pct":76,"st":"amarillo"}
     ],
-    "reunionesComis": 3,
-    "patrInt": 85,
-    "zonasRef": 4,
-    "acuerdos": 2,
-    "acuerdosList": [
-      "Operativo semanal",
-      "Protocolo de alertas"
-    ],
-    "comisarias": [
-      "PNP Sector 8"
-    ],
-    "intConj": 15,
-    "evitados": 8,
-    "compromisos": [
-      {
-        "desc": "Aumentar supervisiones",
-        "pct": 90,
-        "st": "verde"
-      },
-      {
-        "desc": "Reducir tardanzas",
-        "pct": 80,
-        "st": "amarillo"
-      },
-      {
-        "desc": "Ruta nueva",
-        "pct": 100,
-        "st": "verde"
-      }
-    ],
-    "impReduc": 10,
-    "impAum": 15,
-    "impDisc": 10,
-    "dims": [
-      85,
-      90,
-      95,
-      80,
-      85
-    ]
+    "impReduc":7,"impAum":12,"impDisc":7,
+    "dims":[73,70,72,74,76]
   },
   {
-    "id": 9,
-    "nombre": "Supervisor Reyes",
+    "id": "9",
+    "nombre": "Elena Rivas",
     "sector": "Sector 9",
-    "initials": "SR",
-    "score": 90,
-    "kpis": {
-      "redDelict": 10,
-      "superv": 90,
-      "asistencia": 95,
-      "operativos": 4,
-      "compromisos": 80
-    },
-    "status": {
-      "redDelict": "verde",
-      "superv": "verde",
-      "asistencia": "verde",
-      "operativos": "verde",
-      "compromisos": "verde"
-    },
-    "incidentes": [
-      40,
-      42,
-      38,
-      35,
-      33,
-      30,
-      28
-    ],
-    "incTotal": 28,
-    "incVar": -5,
-    "tasaResp": 8.5,
-    "frustrados": 5,
-    "interv": 30,
-    "cobertura": 90,
+    "initials": "ER",
+    "score": 91,
+    "kpis": { "redDelict": 13, "superv": 96, "asistencia": 98, "operativos": 6, "compromisos": 95 },
+    "status": { "redDelict": "verde", "superv": "verde", "asistencia": "verde", "operativos": "verde", "compromisos": "verde" },
+    "incidentes": [32,34,30,27,24,21,18],
+    "incTotal": 18, "incVar": -7, "tasaResp": 6.2, "frustrados": 8, "interv": 38, "cobertura": 96,
     "franjas": [
-      {
-        "l": "00–06h",
-        "v": 8,
-        "c": DS.primaryD
-      },
-      {
-        "l": "06–12h",
-        "v": 15,
-        "c": DS.success
-      },
-      {
-        "l": "12–18h",
-        "v": 22,
-        "c": DS.warning
-      },
-      {
-        "l": "18–24h",
-        "v": 31,
-        "c": DS.danger
-      }
+      {"l":"00–06h","v":5,"c":DS.primaryD},{"l":"06–12h","v":11,"c":DS.success},
+      {"l":"12–18h","v":16,"c":DS.warning},{"l":"18–24h","v":22,"c":DS.danger}
     ],
-    "tiposDelito": {
-      "Robos": 12,
-      "Hurtos": 8,
-      "Violencia": 5,
-      "Daños": 3,
-      "Otros": 2
-    },
-    "supRealizadas": 45,
-    "supPlan": 50,
-    "hallazgos": 10,
-    "capturas": 6,
-    "coordPNP": 5,
-    "operativosTipo": [
-      "Control de zona",
-      "Alcoholemia",
-      "Zonas críticas"
+    "tiposDelito": {"Robos":8,"Hurtos":5,"Violencia":3,"Daños":2,"Otros":2},
+    "supRealizadas":49,"supPlan":50,"hallazgos":6,"capturas":8,"coordPNP":6,
+    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas","Operativo nocturno","Patrullaje mixto"],
+    "reportes":"98%",
+    "supervisores":[
+      {"n":"Valencia (M)","ast":98},{"n":"Pacheco (T)","ast":95},{"n":"Villegas (N)","ast":96}
     ],
-    "reportes": "90%",
-    "supervisores": [
-      {
-        "n": "Supervisor Reyes",
-        "ast": 95
-      }
+    "tardanzas":1.0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[
+      {"sup":"Valencia (M)","rutas":98,"reportes":96,"actitud":98,"total":97},
+      {"sup":"Pacheco (T)","rutas":95,"reportes":94,"actitud":96,"total":95},
+      {"sup":"Villegas (N)","rutas":96,"reportes":95,"actitud":94,"total":95}
     ],
-    "tardanzas": 2.5,
-    "disciplinarias": 1,
-    "rotacion": 0,
-    "rendimiento": [
-      {
-        "sup": "Supervisor Reyes",
-        "rutas": 95,
-        "reportes": 95,
-        "actitud": 95,
-        "total": 95
-      }
+    "reunionesComis":5,"patrInt":95,"zonasRef":6,"acuerdos":3,
+    "acuerdosList":["Operativo semanal","Protocolo de alertas","Patrullaje mixto"],
+    "comisarias":["PNP Sector 9","PNP Zona Este","PNP Zona Oeste"],"intConj":20,"evitados":12,
+    "compromisos":[
+      {"desc":"Mantener liderazgo","pct":98,"st":"verde"},
+      {"desc":"Innovar protocolos","pct":92,"st":"verde"},
+      {"desc":"Expandir cobertura","pct":95,"st":"verde"}
     ],
-    "reunionesComis": 3,
-    "patrInt": 85,
-    "zonasRef": 4,
-    "acuerdos": 2,
-    "acuerdosList": [
-      "Operativo semanal",
-      "Protocolo de alertas"
-    ],
-    "comisarias": [
-      "PNP Sector 9"
-    ],
-    "intConj": 15,
-    "evitados": 8,
-    "compromisos": [
-      {
-        "desc": "Aumentar supervisiones",
-        "pct": 90,
-        "st": "verde"
-      },
-      {
-        "desc": "Reducir tardanzas",
-        "pct": 80,
-        "st": "amarillo"
-      },
-      {
-        "desc": "Ruta nueva",
-        "pct": 100,
-        "st": "verde"
-      }
-    ],
-    "impReduc": 10,
-    "impAum": 15,
-    "impDisc": 10,
-    "dims": [
-      85,
-      90,
-      95,
-      80,
-      85
-    ]
+    "impReduc":14,"impAum":20,"impDisc":14,
+    "dims":[91,90,95,88,90]
   }
 ];
+
+// ── Enrich sectors with computed fields ──
+SECTORES.forEach(d => {
+  d.nivelInseg = Math.round(Math.max(0, d.incTotal * 1.2 + (100 - d.cobertura) * 0.5));
+  d.coordVecinales = d.coordPNP; // reuse existing field
+  d.incDelictivas = d.incTotal;
+  d.robosFrustrados = d.frustrados;
+  d.patrullajeInt = d.patrInt;
+});
 
 const CHECKS_SEMANAL = [
   {item:'Índice delictivo semanal'},{item:'Supervisiones realizadas'},
@@ -1229,24 +450,53 @@ const CHECKS_SEMANAL = [
   {item:'Coordinación con PNP'},
 ];
 
+function kpiVal(d, k){
+  if(k.val) return k.val(d);
+  return d[k.key];
+}
 const KPI_DEFS = [
-  {key:'redDelict', label:'Reducción delictiva', unit:'%', meta:'Meta ≥ 10%'},
-  {key:'superv',    label:'Supervisiones',       unit:'%', meta:'Meta ≥ 90%'},
-  {key:'asistencia',label:'Asistencia personal', unit:'%', meta:'Meta ≥ 95%'},
-  {key:'operativos',label:'Operativos c/PNP',    unit:'',  meta:'Meta ≥ 4/mes'},
-  {key:'compromisos',label:'Compromisos',        unit:'%', meta:'Meta ≥ 85%'}
+  {key:'incDelictivas',   label:'Incidencias Delictivas',  unit:'',  meta:'< 25',
+   val:d=>d.incDelictivas, thr:d=>d.incDelictivas<=25?'verde':d.incDelictivas<=35?'amarillo':'rojo'},
+  {key:'robosFrustrados', label:'Robos Frustrados',        unit:'',  meta:'≥ 6',
+   val:d=>d.robosFrustrados, thr:d=>d.robosFrustrados>=6?'verde':d.robosFrustrados>=4?'amarillo':'rojo'},
+  {key:'operativos',      label:'Operativos',              unit:'',  meta:'≥ 4',
+   val:d=>d.kpis.operativos, thr:d=>d.kpis.operativos>=4?'verde':d.kpis.operativos>=3?'amarillo':'rojo'},
+  {key:'coordVecinales',  label:'Coord. Vecinales',        unit:'',  meta:'≥ 4',
+   val:d=>d.coordVecinales, thr:d=>d.coordVecinales>=4?'verde':d.coordVecinales>=3?'amarillo':'rojo'},
+  {key:'capturas',        label:'Capturas',                unit:'',  meta:'≥ 5',
+   val:d=>d.capturas, thr:d=>d.capturas>=5?'verde':d.capturas>=3?'amarillo':'rojo'},
+  {key:'nivelInseg',      label:'Nivel de Inseguridad',    unit:'%', meta:'< 30',
+   val:d=>d.nivelInseg, thr:d=>d.nivelInseg<=25?'verde':d.nivelInseg<=40?'amarillo':'rojo'},
+  {key:'patrullajeInt',   label:'Patrullaje Integrado',   unit:'%', meta:'≥ 85',
+   val:d=>d.patrullajeInt, thr:d=>d.patrullajeInt>=85?'verde':d.patrullajeInt>=70?'amarillo':'rojo'}
 ];
 
 // ── Chart colours ──
-const SECTOR_COLORS = [DS.primary, DS.success, DS.accent, DS.danger, '#9C27B0', '#00BCD4', '#FF9800', '#795548', '#607D8B'];
+const SECTOR_COLORS = [DS.primary, DS.success, DS.accent, DS.danger, '#9C27B0', '#00BCD4', '#FF9800', '#795548', '#607D8B', '#E91E63', '#3F51B5'];
 
 // ── Charts registry ──
 const charts = {};
 function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
 
 function getSectorData(){
-  const v = parseInt(document.getElementById('selJefe').value);
-  return v===0 ? null : (SECTORES.find(s=>s.id===v)||null);
+  const v = document.getElementById('selJefe').value;
+  return v==='0' ? null : (SECTORES.find(s=>s.id===v)||null);
+}
+function getSupData(sector){
+  const v = document.getElementById('selSup').value;
+  if(v==='0'||!sector) return null;
+  return {sup: sector.supervisores.find(p=>p.n===v), rend: sector.rendimiento.find(r=>r.sup===v)};
+}
+function populateSupervisores(){
+  const sel = document.getElementById('selSup');
+  const sv = sel.value;
+  const sid = document.getElementById('selJefe').value;
+  const lista = sid==='0' ? SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, s: x.sector.replace('Sector ','')})))
+    : SECTORES.find(s=>s.id===sid)?.supervisores||[];
+  const opts = '<option value="0">Todos los Supervisores</option>' +
+    lista.map(p => `<option value="${p.n.replace(/"/g,'&quot;')}">${sid==='0'?p.s+' ':''}${p.n}</option>`).join('');
+  sel.innerHTML = opts;
+  if([...sel.options].some(o=>o.value===sv)) sel.value=sv; else sel.value='0';
 }
 function statusLabel(s){
   if(s==='verde')   return ['verde','Cumplido'];
@@ -1265,7 +515,9 @@ function chartDefaults(){ return {
 
 // ─── UPDATE ───
 function updateDash(){
+  populateSupervisores();
   const s = getSectorData();
+  const sup = getSupData(s);
   const fStart = document.getElementById('fechaInicio').value;
   const fEnd = document.getElementById('fechaFin').value;
 
@@ -1277,11 +529,12 @@ function updateDash(){
       `${d1.toLocaleDateString('es-ES', opt)} — ${d2.toLocaleDateString('es-ES', opt)} ${d2.getFullYear()}`;
   }
   renderSelInfo(s);
+  renderSupInfo(sup);
   renderKPIs(s);
   renderResumen(s);
   renderSeguridad(s);
   renderOperaciones(s);
-  renderPersonal(s);
+  renderPersonal(s, sup);
   renderCoordinacion(s);
   renderEstrategia(s);
   renderRanking();
@@ -1306,17 +559,42 @@ function renderSelInfo(s){
   </div>`;
 }
 
+// ── SUP INFO ──
+function renderSupInfo(sup){
+  const box = document.getElementById('sup-info-box');
+  if(!sup){ box.innerHTML=''; return; }
+  const r=sup.rend, total=r?r.total:0, ast=sup.sup?sup.sup.ast:0;
+  const cls=total>=90?'verde':total>=75?'amarillo':'rojo';
+  const turno=sup.sup?.n.includes('(M)')?'Mañana':sup.sup?.n.includes('(T)')?'Tarde':sup.sup?.n.includes('(N)')?'Noche':'—';
+  box.innerHTML=`<div class="sel-info" style="background:linear-gradient(135deg,var(--csd),var(--cs));margin-bottom:var(--s3);padding:var(--s3) var(--s4);">
+    <div class="sel-avatar" style="background:var(--cp);color:#fff;width:38px;height:38px;font-size:13px;">${sup.sup?.n.match(/^(\w)/)?.[1]||'S'}</div>
+    <div class="sel-data"><h3 style="font-size:var(--tsm);">${sup.sup?.n||'—'}</h3>
+      <p style="font-size:var(--txs);">Turno ${turno} · Asistencia: ${ast}% · Puntaje: ${total}</p></div>
+    <div class="sel-score" style="margin-left:auto;">
+      <div class="score-n" style="font-size:24px;">${total}</div>
+      <div class="score-l" style="font-size:10px;">Rendimiento</div>
+      <div class="kpi-pill ${cls}" style="margin-top:4px;padding:2px 7px;"><span class="dot ${cls}"></span><span style="font-size:10px;">${statusLabel(cls)[1]}</span></div>
+    </div>
+  </div>`;
+}
+
 // ── KPIs ──
 function renderKPIs(s){
   const row = document.getElementById('kpi-row');
-  const avg = k => s ? s.kpis[k] : Math.round(SECTORES.reduce((a,x)=>a+x.kpis[k],0)/SECTORES.length*10)/10;
-  const avgSt = k => {
-    if(s) return s.status[k];
-    const v=SECTORES.map(x=>x.status[k]);
+  const avgK = (k) => {
+    const vals = SECTORES.map(x => kpiVal(x, k));
+    return typeof vals[0] === 'number'
+      ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10
+      : vals.reduce((a,b)=>a+b,0);
+  };
+  const avgSt = (k) => {
+    if(s) return k.thr(s);
+    const v = SECTORES.map(x => k.thr(x));
     return v.some(x=>x==='rojo')?'rojo':v.some(x=>x==='amarillo')?'amarillo':'verde';
   };
   row.innerHTML = KPI_DEFS.map(k=>{
-    const v=avg(k.key), st=avgSt(k.key), [cls,lbl]=statusLabel(st);
+    const v = s ? kpiVal(s, k) : avgK(k);
+    const st = avgSt(k), [cls,lbl]=statusLabel(st);
     return `<div class="kpi-card ${cls}">
       <div class="kpi-lbl">${k.label}</div>
       <div class="kpi-val">${v}${k.unit}</div>
@@ -1324,6 +602,7 @@ function renderKPIs(s){
       <div class="kpi-pill ${cls}"><span class="dot ${cls}"></span>${lbl}</div>
     </div>`;
   }).join('');
+  row.style.gridTemplateColumns = 'repeat(7,1fr)';
 }
 
 // ── RESUMEN ──
@@ -1368,15 +647,15 @@ function renderResumen(s){
     options:{...chartDefaults(), plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,font:{size:11}}}}}
   });
 
-  const supsData = s ? s.supervisores : SECTORES[0].supervisores;
-  document.getElementById('asistencia-prog').innerHTML = supsData.map(p=>{
+  const supsData = s ? s.supervisores : SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, n: x.sector.replace('Sector ','') + ' ' + p.n})));
+  document.getElementById('asistencia-prog').innerHTML = supsData.sort((a,b)=>b.ast-a.ast).map(p=>{
     const cls=p.ast>=95?'verde':p.ast>=85?'amarillo':'rojo';
     return `<div class="prog-row"><span class="prog-name">${p.n}</span>
       <div class="prog-track"><div class="prog-bar ${cls}" style="width:${p.ast}%"></div></div>
       <span class="prog-val">${p.ast}%</span></div>`;
   }).join('');
 
-  const comps = s ? s.compromisos : SECTORES[0].compromisos;
+  const comps = s ? s.compromisos : SECTORES.flatMap(x=>x.compromisos.map(c=>({...c, desc: x.sector.replace('Sector ','') + ' ' + c.desc})));
   document.getElementById('compromisos-mini').innerHTML = comps.map(c=>
     `<div class="comp-item"><span class="dot ${c.st}"></span>
       <span class="comp-desc">${c.desc}</span>
@@ -1386,114 +665,134 @@ function renderResumen(s){
 
 // ── SEGURIDAD ──
 function renderSeguridad(s){
-  const d=s||SECTORES[0];
-  document.getElementById('s-incidentes').textContent = s?d.incTotal:SECTORES.reduce((a,x)=>a+x.incTotal,0);
+  const d=s||{};
+  const sum = k => SECTORES.reduce((a,x)=>a+x[k],0);
+  const avg = k => Math.round(SECTORES.reduce((a,x)=>a+x[k],0)/SECTORES.length*10)/10;
+  document.getElementById('s-incidentes').textContent = s?d.incTotal:sum('incTotal');
   const varVal = s?d.incVar:-(SECTORES.reduce((a,x)=>a+Math.abs(x.incVar),0)/SECTORES.length).toFixed(1);
-  document.getElementById('s-inc-var').innerHTML=`<span class="${varVal<0?'chip-up':'chip-dn'}">${varVal<0?'▼':'▲'} ${Math.abs(varVal)}%</span> vs. sem. anterior`;
-  document.getElementById('s-respuesta').textContent=d.tasaResp+' min';
-  document.getElementById('s-frustrados').textContent=s?d.frustrados:SECTORES.reduce((a,x)=>a+x.frustrados,0);
-  document.getElementById('s-intervenciones').textContent=s?d.interv:SECTORES.reduce((a,x)=>a+x.interv,0);
-  document.getElementById('s-rutas').textContent=d.cobertura+'%';
+  document.getElementById('s-inc-var').innerHTML=`<span class="${varVal<0?'chip-up':'chip-dn'}">${varVal<0?'▼':'▲'} ${Math.abs(varVal)}%</span> vs. mes anterior`;
+  document.getElementById('s-frustrados').textContent=s?d.frustrados:sum('frustrados');
+  document.getElementById('s-inseguridad').textContent=s?d.nivelInseg+'%':avg('nivelInseg')+'%';
+  document.getElementById('s-respuesta').textContent=s?d.tasaResp+' min':avg('tasaResp').toFixed(1)+' min';
+  document.getElementById('s-intervenciones').textContent=s?d.interv:sum('interv');
+  document.getElementById('s-rutas').textContent=s?d.cobertura+'%':Math.round(SECTORES.reduce((a,x)=>a+x.cobertura,0)/SECTORES.length)+'%';
+  document.getElementById('s-factor-inc').textContent=s?d.incTotal:sum('incTotal');
+  document.getElementById('s-factor-resp').textContent=s?d.tasaResp+' min':avg('tasaResp').toFixed(1)+' min';
 
   const semanas=['Sem 10','Sem 11','Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'];
   destroyChart('semanas');
+  const incData = s ? d.incidentes : SECTORES[0].incidentes.map((_,wi)=>Math.round(SECTORES.reduce((a,x)=>a+x.incidentes[wi],0)/SECTORES.length));
   charts['semanas'] = new Chart(document.getElementById('chartSemanas'),{
-    type:'line', data:{labels:semanas, datasets:[{label:'Incidentes',data:d.incidentes,
+    type:'line', data:{labels:semanas, datasets:[{label:'Incidentes',data:incData,
       borderColor:DS.primary,backgroundColor:'rgba(0,94,165,0.07)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:DS.primary}]},
     options:{...chartDefaults(), scales:{y:{beginAtZero:false,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
 
-  document.getElementById('franja-chart').innerHTML = d.franjas.map(f=>{
+  // ── Robos frustrados by week ──
+  const robosData = s ? [d.frustrados-1,d.frustrados,d.frustrados+1,d.frustrados-1,d.frustrados-1]
+    : (()=>{const a=Math.round(sum('frustrados')/SECTORES.length); return [a-1,a,a+1,a-1,a-1];})();
+  destroyChart('robos');
+  charts['robos'] = new Chart(document.getElementById('chartRobos'),{
+    type:'bar', data:{labels:['Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'],
+      datasets:[{label:'Robos frustrados',data:robosData,backgroundColor:DS.secondary+'CC',borderRadius:5}]},
+    options:{...chartDefaults(), scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+  });
+
+  const franData = s ? d.franjas : SECTORES[0].franjas.map((f,i)=>({...f, v: Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0)/SECTORES.length)}));
+  document.getElementById('franja-chart').innerHTML = franData.map(f=>{
     const w=Math.round(f.v/50*100);
     return `<div class="franja-row"><span class="franja-label">${f.l}</span>
       <div class="franja-bar" style="width:${w}%;background:${f.c};min-width:32px;">${f.v}</div>
       <span style="font-size:11px;color:var(--g5);margin-left:6px;">${f.v} casos</span></div>`;
   }).join('');
 
+  const delKeys = Object.keys(SECTORES[0].tiposDelito);
+  const delData = s ? d.tiposDelito : (()=>{const a={}; delKeys.forEach(k=>{a[k]=SECTORES.reduce((s,x)=>s+x.tiposDelito[k],0)}); return a;})();
   destroyChart('tiposDelito');
   charts['tiposDelito'] = new Chart(document.getElementById('chartTiposDelito'),{
     type:'bar',
-    data:{labels:Object.keys(d.tiposDelito), datasets:[{label:'Casos',data:Object.values(d.tiposDelito),
+    data:{labels:Object.keys(delData), datasets:[{label:'Casos',data:Object.values(delData),
       backgroundColor:DS.primary+'CC', borderRadius:5}]},
     options:{...chartDefaults(), scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
-  destroyChart('cobertura');
-  charts['cobertura'] = new Chart(document.getElementById('chartCobertura'),{
-    type:'radar',
-    data:{labels:['Rutas mañana','Rutas tarde','Rutas noche','Puntos críticos','Zonas resid.'],
-      datasets:[{label:'Cobertura %',data:[d.cobertura,d.cobertura-2,d.cobertura-5,d.cobertura+2,d.cobertura-3],
-        backgroundColor:'rgba(0,94,165,0.1)',borderColor:DS.primary,pointBackgroundColor:DS.primary,pointRadius:3}]},
-    options:{...chartDefaults(), scales:{r:{min:50,max:100,ticks:{font:{size:9},stepSize:10}}}}
   });
 }
 
 // ── OPERACIONES ──
 function renderOperaciones(s){
-  const d=s||SECTORES[0];
-  document.getElementById('o-sup').textContent=d.supRealizadas;
-  document.getElementById('o-sup-plan').textContent=`de ${d.supPlan} planificadas`;
-  document.getElementById('o-hallazgos').textContent=d.hallazgos;
-  document.getElementById('o-capturas').textContent=d.capturas;
-  document.getElementById('o-coord').textContent=d.coordPNP;
-  document.getElementById('o-reportes').textContent=d.reportes;
+  const d=s||{};
+  const sum = k => SECTORES.reduce((a,x)=>a+x[k],0);
+  const avg = k => Math.round(SECTORES.reduce((a,x)=>a+x[k],0)/SECTORES.length*10)/10;
+  document.getElementById('o-operativos').textContent = s?d.kpis.operativos:avg('capturas');
+  // operativos value is in kpis.operativos; show total for "Todos"
+  if(!s) document.getElementById('o-operativos').textContent = sum('capturas');
+  document.getElementById('o-capturas').textContent = s?d.capturas:sum('capturas');
+  document.getElementById('o-sup').textContent = s?d.supRealizadas:sum('supRealizadas');
+  document.getElementById('o-sup-plan').textContent = s?`de ${d.supPlan} planificadas`:`de ${sum('supPlan')} planificadas (global)`;
+  document.getElementById('o-hallazgos').textContent = s?d.hallazgos:sum('hallazgos');
+  document.getElementById('o-reportes').textContent = s?d.reportes:Math.round(sum('supRealizadas')/sum('supPlan')*100)+'%';
 
-  const semanas=['Sem 13','Sem 14','Sem 15','Sem 16'];
-  const supData=[Math.round(d.supPlan*.22),Math.round(d.supPlan*.24),Math.round(d.supPlan*.26),Math.round(d.supRealizadas*.28)];
-  destroyChart('supervisiones');
-  charts['supervisiones'] = new Chart(document.getElementById('chartSupervisiones'),{
-    type:'bar',
-    data:{labels:semanas, datasets:[
-      {label:'Realizadas',data:supData,backgroundColor:DS.primary,borderRadius:5},
-      {label:'Plan',data:[d.supPlan/4,d.supPlan/4,d.supPlan/4,d.supPlan/4].map(Math.round),backgroundColor:DS.primary+'33',borderRadius:5}
-    ]},
-    options:{...chartDefaults(), plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:11}}}},
-      scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
-  document.getElementById('operativos-list').innerHTML = d.operativosTipo.map(op=>
+  // ── Operativos types ──
+  const ops = s ? d.operativosTipo : [...new Set(SECTORES.flatMap(x=>x.operativosTipo))];
+  document.getElementById('operativos-list').innerHTML = ops.map(op=>
     `<span class="coord-tag"><span class="dot verde"></span>${op}</span>`
   ).join('');
-
   destroyChart('operativos');
   charts['operativos'] = new Chart(document.getElementById('chartOperativos'),{
-    type:'bar',
-    data:{labels:d.operativosTipo.map(o=>o.replace('Op. ','')),
-      datasets:[{label:'Operativos',data:d.operativosTipo.map(()=>1),backgroundColor:DS.success+'CC',borderRadius:5}]},
+    type:'bar', data:{labels:ops.map(o=>o.length>12?o.substring(0,12)+'…':o),
+      datasets:[{label:'Operativos',data:ops.map(()=>1),backgroundColor:DS.success+'CC',borderRadius:5}]},
     options:{...chartDefaults(), scales:{y:{display:false},x:{ticks:{font:{size:10}}}}}
+  });
+
+  // ── Capturas weekly chart ──
+  const capData = s ? [d.capturas-1,d.capturas,d.capturas-1,d.capturas+1,d.capturas]
+    : (()=>{const a=Math.round(sum('capturas')/SECTORES.length); return [a-1,a,a-1,a+1,a];})();
+  destroyChart('capturas');
+  charts['capturas'] = new Chart(document.getElementById('chartCapturas'),{
+    type:'bar', data:{labels:['Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'],
+      datasets:[{label:'Capturas',data:capData,backgroundColor:DS.accent+'CC',borderRadius:5}]},
+    options:{...chartDefaults(), scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
 }
 
 // ── PERSONAL ──
-function renderPersonal(s){
-  const d=s||SECTORES[0];
-  document.getElementById('p-asist').textContent=d.kpis.asistencia+'%';
-  document.getElementById('p-tard').textContent=d.tardanzas+'%';
-  document.getElementById('p-disc').textContent=d.disciplinarias;
-  document.getElementById('p-rot').textContent=d.rotacion;
+function renderPersonal(s, sup){
+  const d=s||{};
+  document.getElementById('p-asist').textContent = s ? d.kpis.asistencia+'%' : Math.round(SECTORES.reduce((a,x)=>a+x.kpis.asistencia,0)/SECTORES.length)+'%';
+  document.getElementById('p-tard').textContent = s ? d.tardanzas+'%' : (SECTORES.reduce((a,x)=>a+x.tardanzas,0)/SECTORES.length).toFixed(1)+'%';
+  document.getElementById('p-disc').textContent = s ? d.disciplinarias : SECTORES.reduce((a,x)=>a+x.disciplinarias,0);
+  document.getElementById('p-rot').textContent = s ? d.rotacion : Math.round(SECTORES.reduce((a,x)=>a+x.rotacion,0)/SECTORES.length);
 
-  document.getElementById('rank-asistencia').innerHTML = d.supervisores.map(p=>{
+  const supsRaw = s ? d.supervisores : SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, n: x.sector.replace('Sector ','') + ' ' + p.n, sec: x.sector.replace('Sector ','')})));
+  const allSups = sup ? supsRaw.filter(p=>p.n.includes(sup.sup?.n)) : supsRaw;
+  document.getElementById('rank-asistencia').innerHTML = allSups.sort((a,b)=>b.ast-a.ast).map(p=>{
     const cls=p.ast>=95?'verde':p.ast>=85?'amarillo':'rojo';
-    return `<div class="prog-row"><span class="prog-name">${p.n}</span>
+    const hl = sup ? ' style="background:var(--cpl);border-radius:var(--rmd);padding:4px 6px;"' : '';
+    return `<div class="prog-row"${hl}><span class="prog-name">${p.n}</span>
       <div class="prog-track"><div class="prog-bar ${cls}" style="width:${p.ast}%"></div></div>
       <span class="prog-val">${p.ast}%</span></div>`;
   }).join('');
 
+  const turnoAvg = m => {
+    const match = supsRaw.filter(p=>p.n.includes(m));
+    return match.length ? Math.round(match.reduce((a,p)=>a+p.ast,0)/match.length) : 0;
+  };
   destroyChart('turnos');
   charts['turnos'] = new Chart(document.getElementById('chartTurnos'),{
     type:'bar',
     data:{labels:['Turno Mañana','Turno Tarde','Turno Noche'],
       datasets:[{label:'Asistencia %',
-        data:[d.kpis.asistencia+1,d.kpis.asistencia-1,d.kpis.asistencia-2].map(v=>Math.min(100,v)),
+        data:[turnoAvg('(M)'),turnoAvg('(T)'),turnoAvg('(N)')],
         backgroundColor:[DS.primary,DS.primary+'BB',DS.primary+'88'],borderRadius:6}]},
     options:{...chartDefaults(), scales:{y:{min:70,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
 
+  const rendRaw = s ? d.rendimiento : SECTORES.flatMap(x=>x.rendimiento.map(r=>({...r, sup: x.sector.replace('Sector ','') + ' ' + r.sup, sec: x.sector.replace('Sector ','')})));
+  const allRend = sup ? rendRaw.filter(r=>r.sup.includes(sup.rend?.sup)) : rendRaw;
   const tbl=document.getElementById('tbl-rendimiento');
   tbl.innerHTML=`<thead><tr>
-    <th>Supervisor</th><th class="num">Rutas %</th><th class="num">Reportes %</th>
+    <th>${s?'':'Sector '}Supervisor</th><th class="num">Rutas %</th><th class="num">Reportes %</th>
     <th class="num">Actitud</th><th class="num">Puntaje Total</th><th>Semáforo</th>
-  </tr></thead><tbody>`+d.rendimiento.map(r=>{
+  </tr></thead><tbody>`+allRend.sort((a,b)=>b.total-a.total).map(r=>{
     const cls=r.total>=90?'verde':r.total>=75?'amarillo':'rojo';
     return `<tr><td>${r.sup}</td><td class="num">${r.rutas}</td><td class="num">${r.reportes}</td>
       <td class="num">${r.actitud}</td><td class="num"><strong>${r.total}</strong></td>
@@ -1503,49 +802,60 @@ function renderPersonal(s){
 
 // ── COORDINACIÓN ──
 function renderCoordinacion(s){
-  const d=s||SECTORES[0];
-  document.getElementById('c-reuniones').textContent=d.reunionesComis;
-  document.getElementById('c-pat').textContent=d.patrInt+'%';
-  document.getElementById('c-zonas').textContent=d.zonasRef;
-  document.getElementById('c-acuerdos').textContent=d.acuerdos;
-  document.getElementById('c-intconj').textContent=d.intConj;
-  document.getElementById('c-evitados').textContent=d.evitados;
+  const d=s||{};
+  const sum = k => SECTORES.reduce((a,x)=>a+x[k],0);
+  const avg = k => Math.round(SECTORES.reduce((a,x)=>a+x[k],0)/SECTORES.length);
+  document.getElementById('c-coord').textContent = s?d.coordVecinales:sum('coordVecinales');
+  document.getElementById('c-pat').textContent = s?d.patrInt+'%':avg('patrInt')+'%';
+  document.getElementById('c-zonas').textContent = s?d.zonasRef:sum('zonasRef');
+  document.getElementById('c-intconj').textContent = s?d.intConj:sum('intConj');
+  document.getElementById('c-evitados').textContent = s?d.evitados:sum('evitados');
+  document.getElementById('c-reuniones').textContent = s?d.reunionesComis:sum('reunionesComis');
 
+  const acuerdos = s ? d.acuerdosList : [...new Set(SECTORES.flatMap(x=>x.acuerdosList))];
+  document.getElementById('acuerdos-list').innerHTML = acuerdos.map(a=>
+    `<div class="comp-item"><span class="dot verde"></span><span class="comp-desc">${a}</span></div>`
+  ).join('');
+
+  const comis = s ? d.comisarias : [...new Set(SECTORES.flatMap(x=>x.comisarias))];
+  document.getElementById('comisarias-tags').innerHTML = comis.map(c=>
+    `<span class="coord-tag">${c}</span>`
+  ).join('');
+
+  // ── Patrullaje Integrado chart ──
   const semanas=['Sem 13','Sem 14','Sem 15','Sem 16'];
+  const patVal = s ? d.patrInt : avg('patrInt');
   destroyChart('patInt');
   charts['patInt'] = new Chart(document.getElementById('chartPatInt'),{
-    type:'bar',
-    data:{labels:semanas, datasets:[
-      {label:'Realizado',data:[d.patrInt-4,d.patrInt-2,d.patrInt,d.patrInt+1].map(v=>Math.min(100,v)),backgroundColor:DS.primary,borderRadius:5},
+    type:'bar', data:{labels:semanas, datasets:[
+      {label:'Realizado',data:[patVal-4,patVal-2,patVal,patVal+1].map(v=>Math.min(100,v)),backgroundColor:DS.primary,borderRadius:5},
       {label:'Planificado',data:[100,100,100,100],backgroundColor:DS.primary+'22',borderRadius:5}
     ]},
     options:{...chartDefaults(), plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:11}}}},
       scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
-
-  document.getElementById('acuerdos-list').innerHTML=d.acuerdosList.map(a=>
-    `<div class="comp-item"><span class="dot verde"></span><span class="comp-desc">${a}</span></div>`
-  ).join('');
-
-  document.getElementById('comisarias-tags').innerHTML=d.comisarias.map(c=>
-    `<span class="coord-tag">${c}</span>`
-  ).join('');
 }
 
 // ── ESTRATEGIA ──
 function renderEstrategia(s){
-  const d=s||SECTORES[0];
-  const comps=d.compromisos;
-  const cumplidos=comps.filter(c=>c.pct>=95).length;
-  const en_prog=comps.filter(c=>c.pct>=60&&c.pct<95).length;
-  const prom=Math.round(comps.reduce((a,c)=>a+c.pct,0)/comps.length);
-  document.getElementById('e-total').textContent=comps.length;
+  const allComps = s ? s.compromisos : SECTORES.flatMap(x=>x.compromisos);
+  const cumplidos=allComps.filter(c=>c.pct>=95).length;
+  const en_prog=allComps.filter(c=>c.pct>=60&&c.pct<95).length;
+  const prom=Math.round(allComps.reduce((a,c)=>a+c.pct,0)/allComps.length);
+  document.getElementById('e-total').textContent=allComps.length;
   document.getElementById('e-cumplidos').textContent=cumplidos;
   document.getElementById('e-progreso').textContent=en_prog;
   document.getElementById('e-prom').textContent=prom+'%';
-  document.getElementById('e-red').textContent=d.impReduc+'%';
-  document.getElementById('e-aum').textContent='+'+d.impAum+'%';
-  document.getElementById('e-disc').textContent=d.impDisc>0?('-'+d.impDisc+'%'):(d.impDisc+'%');
+  if(s){
+    document.getElementById('e-red').textContent=s.impReduc+'%';
+    document.getElementById('e-aum').textContent='+'+s.impAum+'%';
+    document.getElementById('e-disc').textContent=s.impDisc>0?('-'+s.impDisc+'%'):(s.impDisc+'%');
+  } else {
+    document.getElementById('e-red').textContent=Math.round(SECTORES.reduce((a,x)=>a+x.impReduc,0)/SECTORES.length)+'%';
+    document.getElementById('e-aum').textContent='+'+Math.round(SECTORES.reduce((a,x)=>a+x.impAum,0)/SECTORES.length)+'%';
+    const avgDisc = Math.round(SECTORES.reduce((a,x)=>a+x.impDisc,0)/SECTORES.length);
+    document.getElementById('e-disc').textContent=avgDisc>0?('-'+avgDisc+'%'):(avgDisc+'%');
+  }
 
   destroyChart('comp');
   const secData=s?[s]:SECTORES;
@@ -1561,7 +871,7 @@ function renderEstrategia(s){
     options:{...chartDefaults(), scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
 
-  document.getElementById('compromisos-detail').innerHTML=comps.map(c=>
+  document.getElementById('compromisos-detail').innerHTML=allComps.slice(0,9).map(c=>
     `<div class="comp-item">
       <span class="dot ${c.st}"></span>
       <span class="comp-desc">${c.desc}</span>

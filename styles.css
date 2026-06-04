@@ -170,7 +170,7 @@ body {
 /* ── KPI ROW ── */
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: var(--s3);
   margin-bottom: var(--s4);
 }
