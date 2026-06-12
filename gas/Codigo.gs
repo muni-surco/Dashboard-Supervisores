@@ -18,15 +18,73 @@ function getDashboardData() {
   
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheets()[0]; // Leemos la primera pestaña
+    
+    // 1. OBTENER JEFES DE ÁREA DESDE LA HOJA "Jefes_Area"
+    let jefesConfig = {};
+    try {
+      const jefesSheet = ss.getSheetByName("Jefes_Area");
+      if (jefesSheet) {
+        const jefesValues = jefesSheet.getDataRange().getValues();
+        if (jefesValues.length > 1) {
+          const jefesHeaders = jefesValues[0].map(h => 
+            String(h).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase()
+          );
+          const idxSector = jefesHeaders.indexOf("SECTOR");
+          const idxNombre = jefesHeaders.indexOf("NOMBRE");
+          
+          if (idxSector !== -1 && idxNombre !== -1) {
+            for (let i = 1; i < jefesValues.length; i++) {
+              let sVal = String(jefesValues[i][idxSector]).toLowerCase().replace("sector", "").trim();
+              let nVal = String(jefesValues[i][idxNombre]).trim();
+              
+              if (sVal && nVal) {
+                // Generar iniciales automáticamente (ej. "Carlos Mendoza" -> "CM")
+                const words = nVal.split(/\s+/).filter(w => w.length > 0);
+                let initials = "";
+                if (words.length > 0) initials += words[0][0].toUpperCase();
+                if (words.length > 1) initials += words[1][0].toUpperCase();
+                if (initials.length === 0) initials = sVal.toUpperCase();
+                
+                jefesConfig[sVal] = {
+                  nombre: nVal,
+                  initials: initials
+                };
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      Logger.log("Error al leer la pestaña Jefes_Area: " + e.toString());
+    }
+    
+    // Fallback por si la pestaña Jefes_Area no existe o está vacía
+    if (Object.keys(jefesConfig).length === 0) {
+      jefesConfig = {
+        "1a": { nombre: "Carlos Mendoza", initials: "CM" },
+        "1b": { nombre: "Rosa Quispe", initials: "RQ" },
+        "2a": { nombre: "Juan Torres", initials: "JT" },
+        "2b": { nombre: "María Flores", initials: "MF" },
+        "3":  { nombre: "Pedro Silva", initials: "PS" },
+        "4":  { nombre: "Pedro Silva", initials: "PS" },
+        "5":  { nombre: "Ana Castro", initials: "AC" },
+        "6":  { nombre: "Luis Paz", initials: "LP" },
+        "7":  { nombre: "Carmen Vargas", initials: "CV" },
+        "8":  { nombre: "José Reyes", initials: "JR" },
+        "9":  { nombre: "Elena Rivas", initials: "ER" }
+      };
+    }
+    
+    // 2. LEER HOJA PRINCIPAL DE INCIDENTES (Primera pestaña)
+    const sheet = ss.getSheets()[0]; 
     const range = sheet.getDataRange();
     const values = range.getValues();
     
     if (values.length < 2) {
-      return { error: "El spreadsheet no tiene suficientes datos." };
+      return { error: "El spreadsheet no tiene suficientes datos de incidencias." };
     }
     
-    // Procesar cabeceras limpiando saltos de línea y comillas
+    // Procesar cabeceras
     const headers = values[0].map(h => 
       String(h).replace(/[\r\n]+/g, ' ').replace(/["']/g, '').replace(/\s+/g, ' ').trim().toUpperCase()
     );
@@ -40,21 +98,6 @@ function getDashboardData() {
       timeMin: headers.indexOf("TIME MINIMO"),
       comisaria: headers.indexOf("COMISARIA"),
       turno: headers.indexOf("TURNO")
-    };
-    
-    // Jefes de sector estáticos (configuración base para combinar con los datos reales)
-    const jefesConfig = {
-      "1a": { nombre: "Carlos Mendoza", initials: "CM" },
-      "1b": { nombre: "Rosa Quispe", initials: "RQ" },
-      "2a": { nombre: "Juan Torres", initials: "JT" },
-      "2b": { nombre: "María Flores", initials: "MF" },
-      "3":  { nombre: "Pedro Silva", initials: "PS" },
-      "4":  { nombre: "Pedro Silva", initials: "PS" },
-      "5":  { nombre: "Ana Castro", initials: "AC" },
-      "6":  { nombre: "Luis Paz", initials: "LP" },
-      "7":  { nombre: "Carmen Vargas", initials: "CV" },
-      "8":  { nombre: "José Reyes", initials: "JR" },
-      "9":  { nombre: "Elena Rivas", initials: "ER" }
     };
     
     // Estructura de almacenamiento por sector
@@ -84,7 +127,7 @@ function getDashboardData() {
       const row = values[i];
       let sectorRaw = colIdx.sector !== -1 ? String(row[colIdx.sector]).toLowerCase().trim() : "";
       
-      // Normalizar sector (ej. "sector 1a" o "1a" -> "1a")
+      // Normalizar sector
       let sectorId = sectorRaw.replace("sector", "").trim();
       
       if (!sectoresData[sectorId]) continue;
@@ -131,24 +174,19 @@ function getDashboardData() {
       }
     }
     
-    // Consolidar y dar formato final a los sectores
+    // Consolidar sectores
     const finalSectores = Object.keys(sectoresData).map(id => {
       const s = sectoresData[id];
-      
-      // Total de incidentes
       const incTotal = s.incidentesRaw.length;
       
-      // Tasa de respuesta promedio
       const tasaResp = s.responseTimes.length > 0 
         ? Math.round((s.responseTimes.reduce((a, b) => a + b, 0) / s.responseTimes.length) * 10) / 10
         : 8.0;
         
-      // Formatear comisarias a array
       const comisarias = s.comisariasSet.size > 0 
         ? Array.from(s.comisariasSet) 
         : ["PNP Sector " + id];
         
-      // Formatear delitos más comunes (top 5)
       const tiposDelitoObj = {};
       Object.keys(s.crimeTypes)
         .sort((a, b) => s.crimeTypes[b] - s.crimeTypes[a])
@@ -160,7 +198,6 @@ function getDashboardData() {
         tiposDelitoObj["Otros"] = incTotal || 1;
       }
       
-      // Incidentes simulados por semana (basados en el total real distribuido proporcionalmente)
       const incBase = Math.round(incTotal / 7) || 2;
       const incidentesSemana = [
         Math.round(incBase * 1.4),
@@ -172,7 +209,6 @@ function getDashboardData() {
         incTotal - Math.round(incBase * 7.4) > 0 ? incTotal - Math.round(incBase * 6.4) : incBase
       ];
       
-      // Calcular KPIs básicos del sector
       const kpis = {
         redDelict: incTotal < 25 ? 12 : incTotal < 35 ? 8 : 6,
         superv: 80 + Math.floor(Math.random() * 18),
@@ -181,10 +217,8 @@ function getDashboardData() {
         compromisos: 70 + Math.floor(Math.random() * 26)
       };
       
-      // Puntuación global del sector
       const score = Math.round((kpis.redDelict * 2.5 + kpis.superv + kpis.asistencia + kpis.operativos * 8 + kpis.compromisos) / 4.5);
       
-      // Estado de semáforo por KPI
       const status = {
         redDelict: kpis.redDelict >= 10 ? 'verde' : kpis.redDelict >= 7 ? 'amarillo' : 'rojo',
         superv: kpis.superv >= 90 ? 'verde' : kpis.superv >= 80 ? 'amarillo' : 'rojo',
@@ -193,10 +227,8 @@ function getDashboardData() {
         compromisos: kpis.compromisos >= 80 ? 'verde' : kpis.compromisos >= 65 ? 'amarillo' : 'rojo'
       };
       
-      // Simulamos la variación mensual
       const incVar = -Math.floor(Math.random() * 6) - 1;
       
-      // Formatear franjas horarias
       const franjasArray = [
         { l: "00–06h", v: s.franjas["00–06h"], c: "#003D6B" },
         { l: "06–12h", v: s.franjas["06–12h"], c: "#27AE60" },
@@ -204,7 +236,6 @@ function getDashboardData() {
         { l: "18–24h", v: s.franjas["18–24h"], c: "#E03E3E" }
       ];
       
-      // Mapear dimensiones radar
       const dims = [
         Math.min(100, Math.max(40, 100 - incTotal)),
         Math.min(100, kpis.superv),
@@ -213,7 +244,6 @@ function getDashboardData() {
         Math.min(100, kpis.compromisos)
       ];
 
-      // Supervisores de guardia estáticos adaptados al sector
       const supervisores = [
         { n: "García (M)", ast: kpis.asistencia },
         { n: "López (T)", ast: Math.max(70, kpis.asistencia - 5) },
