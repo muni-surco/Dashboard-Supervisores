@@ -437,10 +437,11 @@ const SECTORES = [
 // ── Enrich sectors with computed fields ──
 SECTORES.forEach(d => {
   d.nivelInseg = Math.round(Math.max(0, d.incTotal * 1.2 + (100 - d.cobertura) * 0.5));
-  d.coordVecinales = d.coordPNP; // reuse existing field
+  d.coordVecinales = d.coordPNP;
   d.incDelictivas = d.incTotal;
   d.robosFrustrados = d.frustrados;
   d.patrullajeInt = d.patrInt;
+  d.operativosCount = d.kpis.operativos * 3;
 });
 
 const CHECKS_SEMANAL = [
@@ -459,8 +460,8 @@ const KPI_DEFS = [
    val:d=>d.incDelictivas, thr:d=>d.incDelictivas<=25?'verde':d.incDelictivas<=35?'amarillo':'rojo'},
   {key:'robosFrustrados', label:'Robos Frustrados',        unit:'',  meta:'≥ 6',
    val:d=>d.robosFrustrados, thr:d=>d.robosFrustrados>=6?'verde':d.robosFrustrados>=4?'amarillo':'rojo'},
-  {key:'operativos',      label:'Operativos',              unit:'',  meta:'≥ 4',
-   val:d=>d.kpis.operativos, thr:d=>d.kpis.operativos>=4?'verde':d.kpis.operativos>=3?'amarillo':'rojo'},
+   {key:'operativos',      label:'Operativos',              unit:'',  meta:'≥ 5',
+    val:d=>d.operativosCount, thr:d=>d.operativosCount>=5?'verde':d.operativosCount>=3?'amarillo':'rojo'},
   {key:'coordVecinales',  label:'Coord. Vecinales',        unit:'',  meta:'≥ 4',
    val:d=>d.coordVecinales, thr:d=>d.coordVecinales>=4?'verde':d.coordVecinales>=3?'amarillo':'rojo'},
   {key:'capturas',        label:'Capturas',                unit:'',  meta:'≥ 5',
@@ -487,6 +488,16 @@ function getSupData(sector){
   if(v==='0'||!sector) return null;
   return {sup: sector.supervisores.find(p=>p.n===v), rend: sector.rendimiento.find(r=>r.sup===v)};
 }
+function populateJefes(){
+  const sel = document.getElementById('selJefe');
+  const current = sel.value;
+  sel.innerHTML = '<option value="0">Todos los Sectores</option>' +
+    SECTORES.map(s =>
+      `<option value="${s.id}">${s.sector} — ${s.nombre}</option>`
+    ).join('');
+  if ([...sel.options].some(o => o.value === current)) sel.value = current;
+}
+
 function populateSupervisores(){
   const sel = document.getElementById('selSup');
   const sv = sel.value;
@@ -515,6 +526,7 @@ function chartDefaults(){ return {
 
 // ─── UPDATE ───
 function updateDash(){
+  populateJefes();
   populateSupervisores();
   const s = getSectorData();
   const sup = getSupData(s);
@@ -581,11 +593,11 @@ function renderSupInfo(sup){
 // ── KPIs ──
 function renderKPIs(s){
   const row = document.getElementById('kpi-row');
-  const avgK = (k) => {
+  const aggK = (k) => {
     const vals = SECTORES.map(x => kpiVal(x, k));
-    return typeof vals[0] === 'number'
-      ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10
-      : vals.reduce((a,b)=>a+b,0);
+    if (typeof vals[0] !== 'number') return vals.reduce((a,b)=>a+b,0);
+    if (k.unit === '%') return Math.round(vals.reduce((a,b)=>a+b,0) / vals.length);
+    return vals.reduce((a,b)=>a+b,0);
   };
   const avgSt = (k) => {
     if(s) return k.thr(s);
@@ -593,7 +605,7 @@ function renderKPIs(s){
     return v.some(x=>x==='rojo')?'rojo':v.some(x=>x==='amarillo')?'amarillo':'verde';
   };
   row.innerHTML = KPI_DEFS.map(k=>{
-    const v = s ? kpiVal(s, k) : avgK(k);
+    const v = s ? kpiVal(s, k) : aggK(k);
     const st = avgSt(k), [cls,lbl]=statusLabel(st);
     return `<div class="kpi-card ${cls}">
       <div class="kpi-lbl">${k.label}</div>
@@ -722,9 +734,7 @@ function renderOperaciones(s){
   const d=s||{};
   const sum = k => SECTORES.reduce((a,x)=>a+x[k],0);
   const avg = k => Math.round(SECTORES.reduce((a,x)=>a+x[k],0)/SECTORES.length*10)/10;
-  document.getElementById('o-operativos').textContent = s?d.kpis.operativos:avg('capturas');
-  // operativos value is in kpis.operativos; show total for "Todos"
-  if(!s) document.getElementById('o-operativos').textContent = sum('capturas');
+  document.getElementById('o-operativos').textContent = s?d.operativosCount:sum('operativosCount');
   document.getElementById('o-capturas').textContent = s?d.capturas:sum('capturas');
   document.getElementById('o-sup').textContent = s?d.supRealizadas:sum('supRealizadas');
   document.getElementById('o-sup-plan').textContent = s?`de ${d.supPlan} planificadas`:`de ${sum('supPlan')} planificadas (global)`;
