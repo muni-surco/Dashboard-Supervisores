@@ -15,7 +15,7 @@ function include(filename) {
  * @param {Date} fechaInicio - Fecha de inicio del filtro (opcional, default: primer día del mes pasado)
  * @param {Date} fechaFin    - Fecha de fin del filtro (opcional, default: último día del mes pasado)
  */
-function getDashboardData(fechaInicio, fechaFin) {
+function getDashboardData(fechaInicio, fechaFin, turnoFilter) {
   const SPREADSHEET_ID = "1QUja52TCkWlknWh5YC1CcEAL0P6w1lk6vDXklWjULjE";
   
   try {
@@ -210,6 +210,16 @@ function getDashboardData(fechaInicio, fechaFin) {
         if (fechaVal < fechaInicio || fechaVal > fechaFin) continue;
       }
       
+      // Filtrar por turno
+      if (turnoFilter) {
+        var tv = col.turno >= 0 ? String(row[col.turno]).toUpperCase().trim() : "";
+        var tcat = "";
+        if (tv.indexOf("MAÑANA") !== -1 || tv.indexOf("M") !== -1) tcat = "manana";
+        else if (tv.indexOf("TARDE") !== -1 || tv.indexOf("T") !== -1) tcat = "tarde";
+        else if (tv.indexOf("NOCHE") !== -1 || tv.indexOf("N") !== -1) tcat = "noche";
+        if (tcat !== turnoFilter) continue;
+      }
+      
       sector.incidentesRaw.push(fechaVal);
       
       // Clasificar por TIPO (fuzzy matching para variaciones del texto)
@@ -382,6 +392,7 @@ function getDashboardData(fechaInicio, fechaFin) {
         colOffsets: col, totalRows: totalRows,
         fechaInicio: fechaInicio.toISOString().split('T')[0],
         fechaFin: fechaFin.toISOString().split('T')[0],
+        turnoFiltro: turnoFilter || "todos",
         sampleTipos: sampleTipos.slice(0, 20)
       }
     };

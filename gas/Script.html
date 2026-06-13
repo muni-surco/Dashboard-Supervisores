@@ -531,11 +531,10 @@ function showPanel(id, el){
   el.classList.add('active');
 }
 
-// ── INIT DYNAMICALLY FROM GOOGLE SHEETS ──
-window.addEventListener('load', ()=>{
-  // Llamada al backend SIN fechas para que auto-detecte el rango de datos
+function loadData(turno) {
+  document.getElementById('loading-overlay').style.display = 'flex';
   google.script.run
-    .withSuccessHandler(data => {
+    .withSuccessHandler(function(data) {
       if (data.error) {
         alert("Error al cargar datos desde Google Sheets: " + data.error);
         return;
@@ -555,17 +554,25 @@ window.addEventListener('load', ()=>{
         if (dbg.sampleTipos && dbg.sampleTipos.length > 0) console.log("Muestra de TIPOS:", dbg.sampleTipos);
       }
       
-      // Ocultar pantalla de carga
       document.getElementById('loading-overlay').style.display = 'none';
-      
-      // Inicializar vistas e íconos
       populateJefes();
       updateDash();
       lucide.createIcons();
     })
-    .withFailureHandler(err => {
+    .withFailureHandler(function(err) {
       alert("Error de red al conectar con Google Apps Script: " + err);
+      document.getElementById('loading-overlay').style.display = 'none';
     })
-    .getDashboardData(null, null);
+    .getDashboardData(null, null, turno || null);
+}
+
+function onTurnoChange() {
+  var turno = document.getElementById('selTurno').value;
+  loadData(turno);
+}
+
+// ── INIT ──
+window.addEventListener('load', function() {
+  loadData('');
 });
 </script>
