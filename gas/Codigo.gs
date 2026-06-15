@@ -37,7 +37,7 @@ function getDashboardData(fechaInicio, fechaFin, turnoFilter) {
           
           if (idxSector !== -1 && idxNombre !== -1) {
             for (let i = 1; i < jefesValues.length; i++) {
-              let sVal = String(jefesValues[i][idxSector]).toLowerCase().replace("sector", "").trim();
+              let sVal = String(jefesValues[i][idxSector]).toLowerCase().replace("sector", "").trim().toUpperCase();
               let nVal = String(jefesValues[i][idxNombre]).trim();
               
               if (sVal && nVal) {
@@ -187,7 +187,7 @@ function getDashboardData(fechaInicio, fechaFin, turnoFilter) {
       
       // Normalizar sector
       let sectorRaw = col.sector >= 0 ? String(row[col.sector]).toLowerCase().trim() : "";
-      let sectorId = sectorRaw.replace("sector", "").trim();
+      let sectorId = sectorRaw.replace("sector", "").trim().toUpperCase();
       if (!sectoresData[sectorId]) continue;
       
       const sector = sectoresData[sectorId];
@@ -315,7 +315,7 @@ function getDashboardData(fechaInicio, fechaFin, turnoFilter) {
           if (sSector >= 0 && sSupervisor >= 0) {
             for (var si = 1; si < supRows.length; si++) {
               var sr = supRows[si];
-              var secId = String(sr[sSector]).toLowerCase().replace("sector","").trim();
+              var secId = String(sr[sSector]).toLowerCase().replace("sector","").trim().toUpperCase();
               if (!finalSectores.find(function(fs){ return fs.id === secId; })) continue;
               if (!supervisorData[secId]) supervisorData[secId] = [];
               supervisorData[secId].push({

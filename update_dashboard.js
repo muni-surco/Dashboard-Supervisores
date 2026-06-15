@@ -7,10 +7,10 @@ let html = fs.readFileSync(htmlPath, 'utf8');
 const selectRegex = /<select id="selJefe" class="tb-select" onchange="updateDash\(\)">[\s\S]*?<\/select>/;
 const newSelect = `<select id="selJefe" class="tb-select" onchange="updateDash()">
       <option value="0">Todos los Sectores</option>
-      <option value="1a">Sector 1a — Carlos Mendoza</option>
-      <option value="1b">Sector 1b — Rosa Quispe</option>
-      <option value="2a">Sector 2a — Juan Torres</option>
-      <option value="2b">Sector 2b — María Flores</option>
+      <option value="1A">Sector 1A — Carlos Mendoza</option>
+      <option value="1B">Sector 1B — Rosa Quispe</option>
+      <option value="2A">Sector 2A — Juan Torres</option>
+      <option value="2B">Sector 2B — María Flores</option>
       <option value="3">Sector 3 — Pedro Silva</option>
       <option value="4">Sector 4 — Pedro Silva</option>
       <option value="5">Sector 5 — Ana Castro</option>
@@ -24,7 +24,7 @@ html = html.replace(selectRegex, newSelect);
 // 2. Generate new SECTORES array
 const sectores = [
   {
-    id: '1a', nombre: 'Carlos Mendoza', sector: 'Sector 1a', initials: 'CM',
+    id: '1A', nombre: 'Carlos Mendoza', sector: 'Sector 1A', initials: 'CM',
     kpis:{redDelict:10,superv:92,asistencia:94,operativos:4,compromisos:85},
     incidentes:[38,40,36,34,31,28,26], incTotal:26, incVar:-4,
     tasaResp:7.5, frustrados:6, interv:32, cobertura:88,
@@ -41,7 +41,7 @@ const sectores = [
     dims:[82,78,85,80,82]
   },
   {
-    id: '1b', nombre: 'Rosa Quispe', sector: 'Sector 1b', initials: 'RQ',
+    id: '1B', nombre: 'Rosa Quispe', sector: 'Sector 1B', initials: 'RQ',
     kpis:{redDelict:8,superv:85,asistencia:90,operativos:3,compromisos:78},
     incidentes:[42,44,40,38,36,33,30], incTotal:30, incVar:-3,
     tasaResp:8.2, frustrados:4, interv:28, cobertura:82,
@@ -58,7 +58,7 @@ const sectores = [
     dims:[75,72,70,68,78]
   },
   {
-    id: '2a', nombre: 'Juan Torres', sector: 'Sector 2a', initials: 'JT',
+    id: '2A', nombre: 'Juan Torres', sector: 'Sector 2A', initials: 'JT',
     kpis:{redDelict:12,superv:95,asistencia:97,operativos:5,compromisos:92},
     incidentes:[35,37,33,30,28,25,22], incTotal:22, incVar:-6,
     tasaResp:6.8, frustrados:7, interv:36, cobertura:94,
@@ -75,7 +75,7 @@ const sectores = [
     dims:[88,85,92,88,86]
   },
   {
-    id: '2b', nombre: 'María Flores', sector: 'Sector 2b', initials: 'MF',
+    id: '2B', nombre: 'María Flores', sector: 'Sector 2B', initials: 'MF',
     kpis:{redDelict:7,superv:80,asistencia:88,operativos:3,compromisos:72},
     incidentes:[45,47,43,41,39,37,35], incTotal:35, incVar:-2,
     tasaResp:9.0, frustrados:3, interv:24, cobertura:78,
