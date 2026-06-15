@@ -16,32 +16,21 @@ const DS = {
 // Variable dinámica que almacena los sectores cargados de Google Sheets
 let SECTORES = [];
 
-const CHECKS_SEMANAL = [
-  {item:'Índice delictivo semanal'},{item:'Supervisiones realizadas'},
-  {item:'Asistencia del personal'},{item:'Robos frustrados'},
-  {item:'Intervenciones relevantes'},{item:'Cumplimiento de rutas de patrullaje'},
-  {item:'Coordinación con PNP'},
-];
-
 function kpiVal(d, k){
   if(k.val) return k.val(d);
   return d[k.key];
 }
 const KPI_DEFS = [
-  {key:'incDelictivas',   label:'Incidencias Delictivas',  unit:'',  meta:'< 25',
+  {key:'incDelictivas',   label:'Incidencias Delictivas',  unit:'',  meta:'—',
    val:d=>d.incDelictivas, thr:d=>d.incDelictivas<=25?'verde':d.incDelictivas<=35?'amarillo':'rojo'},
-  {key:'robosFrustrados', label:'Robos Frustrados',        unit:'',  meta:'≥ 6',
+  {key:'robosFrustrados', label:'Robos Frustrados',        unit:'',  meta:'—',
    val:d=>d.robosFrustrados, thr:d=>d.robosFrustrados>=6?'verde':d.robosFrustrados>=4?'amarillo':'rojo'},
-   {key:'operativos',      label:'Operativos',              unit:'',  meta:'≥ 5',
+   {key:'operativos',      label:'Operativos',              unit:'',  meta:'—',
     val:d=>d.operativosCount, thr:d=>d.operativosCount>=5?'verde':d.operativosCount>=3?'amarillo':'rojo'},
-  {key:'coordVecinales',  label:'Coord. Vecinales',        unit:'',  meta:'≥ 4',
+  {key:'coordVecinales',  label:'Coord. Vecinales',        unit:'',  meta:'—',
    val:d=>d.coordVecinales, thr:d=>d.coordVecinales>=4?'verde':d.coordVecinales>=3?'amarillo':'rojo'},
-  {key:'capturas',        label:'Capturas',                unit:'',  meta:'≥ 5',
-   val:d=>d.capturas, thr:d=>d.capturas>=5?'verde':d.capturas>=3?'amarillo':'rojo'},
-  {key:'nivelInseg',      label:'Nivel de Inseguridad',    unit:'%', meta:'< 30',
-   val:d=>d.nivelInseg, thr:d=>d.nivelInseg<=25?'verde':d.nivelInseg<=40?'amarillo':'rojo'},
-  {key:'patrullajeInt',   label:'Patrullaje Integrado',   unit:'%', meta:'≥ 85',
-   val:d=>d.patrullajeInt, thr:d=>d.patrullajeInt>=85?'verde':d.patrullajeInt>=70?'amarillo':'rojo'}
+  {key:'capturas',        label:'Capturas',                unit:'',  meta:'—',
+   val:d=>d.capturas, thr:d=>d.capturas>=5?'verde':d.capturas>=3?'amarillo':'rojo'}
 ];
 
 // ── Chart colours ──
@@ -70,16 +59,25 @@ function populateJefes(){
   if ([...sel.options].some(o => o.value === current)) sel.value = current;
 }
 
+// ── Turno ↔ Supervisor linking helpers ──
+const TURNO_MAP = { manana: 'M', tarde: 'T', noche: 'N' };
+const LETTER_MAP = { M: 'manana', T: 'tarde', N: 'noche' };
+function turnoLetter(v){ return TURNO_MAP[v] || null; }
+function letterFromName(n){ var m=n.match(/\((\w)\)/); return m ? m[1].toUpperCase() : null; }
+
 function populateSupervisores(){
   const sel = document.getElementById('selSup');
   const sv = sel.value;
   const sid = document.getElementById('selJefe').value;
-  const lista = sid==='0' ? SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, s: x.sector.replace('Sector ','')})))
+  const turno = document.getElementById('selTurno').value;
+  const tl = turnoLetter(turno);
+  var lista = sid==='0' ? SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, s: x.sector.replace('Sector ','')})))
     : SECTORES.find(s=>s.id===sid)?.supervisores||[];
+  if (tl) lista = lista.filter(function(p){ return letterFromName(p.n) === tl; });
   const opts = '<option value="0">Todos los Supervisores</option>' +
     lista.map(p => `<option value="${p.n.replace(/"/g,'&quot;')}">${sid==='0'?p.s+' ':''}${p.n}</option>`).join('');
   sel.innerHTML = opts;
-  if([...sel.options].some(o=>o.value===sv)) sel.value=sv; else sel.value='0';
+  if([...sel.options].some(o=>o.value===sv) && (!tl || letterFromName(sv)===tl)) sel.value=sv; else sel.value='0';
 }
 function statusLabel(s){
   if(s==='verde')   return ['verde','Cumplido'];
@@ -97,6 +95,16 @@ function chartDefaults(){ return {
 }; }
 
 // ─── UPDATE ───
+function onSupChange(){
+  // Auto-set turno when a specific supervisor is selected
+  var sv = document.getElementById('selSup').value;
+  if (sv && sv !== '0') {
+    var lt = letterFromName(sv);
+    if (lt) document.getElementById('selTurno').value = LETTER_MAP[lt] || '';
+  }
+  updateDash();
+}
+
 function updateDash(){
   if (SECTORES.length === 0) return;
   populateJefes();
@@ -121,25 +129,15 @@ function updateDash(){
   renderOperaciones(s);
   renderPersonal(s, sup);
   renderCoordinacion(s);
-  renderEstrategia(s);
-  renderRanking();
 }
 
 // ── SEL INFO ──
 function renderSelInfo(s){
   const box = document.getElementById('sel-info-box');
   if(!s){ box.innerHTML=''; return; }
-  const sc=s.score, cls=sc>=85?'verde':sc>=70?'amarillo':'rojo';
-  const stars = sc>=85?'★★★★★':sc>=70?'★★★★☆':'★★★☆☆';
   box.innerHTML=`<div class="sel-info">
     <div class="sel-avatar">${s.initials}</div>
     <div class="sel-data"><h3>${s.nombre}</h3><p>${s.sector} · Jefe de Área C4</p>
-      <div class="stars" style="margin-top:5px;">${stars}</div>
-    </div>
-    <div class="sel-score">
-      <div class="score-n">${sc}</div>
-      <div class="score-l">Puntaje global</div>
-      <div class="kpi-pill ${cls}" style="margin-top:6px;"><span class="dot ${cls}"></span>${statusLabel(cls)[1]}</div>
     </div>
   </div>`;
 }
@@ -187,45 +185,17 @@ function renderKPIs(s){
       <div class="kpi-pill ${cls}"><span class="dot ${cls}"></span>${lbl}</div>
     </div>`;
   }).join('');
-  row.style.gridTemplateColumns = 'repeat(7,1fr)';
+  row.style.gridTemplateColumns = 'repeat(5,1fr)';
 }
 
 // ── RESUMEN ──
 function renderResumen(s){
-  const semanas=['Sem 10','Sem 11','Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'];
-  destroyChart('tendencia');
-  const datasets = s ? [{
-    label:s.sector, data:s.incidentes,
-    borderColor:DS.primary, backgroundColor:'rgba(0,94,165,0.08)',
-    tension:.4, fill:true, pointRadius:4, pointBackgroundColor:DS.primary
-  }] : SECTORES.map((x,i)=>({
-    label:x.sector, data:x.incidentes,
-    borderColor:SECTOR_COLORS[i], backgroundColor:'transparent',
-    tension:.4, pointRadius:3
-  }));
-  charts['tendencia'] = new Chart(document.getElementById('chartTendencia'),{
-    type:'line', data:{labels:semanas, datasets},
-    options:{...chartDefaults(), plugins:{legend:{display:!s,labels:{boxWidth:10,font:{size:11}}}}, scales:{y:{beginAtZero:false, grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
-  destroyChart('rankBar');
-  charts['rankBar'] = new Chart(document.getElementById('chartRankBar'),{
-    type:'bar',
-    data:{labels:SECTORES.map(x=>x.sector.replace('Sector ','')),
-      datasets:[{label:'Puntaje',data:SECTORES.map(x=>x.score),
-        backgroundColor:SECTORES.map(x=>x.score>=85?DS.primary:x.score>=70?DS.warning:DS.danger),
-        borderRadius:6}]},
-    options:{...chartDefaults(), scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
+  destroyChart('delitos');
   const delData = s ? s.tiposDelito : (() => {
     const keys=Object.keys(SECTORES[0].tiposDelito), agg={};
-    keys.forEach(k=>{ 
-      agg[k]=SECTORES.reduce((a,x)=>a+(x.tiposDelito[k]||0),0); 
-    });
+    keys.forEach(k=>{ agg[k]=SECTORES.reduce((a,x)=>a+(x.tiposDelito[k]||0),0); });
     return agg;
   })();
-  destroyChart('delitos');
   charts['delitos'] = new Chart(document.getElementById('chartDelitos'),{
     type:'doughnut',
     data:{labels:Object.keys(delData), datasets:[{data:Object.values(delData),
@@ -241,13 +211,6 @@ function renderResumen(s){
       <div class="prog-track"><div class="prog-bar ${cls}" style="width:${p.ast}%"></div></div>
       <span class="prog-val">${p.ast}%</span></div>`;
   }).join('');
-
-  const comps = s ? s.compromisos : SECTORES.flatMap(x=>x.compromisos.map(c=>({...c, desc: x.sector.replace('Sector ','') + ' ' + c.desc})));
-  document.getElementById('compromisos-mini').innerHTML = comps.slice(0, 6).map(c=>
-    `<div class="comp-item"><span class="dot ${c.st}"></span>
-      <span class="comp-desc">${c.desc}</span>
-      <span class="comp-pct ${c.st}">${c.pct}%</span></div>`
-  ).join('');
 }
 
 // ── SEGURIDAD ──
@@ -256,38 +219,11 @@ function renderSeguridad(s){
   const sum = k => SECTORES.reduce((a,x)=>a+(x[k]||0),0);
   const avg = k => Math.round(SECTORES.reduce((a,x)=>a+(x[k]||0),0)/SECTORES.length*10)/10;
   document.getElementById('s-incidentes').textContent = s?d.incTotal:sum('incTotal');
-  const varVal = s?d.incVar:-(SECTORES.reduce((a,x)=>a+Math.abs(x.incVar),0)/SECTORES.length).toFixed(1);
-  document.getElementById('s-inc-var').innerHTML=`<span class="${varVal<0?'chip-up':'chip-dn'}">${varVal<0?'▼':'▲'} ${Math.abs(varVal)}%</span> vs. mes anterior`;
   document.getElementById('s-frustrados').textContent=s?d.frustrados:sum('frustrados');
-  document.getElementById('s-inseguridad').textContent=s?d.nivelInseg+'%':avg('nivelInseg')+'%';
-  document.getElementById('s-respuesta').textContent=s?d.tasaResp+' min':avg('tasaResp').toFixed(1)+' min';
-  document.getElementById('s-intervenciones').textContent=s?d.interv:sum('interv');
-  document.getElementById('s-rutas').textContent=s?d.cobertura+'%':Math.round(SECTORES.reduce((a,x)=>a+(x.cobertura||80),0)/SECTORES.length)+'%';
-  document.getElementById('s-factor-inc').textContent=s?d.incTotal:sum('incTotal');
-  document.getElementById('s-factor-resp').textContent=s?d.tasaResp+' min':avg('tasaResp').toFixed(1)+' min';
-
-  const semanas=['Sem 10','Sem 11','Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'];
-  destroyChart('semanas');
-  const incData = s ? d.incidentes : SECTORES[0].incidentes.map((_,wi)=>Math.round(SECTORES.reduce((a,x)=>a+x.incidentes[wi],0)/SECTORES.length));
-  charts['semanas'] = new Chart(document.getElementById('chartSemanas'),{
-    type:'line', data:{labels:semanas, datasets:[{label:'Incidentes',data:incData,
-      borderColor:DS.primary,backgroundColor:'rgba(0,94,165,0.07)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:DS.primary}]},
-    options:{...chartDefaults(), scales:{y:{beginAtZero:false,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
-  // ── Robos frustrados by week ──
-  const robosData = s ? [d.frustrados-1,d.frustrados,d.frustrados+1,d.frustrados-1,d.frustrados-1]
-    : (()=>{const a=Math.round(sum('frustrados')/SECTORES.length); return [a-1,a,a+1,a-1,a-1];})();
-  destroyChart('robos');
-  charts['robos'] = new Chart(document.getElementById('chartRobos'),{
-    type:'bar', data:{labels:['Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'],
-      datasets:[{label:'Robos frustrados',data:robosData,backgroundColor:DS.secondary+'CC',borderRadius:5}]},
-    options:{...chartDefaults(), scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
+  document.getElementById('s-respuesta').textContent=s?d.tasaResp?d.tasaResp+' min':'—':avg('tasaResp')?avg('tasaResp').toFixed(1)+' min':'—';
 
   const franData = s ? d.franjas : SECTORES[0].franjas.map((f,i)=>({
-    ...f, 
-    v: Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))
+    ...f, v: Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))
   }));
   document.getElementById('franja-chart').innerHTML = franData.map(f=>{
     const maxVal = Math.max(...franData.map(fd=>fd.v)) || 1;
@@ -299,9 +235,7 @@ function renderSeguridad(s){
 
   const delData = s ? d.tiposDelito : (()=>{
     const keys=Object.keys(SECTORES[0].tiposDelito), agg={};
-    keys.forEach(k=>{ 
-      agg[k]=SECTORES.reduce((s,x)=>s+(x.tiposDelito[k]||0),0); 
-    });
+    keys.forEach(k=>{ agg[k]=SECTORES.reduce((sx,x)=>sx+(x.tiposDelito[k]||0),0); });
     return agg;
   })();
   destroyChart('tiposDelito');
@@ -317,44 +251,20 @@ function renderSeguridad(s){
 function renderOperaciones(s){
   const d=s||{};
   const sum = k => SECTORES.reduce((a,x)=>a+(x[k]||0),0);
-  const avg = k => Math.round(SECTORES.reduce((a,x)=>a+(x[k]||0),0)/SECTORES.length*10)/10;
   document.getElementById('o-operativos').textContent = s?d.operativosCount:sum('operativosCount');
   document.getElementById('o-capturas').textContent = s?d.capturas:sum('capturas');
-  document.getElementById('o-sup').textContent = s?d.supRealizadas:sum('supRealizadas');
-  document.getElementById('o-sup-plan').textContent = s?`de ${d.supPlan} planificadas`:`de ${sum('supPlan')} planificadas (global)`;
-  document.getElementById('o-hallazgos').textContent = s?d.hallazgos:sum('hallazgos');
-  document.getElementById('o-reportes').textContent = s?d.reportes:Math.round(sum('supRealizadas')/sum('supPlan')*100)+'%';
-
-  const ops = s ? d.operativosTipo : [...new Set(SECTORES.flatMap(x=>x.operativosTipo))];
-  document.getElementById('operativos-list').innerHTML = ops.map(op=>
-    `<span class="coord-tag"><span class="dot verde"></span>${op}</span>`
-  ).join('');
-  destroyChart('operativos');
-  charts['operativos'] = new Chart(document.getElementById('chartOperativos'),{
-    type:'bar', data:{labels:ops.map(o=>o.length>12?o.substring(0,12)+'…':o),
-      datasets:[{label:'Operativos',data:ops.map(()=>1),backgroundColor:DS.success+'CC',borderRadius:5}]},
-    options:{...chartDefaults(), scales:{y:{display:false},x:{ticks:{font:{size:10}}}}}
-  });
-
-  const capData = s ? [d.capturas-1,d.capturas,d.capturas-1,d.capturas+1,d.capturas]
-    : (()=>{const a=Math.round(sum('capturas')/SECTORES.length); return [a-1,a,a-1,a+1,a];})();
-  destroyChart('capturas');
-  charts['capturas'] = new Chart(document.getElementById('chartCapturas'),{
-    type:'bar', data:{labels:['Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'],
-      datasets:[{label:'Capturas',data:capData,backgroundColor:DS.accent+'CC',borderRadius:5}]},
-    options:{...chartDefaults(), scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
 }
 
 // ── PERSONAL ──
 function renderPersonal(s, sup){
   const d=s||{};
-  document.getElementById('p-asist').textContent = s ? d.kpis.asistencia+'%' : Math.round(SECTORES.reduce((a,x)=>a+x.kpis.asistencia,0)/SECTORES.length)+'%';
-  document.getElementById('p-tard').textContent = s ? d.tardanzas+'%' : (SECTORES.reduce((a,x)=>a+x.tardanzas,0)/SECTORES.length).toFixed(1)+'%';
-  document.getElementById('p-disc').textContent = s ? d.disciplinarias : SECTORES.reduce((a,x)=>a+x.disciplinarias,0);
-  document.getElementById('p-rot').textContent = s ? d.rotacion : Math.round(SECTORES.reduce((a,x)=>a+x.rotacion,0)/SECTORES.length);
-
   const supsRaw = s ? d.supervisores : SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, n: x.sector.replace('Sector ','') + ' ' + p.n, sec: x.sector.replace('Sector ','')})));
+  const avgAst = supsRaw.length ? Math.round(supsRaw.reduce((a,p)=>a+p.ast,0)/supsRaw.length) : 0;
+  document.getElementById('p-asist').textContent = sup ? (sup.sup?.ast||0)+'%' : avgAst+'%';
+  document.getElementById('p-tard').textContent = '—';
+  document.getElementById('p-disc').textContent = '—';
+  document.getElementById('p-rot').textContent = '—';
+
   const allSups = sup ? supsRaw.filter(p=>p.n.includes(sup.sup?.n)) : supsRaw;
   document.getElementById('rank-asistencia').innerHTML = allSups.sort((a,b)=>b.ast-a.ast).slice(0, 8).map(p=>{
     const cls=p.ast>=95?'verde':p.ast>=85?'amarillo':'rojo';
@@ -396,131 +306,11 @@ function renderPersonal(s, sup){
 function renderCoordinacion(s){
   const d=s||{};
   const sum = k => SECTORES.reduce((a,x)=>a+(x[k]||0),0);
-  const avg = k => Math.round(SECTORES.reduce((a,x)=>a+(x[k]||0),0)/SECTORES.length);
   document.getElementById('c-coord').textContent = s?d.coordVecinales:sum('coordVecinales');
-  document.getElementById('c-pat').textContent = s?d.patrInt+'%':avg('patrInt')+'%';
-  document.getElementById('c-zonas').textContent = s?d.zonasRef:sum('zonasRef');
-  document.getElementById('c-intconj').textContent = s?d.intConj:sum('intConj');
-  document.getElementById('c-evitados').textContent = s?d.evitados:sum('evitados');
-  document.getElementById('c-reuniones').textContent = s?d.reunionesComis:sum('reunionesComis');
-
-  const acuerdos = s ? d.acuerdosList : [...new Set(SECTORES.flatMap(x=>x.acuerdosList))];
-  document.getElementById('acuerdos-list').innerHTML = acuerdos.map(a=>
-    `<div class="comp-item"><span class="dot verde"></span><span class="comp-desc">${a}</span></div>`
-  ).join('');
-
   const comis = s ? d.comisarias : [...new Set(SECTORES.flatMap(x=>x.comisarias))];
   document.getElementById('comisarias-tags').innerHTML = comis.map(c=>
     `<span class="coord-tag">${c}</span>`
   ).join('');
-
-  const semanas=['Sem 13','Sem 14','Sem 15','Sem 16'];
-  const patVal = s ? d.patrInt : avg('patrInt');
-  destroyChart('patInt');
-  charts['patInt'] = new Chart(document.getElementById('chartPatInt'),{
-    type:'bar', data:{labels:semanas, datasets:[
-      {label:'Realizado',data:[patVal-4,patVal-2,patVal,patVal+1].map(v=>Math.min(100,v)),backgroundColor:DS.primary,borderRadius:5},
-      {label:'Planificado',data:[100,100,100,100],backgroundColor:DS.primary+'22',borderRadius:5}
-    ]},
-    options:{...chartDefaults(), plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:11}}}},
-      scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-}
-
-// ── ESTRATEGIA ──
-function renderEstrategia(s){
-  const allComps = s ? s.compromisos : SECTORES.flatMap(x=>x.compromisos);
-  const cumplidos=allComps.filter(c=>c.pct>=95).length;
-  const en_prog=allComps.filter(c=>c.pct>=60&&c.pct<95).length;
-  const prom=Math.round(allComps.reduce((a,c)=>a+c.pct,0)/allComps.length);
-  document.getElementById('e-total').textContent=allComps.length;
-  document.getElementById('e-cumplidos').textContent=cumplidos;
-  document.getElementById('e-progreso').textContent=en_prog;
-  document.getElementById('e-prom').textContent=prom+'%';
-  if(s){
-    document.getElementById('e-red').textContent=s.impReduc+'%';
-    document.getElementById('e-aum').textContent='+'+s.impAum+'%';
-    document.getElementById('e-disc').textContent=s.impDisc>0?('-'+s.impDisc+'%'):(s.impDisc+'%');
-  } else {
-    document.getElementById('e-red').textContent=Math.round(SECTORES.reduce((a,x)=>a+x.impReduc,0)/SECTORES.length)+'%';
-    document.getElementById('e-aum').textContent='+'+Math.round(SECTORES.reduce((a,x)=>a+x.impAum,0)/SECTORES.length)+'%';
-    const avgDisc = Math.round(SECTORES.reduce((a,x)=>a+x.impDisc,0)/SECTORES.length);
-    document.getElementById('e-disc').textContent=avgDisc>0?('-'+avgDisc+'%'):(avgDisc+'%');
-  }
-
-  destroyChart('comp');
-  const secData=s?[s]:SECTORES;
-  charts['comp'] = new Chart(document.getElementById('chartComp'),{
-    type:'bar',
-    data:{labels:secData.map(x=>x.sector.replace('Sector ','')),
-      datasets:[{label:'Avance %',
-        data:secData.map(x=>Math.round(x.compromisos.reduce((a,c)=>a+c.pct,0)/x.compromisos.length)),
-        backgroundColor:secData.map(x=>{
-          const v=Math.round(x.compromisos.reduce((a,c)=>a+c.pct,0)/x.compromisos.length);
-          return v>=85?DS.primary:v>=65?DS.warning:DS.danger;
-        }),borderRadius:6}]},
-    options:{...chartDefaults(), scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
-  document.getElementById('compromisos-detail').innerHTML=allComps.slice(0,9).map(c=>
-    `<div class="comp-item">
-      <span class="dot ${c.st}"></span>
-      <span class="comp-desc">${c.desc}</span>
-      <div class="prog-track" style="width:60px;"><div class="prog-bar ${c.st}" style="width:${c.pct}%"></div></div>
-      <span class="comp-pct ${c.st}">${c.pct}%</span>
-    </div>`
-  ).join('');
-}
-
-// ── RANKING ──
-function renderRanking(){
-  const sorted=[...SECTORES].sort((a,b)=>b.score-a.score);
-  destroyChart('rankGlobal');
-  charts['rankGlobal'] = new Chart(document.getElementById('chartRankGlobal'),{
-    type:'bar', indexAxis:'y',
-    data:{labels:sorted.map(x=>x.sector),
-      datasets:[{label:'Puntaje',data:sorted.map(x=>x.score),
-        backgroundColor:sorted.map(x=>x.score>=85?DS.primary:x.score>=70?DS.warning:DS.danger),
-        borderRadius:5}]},
-    options:{...chartDefaults(), scales:{x:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}
-  });
-
-  destroyChart('radar');
-  charts['radar'] = new Chart(document.getElementById('chartRadar'),{
-    type:'radar',
-    data:{labels:['Seguridad','Operaciones','Personal','Coordinación','Estrategia'],
-      datasets:SECTORES.map((s,i)=>({
-        label:s.sector, data:s.dims,
-        borderColor:SECTOR_COLORS[i],
-        backgroundColor:SECTOR_COLORS[i]+'18',
-        pointRadius:3
-      }))},
-    options:{...chartDefaults(), plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
-      scales:{r:{min:40,max:100,ticks:{font:{size:9},stepSize:20}}}}
-  });
-
-  document.getElementById('tbody-ranking').innerHTML=sorted.map((s,i)=>{
-    const cls=s.score>=85?'verde':s.score>=70?'amarillo':'rojo';
-    const rankCls=i===0?'r1':i===1?'r2':i===2?'r3':'';
-    return `<tr>
-      <td><span class="rank-n ${rankCls}">${i+1}</span></td>
-      <td><strong>${s.nombre}</strong></td>
-      <td>${s.sector}</td>
-      <td class="num">${s.dims[0]}</td><td class="num">${s.dims[1]}</td>
-      <td class="num">${s.dims[2]}</td><td class="num">${s.dims[3]}</td>
-      <td class="num">${s.dims[4]}</td>
-      <td class="num"><strong>${s.score}</strong></td>
-      <td><span class="status-badge ${cls}"><span class="dot ${cls}"></span>${statusLabel(cls)[1]}</span></td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('checklist-semanal').innerHTML=
-    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">`+
-    CHECKS_SEMANAL.map(c=>
-      `<div class="comp-item" style="padding:8px 10px;background:var(--g1);border-radius:var(--rmd);border-bottom:none;border:1px solid var(--g3);">
-        <span class="dot verde"></span><span class="comp-desc" style="font-size:var(--tsm);">${c.item}</span>
-      </div>`
-    ).join('')+`</div>`;
 }
 
 // ── NAV ──
@@ -542,16 +332,8 @@ function loadData(turno) {
       
       SECTORES = data.sectores;
       
-      if (data._debug) {
-        var dbg = data._debug;
-        console.log("Dashboard debug:", JSON.stringify(dbg));
-        if (dbg.fechaInicio && dbg.fechaFin) {
-          document.getElementById('fechaInicio').value = dbg.fechaInicio;
-          document.getElementById('fechaFin').value = dbg.fechaFin;
-        }
-        if (dbg.totalRows === 0) console.warn("¡0 filas procesadas!");
-        if (dbg.colOffsets && dbg.colOffsets.tipo === -1) console.warn("¡Columna TIPO no encontrada!");
-        if (dbg.sampleTipos && dbg.sampleTipos.length > 0) console.log("Muestra de TIPOS:", dbg.sampleTipos);
+      if (data.supervisorMeta) {
+        console.log("Supervisor sheet: " + data.supervisorMeta.totalRows + " filas procesadas");
       }
       
       document.getElementById('loading-overlay').style.display = 'none';

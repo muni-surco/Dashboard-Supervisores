@@ -1,3 +1,42 @@
+// ── Google Sheets config ──
+const SHEETS = {
+  id: '1aGLYGiowhtvIzioo5zZF3rl-fnP6kBUg0ecYXrJr1-g',
+  sheet: '2026',
+  apiKey: 'AIzaSyCzFTPnZSVf9hVWKSiMMNSzq9OxjAhu-T0',
+  range: '2026!A:E'
+};
+
+async function fetchSheetData(){
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS.id}/values/${SHEETS.range}?key=${SHEETS.apiKey}`;
+    const r = await fetch(url);
+    if(!r.ok) return [];
+    const data = await r.json();
+    return data.values || [];
+  } catch(e){
+    console.warn('Sheet fetch failed:', e.message);
+    return [];
+  }
+}
+
+function buildSupervisoresFromSheet(rows){
+  if(!rows || rows.length<2) return null;
+  const map = {};
+  rows.slice(1).forEach(row => {
+    const sec = (row[1]||'').trim();
+    const turn = (row[2]||'').trim().toUpperCase();
+    const name = (row[3]||'').trim();
+    const partes = parseInt(row[4]) || 0;
+    if(!sec || !name) return;
+    const key = sec+'|'+turn;
+    if(!map[key]) map[key] = {sector:sec, turno:turn, supervisores:{}, partesTotal:0, count:0};
+    map[key].supervisores[name] = (map[key].supervisores[name]||0) + partes;
+    map[key].partesTotal += partes;
+    map[key].count++;
+  });
+  return map;
+}
+
 // ── DS palette for charts ──
 const DS = {
   primary:  '#005ea5',
@@ -15,9 +54,9 @@ const DS = {
 // ━━━━━━━━━━ DATA ━━━━━━━━━━
 const SECTORES = [
   {
-    "id": "1a",
+    "id": "1A",
     "nombre": "Carlos Mendoza",
-    "sector": "Sector 1a",
+    "sector": "Sector 1A",
     "initials": "CM",
     "score": 82,
     "kpis": { "redDelict": 10, "superv": 92, "asistencia": 94, "operativos": 4, "compromisos": 85 },
@@ -32,15 +71,9 @@ const SECTORES = [
     "supRealizadas":44,"supPlan":48,"hallazgos":9,"capturas":5,"coordPNP":4,
     "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
     "reportes":"88%",
-    "supervisores":[
-      {"n":"García (M)","ast":94},{"n":"López (T)","ast":87},{"n":"Martínez (N)","ast":91}
-    ],
-    "tardanzas":2.8,"disciplinarias":1,"rotacion":0,
-    "rendimiento":[
-      {"sup":"García (M)","rutas":92,"reportes":90,"actitud":95,"total":92},
-      {"sup":"López (T)","rutas":85,"reportes":88,"actitud":90,"total":88},
-      {"sup":"Martínez (N)","rutas":90,"reportes":92,"actitud":88,"total":90}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":3,"patrInt":86,"zonasRef":4,"acuerdos":2,
     "acuerdosList":["Operativo semanal","Protocolo de alertas"],
     "comisarias":["PNP Sector 1a"],"intConj":15,"evitados":8,
@@ -53,9 +86,9 @@ const SECTORES = [
     "dims":[82,78,85,80,82]
   },
   {
-    "id": "1b",
+    "id": "1B",
     "nombre": "Rosa Quispe",
-    "sector": "Sector 1b",
+    "sector": "Sector 1B",
     "initials": "RQ",
     "score": 75,
     "kpis": { "redDelict": 8, "superv": 85, "asistencia": 90, "operativos": 3, "compromisos": 78 },
@@ -70,15 +103,9 @@ const SECTORES = [
     "supRealizadas":40,"supPlan":48,"hallazgos":11,"capturas":4,"coordPNP":3,
     "operativosTipo":["Control de zona","Alcoholemia"],
     "reportes":"85%",
-    "supervisores":[
-      {"n":"Rodríguez (M)","ast":92},{"n":"Fernández (T)","ast":84},{"n":"Pérez (N)","ast":88}
-    ],
-    "tardanzas":4.5,"disciplinarias":2,"rotacion":1,
-    "rendimiento":[
-      {"sup":"Rodríguez (M)","rutas":88,"reportes":85,"actitud":90,"total":88},
-      {"sup":"Fernández (T)","rutas":82,"reportes":84,"actitud":86,"total":84},
-      {"sup":"Pérez (N)","rutas":86,"reportes":88,"actitud":84,"total":86}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":2,"patrInt":78,"zonasRef":3,"acuerdos":1,
     "acuerdosList":["Operativo semanal"],
     "comisarias":["PNP Sector 1b"],"intConj":12,"evitados":6,
@@ -91,9 +118,9 @@ const SECTORES = [
     "dims":[75,72,70,68,78]
   },
   {
-    "id": "2a",
+    "id": "2A",
     "nombre": "Juan Torres",
-    "sector": "Sector 2a",
+    "sector": "Sector 2A",
     "initials": "JT",
     "score": 88,
     "kpis": { "redDelict": 12, "superv": 95, "asistencia": 97, "operativos": 5, "compromisos": 92 },
@@ -108,15 +135,9 @@ const SECTORES = [
     "supRealizadas":47,"supPlan":50,"hallazgos":7,"capturas":7,"coordPNP":5,
     "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas","Operativo nocturno"],
     "reportes":"95%",
-    "supervisores":[
-      {"n":"Díaz (M)","ast":97},{"n":"Sánchez (T)","ast":92},{"n":"Torres (N)","ast":94}
-    ],
-    "tardanzas":1.5,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[
-      {"sup":"Díaz (M)","rutas":96,"reportes":95,"actitud":98,"total":96},
-      {"sup":"Sánchez (T)","rutas":92,"reportes":90,"actitud":94,"total":92},
-      {"sup":"Torres (N)","rutas":94,"reportes":93,"actitud":92,"total":93}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":4,"patrInt":92,"zonasRef":5,"acuerdos":3,
     "acuerdosList":["Operativo semanal","Protocolo de alertas","Patrullaje mixto"],
     "comisarias":["PNP Sector 2a","PNP Zona Norte"],"intConj":18,"evitados":10,
@@ -129,9 +150,9 @@ const SECTORES = [
     "dims":[88,85,92,88,86]
   },
   {
-    "id": "2b",
+    "id": "2B",
     "nombre": "María Flores",
-    "sector": "Sector 2b",
+    "sector": "Sector 2B",
     "initials": "MF",
     "score": 70,
     "kpis": { "redDelict": 7, "superv": 80, "asistencia": 88, "operativos": 3, "compromisos": 72 },
@@ -146,15 +167,9 @@ const SECTORES = [
     "supRealizadas":38,"supPlan":48,"hallazgos":12,"capturas":3,"coordPNP":3,
     "operativosTipo":["Control de zona","Alcoholemia"],
     "reportes":"82%",
-    "supervisores":[
-      {"n":"Ramírez (M)","ast":90},{"n":"Morales (T)","ast":82},{"n":"Castillo (N)","ast":85}
-    ],
-    "tardanzas":5.2,"disciplinarias":2,"rotacion":1,
-    "rendimiento":[
-      {"sup":"Ramírez (M)","rutas":85,"reportes":82,"actitud":88,"total":85},
-      {"sup":"Morales (T)","rutas":80,"reportes":80,"actitud":82,"total":81},
-      {"sup":"Castillo (N)","rutas":83,"reportes":85,"actitud":80,"total":83}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":2,"patrInt":72,"zonasRef":3,"acuerdos":1,
     "acuerdosList":["Operativo semanal"],
     "comisarias":["PNP Sector 2b"],"intConj":10,"evitados":5,
@@ -184,15 +199,9 @@ const SECTORES = [
     "supRealizadas":43,"supPlan":50,"hallazgos":10,"capturas":5,"coordPNP":4,
     "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
     "reportes":"90%",
-    "supervisores":[
-      {"n":"Ortiz (M)","ast":95},{"n":"Vega (T)","ast":88},{"n":"Ramos (N)","ast":90}
-    ],
-    "tardanzas":3.0,"disciplinarias":1,"rotacion":0,
-    "rendimiento":[
-      {"sup":"Ortiz (M)","rutas":93,"reportes":90,"actitud":95,"total":93},
-      {"sup":"Vega (T)","rutas":86,"reportes":88,"actitud":88,"total":87},
-      {"sup":"Ramos (N)","rutas":90,"reportes":91,"actitud":86,"total":89}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":3,"patrInt":82,"zonasRef":4,"acuerdos":2,
     "acuerdosList":["Operativo semanal","Protocolo de alertas"],
     "comisarias":["PNP Sector 3"],"intConj":14,"evitados":7,
@@ -222,15 +231,9 @@ const SECTORES = [
     "supRealizadas":41,"supPlan":48,"hallazgos":10,"capturas":4,"coordPNP":4,
     "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
     "reportes":"88%",
-    "supervisores":[
-      {"n":"Medina (M)","ast":93},{"n":"Cruz (T)","ast":86},{"n":"Rivas (N)","ast":89}
-    ],
-    "tardanzas":3.5,"disciplinarias":1,"rotacion":0,
-    "rendimiento":[
-      {"sup":"Medina (M)","rutas":90,"reportes":88,"actitud":92,"total":90},
-      {"sup":"Cruz (T)","rutas":84,"reportes":86,"actitud":88,"total":86},
-      {"sup":"Rivas (N)","rutas":88,"reportes":90,"actitud":85,"total":88}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":3,"patrInt":80,"zonasRef":4,"acuerdos":2,
     "acuerdosList":["Operativo semanal","Protocolo de alertas"],
     "comisarias":["PNP Sector 4"],"intConj":13,"evitados":7,
@@ -260,15 +263,9 @@ const SECTORES = [
     "supRealizadas":46,"supPlan":50,"hallazgos":8,"capturas":6,"coordPNP":5,
     "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas","Operativo nocturno"],
     "reportes":"93%",
-    "supervisores":[
-      {"n":"Campos (M)","ast":96},{"n":"Chávez (T)","ast":90},{"n":"Acosta (N)","ast":93}
-    ],
-    "tardanzas":2.0,"disciplinarias":1,"rotacion":0,
-    "rendimiento":[
-      {"sup":"Campos (M)","rutas":94,"reportes":93,"actitud":96,"total":94},
-      {"sup":"Chávez (T)","rutas":90,"reportes":88,"actitud":92,"total":90},
-      {"sup":"Acosta (N)","rutas":92,"reportes":91,"actitud":90,"total":91}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":4,"patrInt":88,"zonasRef":5,"acuerdos":2,
     "acuerdosList":["Operativo semanal","Patrullaje mixto"],
     "comisarias":["PNP Sector 5","PNP Zona Sur"],"intConj":16,"evitados":9,
@@ -298,15 +295,9 @@ const SECTORES = [
     "supRealizadas":35,"supPlan":46,"hallazgos":14,"capturas":3,"coordPNP":2,
     "operativosTipo":["Control de zona"],
     "reportes":"78%",
-    "supervisores":[
-      {"n":"Salazar (M)","ast":87},{"n":"Guerrero (T)","ast":80},{"n":"Paredes (N)","ast":82}
-    ],
-    "tardanzas":6.0,"disciplinarias":3,"rotacion":2,
-    "rendimiento":[
-      {"sup":"Salazar (M)","rutas":82,"reportes":78,"actitud":85,"total":82},
-      {"sup":"Guerrero (T)","rutas":78,"reportes":76,"actitud":80,"total":78},
-      {"sup":"Paredes (N)","rutas":80,"reportes":80,"actitud":78,"total":79}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":2,"patrInt":68,"zonasRef":3,"acuerdos":1,
     "acuerdosList":["Operativo semanal"],
     "comisarias":["PNP Sector 6"],"intConj":9,"evitados":4,
@@ -336,15 +327,9 @@ const SECTORES = [
     "supRealizadas":37,"supPlan":46,"hallazgos":13,"capturas":3,"coordPNP":3,
     "operativosTipo":["Control de zona","Alcoholemia"],
     "reportes":"80%",
-    "supervisores":[
-      {"n":"Huamán (M)","ast":88},{"n":"Córdova (T)","ast":82},{"n":"Tapia (N)","ast":85}
-    ],
-    "tardanzas":5.5,"disciplinarias":2,"rotacion":1,
-    "rendimiento":[
-      {"sup":"Huamán (M)","rutas":84,"reportes":80,"actitud":86,"total":83},
-      {"sup":"Córdova (T)","rutas":80,"reportes":78,"actitud":82,"total":80},
-      {"sup":"Tapia (N)","rutas":82,"reportes":84,"actitud":80,"total":82}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":2,"patrInt":70,"zonasRef":3,"acuerdos":1,
     "acuerdosList":["Operativo semanal"],
     "comisarias":["PNP Sector 7"],"intConj":10,"evitados":5,
@@ -374,15 +359,9 @@ const SECTORES = [
     "supRealizadas":40,"supPlan":48,"hallazgos":11,"capturas":4,"coordPNP":3,
     "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
     "reportes":"85%",
-    "supervisores":[
-      {"n":"Molina (M)","ast":91},{"n":"Delgado (T)","ast":84},{"n":"Navarro (N)","ast":87}
-    ],
-    "tardanzas":4.0,"disciplinarias":1,"rotacion":1,
-    "rendimiento":[
-      {"sup":"Molina (M)","rutas":88,"reportes":85,"actitud":90,"total":88},
-      {"sup":"Delgado (T)","rutas":82,"reportes":84,"actitud":86,"total":84},
-      {"sup":"Navarro (N)","rutas":86,"reportes":87,"actitud":84,"total":86}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":3,"patrInt":76,"zonasRef":3,"acuerdos":2,
     "acuerdosList":["Operativo semanal","Protocolo de alertas"],
     "comisarias":["PNP Sector 8"],"intConj":12,"evitados":6,
@@ -412,15 +391,9 @@ const SECTORES = [
     "supRealizadas":49,"supPlan":50,"hallazgos":6,"capturas":8,"coordPNP":6,
     "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas","Operativo nocturno","Patrullaje mixto"],
     "reportes":"98%",
-    "supervisores":[
-      {"n":"Valencia (M)","ast":98},{"n":"Pacheco (T)","ast":95},{"n":"Villegas (N)","ast":96}
-    ],
-    "tardanzas":1.0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[
-      {"sup":"Valencia (M)","rutas":98,"reportes":96,"actitud":98,"total":97},
-      {"sup":"Pacheco (T)","rutas":95,"reportes":94,"actitud":96,"total":95},
-      {"sup":"Villegas (N)","rutas":96,"reportes":95,"actitud":94,"total":95}
-    ],
+    "supervisores":[],
+    "tardanzas":0,"disciplinarias":0,"rotacion":0,
+    "rendimiento":[],
     "reunionesComis":5,"patrInt":95,"zonasRef":6,"acuerdos":3,
     "acuerdosList":["Operativo semanal","Protocolo de alertas","Patrullaje mixto"],
     "comisarias":["PNP Sector 9","PNP Zona Este","PNP Zona Oeste"],"intConj":20,"evitados":12,
@@ -498,16 +471,25 @@ function populateJefes(){
   if ([...sel.options].some(o => o.value === current)) sel.value = current;
 }
 
+// ── Turno ↔ Supervisor linking helpers ──
+const TURNO_MAP = { manana: 'M', tarde: 'T', noche: 'N' };
+const LETTER_MAP = { M: 'manana', T: 'tarde', N: 'noche' };
+function turnoLetter(v){ return TURNO_MAP[v] || null; }
+function letterFromName(n){ var m=n.match(/\((\w)\)/); return m ? m[1].toUpperCase() : null; }
+
 function populateSupervisores(){
   const sel = document.getElementById('selSup');
   const sv = sel.value;
   const sid = document.getElementById('selJefe').value;
-  const lista = sid==='0' ? SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, s: x.sector.replace('Sector ','')})))
+  const turno = document.getElementById('selTurno').value;
+  const tl = turnoLetter(turno);
+  var lista = sid==='0' ? SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, s: x.sector.replace('Sector ','')})))
     : SECTORES.find(s=>s.id===sid)?.supervisores||[];
+  if (tl) lista = lista.filter(function(p){ return letterFromName(p.n) === tl; });
   const opts = '<option value="0">Todos los Supervisores</option>' +
     lista.map(p => `<option value="${p.n.replace(/"/g,'&quot;')}">${sid==='0'?p.s+' ':''}${p.n}</option>`).join('');
   sel.innerHTML = opts;
-  if([...sel.options].some(o=>o.value===sv)) sel.value=sv; else sel.value='0';
+  if([...sel.options].some(o=>o.value===sv) && (!tl || letterFromName(sv)===tl)) sel.value=sv; else sel.value='0';
 }
 function statusLabel(s){
   if(s==='verde')   return ['verde','Cumplido'];
@@ -525,6 +507,15 @@ function chartDefaults(){ return {
 }; }
 
 // ─── UPDATE ───
+function onSupChange(){
+  var sv = document.getElementById('selSup').value;
+  if (sv && sv !== '0') {
+    var lt = letterFromName(sv);
+    if (lt) document.getElementById('selTurno').value = LETTER_MAP[lt] || '';
+  }
+  updateDash();
+}
+
 function updateDash(){
   populateJefes();
   populateSupervisores();
@@ -942,6 +933,51 @@ function renderRanking(){
     ).join('')+`</div>`;
 }
 
+// ── Integrate sheet data into sectors ──
+let _sheetData = null;
+function applySheetData(map){
+  _sheetData = map;
+  if(!map) return;
+  SECTORES.forEach(sec => {
+    const secId = sec.id.toLowerCase().replace("sector","").trim();
+    var newSups = [];
+    var turnoLabels = { M: "M", T: "T", N: "N" };
+    Object.keys(turnoLabels).forEach(function(tk) {
+      var key = secId + '|' + tk;
+      var d = map[key];
+      if (!d || Object.keys(d.supervisores).length === 0) return;
+      var bestName = "", bestPartes = 0;
+      Object.keys(d.supervisores).forEach(function(nm) {
+        if (d.supervisores[nm] > bestPartes) { bestPartes = d.supervisores[nm]; bestName = nm; }
+      });
+      if (!bestName) return;
+      var partesAvg = Math.round((bestPartes / d.count) * 22);
+      var ast = Math.min(100, Math.max(60, partesAvg));
+      newSups.push({ n: bestName + " (" + tk + ")", ast: ast });
+    });
+    if (newSups.length > 0) {
+      sec.supervisores = newSups;
+      sec.rendimiento = newSups.map(function(p) {
+        return {
+          sup: p.n, rutas: Math.min(100, Math.max(60, Math.round(p.ast * 0.95))),
+          reportes: Math.min(100, Math.max(60, Math.round(p.ast * 0.90))),
+          actitud: Math.min(100, Math.max(60, Math.round(p.ast * 0.85))),
+          total: Math.round((p.ast * 0.95 + p.ast * 0.90 + p.ast * 0.85) / 3)
+        };
+      });
+    }
+  });
+}
+
+async function initSheetData(){
+  const rows = await fetchSheetData();
+  if(rows.length){
+    const map = buildSupervisoresFromSheet(rows);
+    applySheetData(map);
+    if(_sheetData) updateDash();
+  }
+}
+
 // ── NAV ──
 function showPanel(id, el){
   document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
@@ -962,4 +998,5 @@ window.addEventListener('load', ()=>{
 
   updateDash();
   lucide.createIcons();
+  initSheetData();
 });

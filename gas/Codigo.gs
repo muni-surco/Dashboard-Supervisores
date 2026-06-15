@@ -17,6 +17,7 @@ function include(filename) {
  */
 function getDashboardData(fechaInicio, fechaFin, turnoFilter) {
   const SPREADSHEET_ID = "1QUja52TCkWlknWh5YC1CcEAL0P6w1lk6vDXklWjULjE";
+  const SUP_SPREADSHEET_ID = "1aGLYGiowhtvIzioo5zZF3rl-fnP6kBUg0ecYXrJr1-g";
   
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -57,19 +58,7 @@ function getDashboardData(fechaInicio, fechaFin, turnoFilter) {
     }
     
     if (Object.keys(jefesConfig).length === 0) {
-      jefesConfig = {
-        "1a": { nombre: "Carlos Mendoza", initials: "CM" },
-        "1b": { nombre: "Rosa Quispe", initials: "RQ" },
-        "2a": { nombre: "Juan Torres", initials: "JT" },
-        "2b": { nombre: "María Flores", initials: "MF" },
-        "3":  { nombre: "Pedro Silva", initials: "PS" },
-        "4":  { nombre: "Pedro Silva", initials: "PS" },
-        "5":  { nombre: "Ana Castro", initials: "AC" },
-        "6":  { nombre: "Luis Paz", initials: "LP" },
-        "7":  { nombre: "Carmen Vargas", initials: "CV" },
-        "8":  { nombre: "José Reyes", initials: "JR" },
-        "9":  { nombre: "Elena Rivas", initials: "ER" }
-      };
+      return { error: "No se encontraron datos en la hoja Jefes_Area." };
     }
     
     // ── 2. HOJA PRINCIPAL DE INCIDENTES ──
@@ -271,50 +260,21 @@ function getDashboardData(fechaInicio, fechaFin, turnoFilter) {
       
       const tasaResp = s.responseTimes.length > 0
         ? Math.round((s.responseTimes.reduce((a, b) => a + b, 0) / s.responseTimes.length) * 10) / 10
-        : 8.0;
+        : null;
       
       const comisarias = s.comisariasSet.size > 0
         ? Array.from(s.comisariasSet)
-        : ["PNP Sector " + id];
+        : [];
       
       const tiposDelitoObj = {};
       Object.keys(s.crimeTypes)
         .sort((a, b) => s.crimeTypes[b] - s.crimeTypes[a])
         .slice(0, 5)
         .forEach(k => { tiposDelitoObj[k] = s.crimeTypes[k]; });
-      if (Object.keys(tiposDelitoObj).length === 0) {
-        tiposDelitoObj["Otros"] = incTotal || 1;
+      if (Object.keys(tiposDelitoObj).length === 0 && incTotal > 0) {
+        tiposDelitoObj["Otros"] = incTotal;
       }
       
-      const incBase = Math.round(incTotal / 7) || 2;
-      const incidentesSemana = [
-        Math.round(incBase * 1.4), Math.round(incBase * 1.5),
-        Math.round(incBase * 1.3), Math.round(incBase * 1.2),
-        Math.round(incBase * 1.1), Math.round(incBase * 0.9),
-        incTotal - Math.round(incBase * 7.4) > 0 ? incTotal - Math.round(incBase * 6.4) : incBase
-      ];
-      
-      // Normalizar operativosCount a la escala 2-5 del KPI
-      const opsNorm = Math.min(5, Math.max(2, Math.round(s.operativosCount * 0.5 + 1)));
-      const kpis = {
-        redDelict: incTotal < 25 ? 12 : incTotal < 35 ? 8 : 6,
-        superv: 80 + Math.floor(Math.random() * 18),
-        asistencia: 88 + Math.floor(Math.random() * 10),
-        operativos: opsNorm,
-        compromisos: 70 + Math.floor(Math.random() * 26)
-      };
-      
-      const score = Math.round((kpis.redDelict * 2.5 + kpis.superv + kpis.asistencia + kpis.operativos * 8 + kpis.compromisos) / 4.5);
-      
-      const status = {
-        redDelict: kpis.redDelict >= 10 ? 'verde' : kpis.redDelict >= 7 ? 'amarillo' : 'rojo',
-        superv: kpis.superv >= 90 ? 'verde' : kpis.superv >= 80 ? 'amarillo' : 'rojo',
-        asistencia: kpis.asistencia >= 92 ? 'verde' : kpis.asistencia >= 85 ? 'amarillo' : 'rojo',
-        operativos: kpis.operativos >= 4 ? 'verde' : kpis.operativos >= 3 ? 'amarillo' : 'rojo',
-        compromisos: kpis.compromisos >= 80 ? 'verde' : kpis.compromisos >= 65 ? 'amarillo' : 'rojo'
-      };
-      
-      const incVar = -Math.floor(Math.random() * 6) - 1;
       const franjasArray = [
         { l: "00–06h", v: s.franjas["00–06h"], c: "#003D6B" },
         { l: "06–12h", v: s.franjas["06–12h"], c: "#27AE60" },
@@ -322,79 +282,98 @@ function getDashboardData(fechaInicio, fechaFin, turnoFilter) {
         { l: "18–24h", v: s.franjas["18–24h"], c: "#E03E3E" }
       ];
       
-      const dims = [
-        Math.min(100, Math.max(40, 100 - incTotal)),
-        Math.min(100, kpis.superv), Math.min(100, kpis.asistencia),
-        Math.min(100, kpis.operativos * 18), Math.min(100, kpis.compromisos)
-      ];
-      
-      const patrInt = Math.min(100, 60 + s.patrullajeCount * 2);
-      
-      const supervisores = [
-        { n: "García (M)", ast: kpis.asistencia },
-        { n: "López (T)", ast: Math.max(70, kpis.asistencia - 5) },
-        { n: "Martínez (N)", ast: Math.min(100, kpis.asistencia + 2) }
-      ];
-      
-      const rendimiento = supervisores.map(p => ({
-        sup: p.n, rutas: p.ast - 2, reportes: p.ast - 4,
-        actitud: p.ast + 1, total: Math.round((p.ast * 3 - 5) / 3)
-      }));
-      
-      const cobertura = patrInt;
-      const nivelInseg = Math.round(Math.max(0, incTotal * 1.2 + (100 - cobertura) * 0.5));
-      const interv = Math.round(incTotal * 0.8 + 10);
+      var supervisores = [];
+      var rendimiento = [];
       
       return {
         id, nombre: s.nombre, sector: s.sector, initials: s.initials,
-        score, kpis, status,
-        incidentes: incidentesSemana, incTotal, incVar,
-        tasaResp, frustrados: s.robosFrustrados, robosFrustrados: s.robosFrustrados, cobertura,
-        nivelInseg, interv,
+        incTotal, tasaResp, comisarias,
         franjas: franjasArray, tiposDelito: tiposDelitoObj,
-        supRealizadas: Math.round(kpis.superv * 0.5), supPlan: 50,
-        hallazgos: Math.floor(incTotal * 0.3) || 4,
-        capturas: s.capturasCount,
+        frustrados: s.robosFrustrados, robosFrustrados: s.robosFrustrados,
         operativosCount: s.operativosCount,
-        operativosTipo: s.operativosCount > 0
-          ? ["Operativos registrados"]
-          : ["Control de zona"],
-        reportes: kpis.superv + "%", supervisores,
-        tardanzas: Math.round((100 - kpis.asistencia) * 0.4 * 10) / 10,
-        disciplinarias: incTotal > 40 ? 2 : 1, rotacion: incTotal > 40 ? 1 : 0,
-        rendimiento, reunionesComis: kpis.operativos,
-        patrInt, patrullajeInt: patrInt,
-        zonasRef: incTotal > 30 ? 5 : 3, acuerdos: 2,
-        acuerdosList: incTotal > 30
-          ? ["Operativo semanal", "Protocolo de alertas", "Patrullaje mixto"]
-          : ["Operativo semanal", "Protocolo de alertas"],
-        coordVecinales: s.coordVecinalesCount, incDelictivas: incTotal,
-        comisarias, intConj: incTotal > 30 ? 18 : 12, evitados: s.robosFrustrados + 2,
-        compromisos: [
-          { desc: "Aumentar supervisiones", pct: kpis.compromisos, st: kpis.compromisos >= 85 ? "verde" : "amarillo" },
-          { desc: "Reducir tardanzas", pct: Math.min(100, kpis.compromisos + 10), st: "verde" },
-          { desc: "Ruta nueva", pct: 100, st: "verde" }
-        ],
-        impReduc: kpis.redDelict, impAum: Math.floor(kpis.compromisos * 0.2),
-        impDisc: Math.floor((100 - kpis.asistencia) * 0.8), dims
+        coordVecinales: s.coordVecinalesCount,
+        capturas: s.capturasCount,
+        patrullajeCount: s.patrullajeCount,
+        supervisores, rendimiento
       };
     });
     
-    const totalRows = finalSectores.reduce(function(s, x) { return s + x.incTotal; }, 0);
-    var sampleTipos = [];
-    for (var si = 0; si < finalSectores.length && sampleTipos.length < 20; si++) {
-      var st = finalSectores[si].tiposDelito;
-      if (st) sampleTipos = sampleTipos.concat(Object.keys(st));
+    // ── 6. SUPERVISOR DATA FROM SECOND SPREADSHEET ──
+    var supervisorData = {};
+    try {
+      var supSs = SpreadsheetApp.openById(SUP_SPREADSHEET_ID);
+      var supSheet = supSs.getSheetByName("2026");
+      if (supSheet) {
+        var supRows = supSheet.getDataRange().getValues();
+        if (supRows.length > 1) {
+          var supHeaders = supRows[0].map(function(h) { return String(h).trim().toUpperCase(); });
+          var sFecha = supHeaders.indexOf("FECHA");
+          var sSector = supHeaders.indexOf("SECTOR");
+          var sTurno = supHeaders.indexOf("TURNO");
+          var sSupervisor = supHeaders.indexOf("SUPERVISOR");
+          var sPartes = supHeaders.indexOf("CANTPARTES");
+          if (sSector >= 0 && sSupervisor >= 0) {
+            for (var si = 1; si < supRows.length; si++) {
+              var sr = supRows[si];
+              var secId = String(sr[sSector]).toLowerCase().replace("sector","").trim();
+              if (!finalSectores.find(function(fs){ return fs.id === secId; })) continue;
+              if (!supervisorData[secId]) supervisorData[secId] = [];
+              supervisorData[secId].push({
+                fecha: sFecha >= 0 ? sr[sFecha] : null,
+                turno: sTurno >= 0 ? String(sr[sTurno]).trim() : "",
+                supervisor: sSupervisor >= 0 ? String(sr[sSupervisor]).trim() : "",
+                partes: sPartes >= 0 ? (parseInt(sr[sPartes]) || 0) : 0
+              });
+            }
+          }
+        }
+      }
+    } catch(e) {
+      Logger.log("Error reading supervisor sheet: " + e.toString());
     }
+
+    // ── Build supervisors dynamically from sheet data ──
+    finalSectores.forEach(function(sec) {
+      var supRows = supervisorData[sec.id] || [];
+      if (supRows.length === 0) return;
+      var turnoMap = {};
+      supRows.forEach(function(r) {
+        var t = r.turno.toUpperCase();
+        var key = t.indexOf("M") !== -1 ? "M" : t.indexOf("T") !== -1 ? "T" : t.indexOf("N") !== -1 ? "N" : "X";
+        if (!turnoMap[key]) turnoMap[key] = { names: {}, count: 0 };
+        turnoMap[key].names[r.supervisor] = (turnoMap[key].names[r.supervisor] || 0) + r.partes;
+        turnoMap[key].count++;
+      });
+      var newSups = [];
+      var turnoLabels = { M: "M", T: "T", N: "N" };
+      Object.keys(turnoLabels).forEach(function(tk) {
+        var td = turnoMap[tk];
+        if (!td || Object.keys(td.names).length === 0) return;
+        var bestName = "", bestPartes = 0;
+        Object.keys(td.names).forEach(function(nm) {
+          if (td.names[nm] > bestPartes) { bestPartes = td.names[nm]; bestName = nm; }
+        });
+        if (!bestName) return;
+        var partesAvg = Math.round((bestPartes / td.count) * 22);
+        var ast = Math.min(100, Math.max(60, partesAvg));
+        newSups.push({ n: bestName + " (" + tk + ")", ast: ast });
+      });
+      if (newSups.length > 0) {
+        sec.supervisores = newSups;
+        sec.rendimiento = newSups.map(function(p) {
+          return {
+            sup: p.n, rutas: Math.min(100, Math.max(60, Math.round(p.ast * 0.95))),
+            reportes: Math.min(100, Math.max(60, Math.round(p.ast * 0.90))),
+            actitud: Math.min(100, Math.max(60, Math.round(p.ast * 0.85))),
+            total: Math.round((p.ast * 0.95 + p.ast * 0.90 + p.ast * 0.85) / 3)
+          };
+        });
+      }
+    });
+
     return {
       sectores: finalSectores,
-      _debug: {
-        colOffsets: col, totalRows: totalRows,
-        fechaInicio: fechaInicio.toISOString().split('T')[0],
-        fechaFin: fechaFin.toISOString().split('T')[0],
-        turnoFiltro: turnoFilter || "todos",
-        sampleTipos: sampleTipos.slice(0, 20)
-      }
+      supervisorMeta: { totalRows: Object.values(supervisorData).reduce(function(a,b){return a+b.length;},0) || 0 }
     };
     
   } catch (error) {

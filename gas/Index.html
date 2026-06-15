@@ -54,14 +54,6 @@
     <i data-lucide="handshake" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
     Coordinación Vecinal
   </div>
-  <div class="nav-item" onclick="showPanel('estrategia',this)">
-    <i data-lucide="trending-up" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Gestión Estratégica
-  </div>
-  <div class="nav-item" onclick="showPanel('ranking',this)">
-    <i data-lucide="bar-chart-3" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Ranking Sectores
-  </div>
 </aside>
 
 <!-- MAIN -->
@@ -75,7 +67,7 @@
     <select id="selJefe" class="tb-select" onchange="updateDash()">
       <option value="0">Todos los Sectores</option>
     </select>
-    <select id="selSup" class="tb-select tb-sup" onchange="updateDash()">
+    <select id="selSup" class="tb-select tb-sup" onchange="onSupChange()">
       <option value="0">Todos los Supervisores</option>
     </select>
     <select id="selTurno" class="tb-select tb-turno" onchange="onTurnoChange()">
@@ -101,32 +93,14 @@
       <div class="kpi-row" id="kpi-row"></div>
       <div class="grid-2">
         <div class="card">
-          <div class="card-title">Tendencia Delictiva Semanal <span class="badge-cat">Seguridad</span></div>
-          <div class="chart-wrap" style="height:200px;">
-            <canvas id="chartTendencia"></canvas>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">Puntuación por Sector <span class="badge-cat">Ranking</span></div>
-          <div class="chart-wrap" style="height:200px;">
-            <canvas id="chartRankBar"></canvas>
-          </div>
-        </div>
-      </div>
-      <div class="grid-3">
-        <div class="card">
           <div class="card-title">Delitos por Tipo</div>
-          <div class="chart-wrap" style="height:170px;">
+          <div class="chart-wrap" style="height:200px;">
             <canvas id="chartDelitos"></canvas>
           </div>
         </div>
         <div class="card">
           <div class="card-title">Asistencia del Personal</div>
           <div id="asistencia-prog" class="prog-wrap"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Compromisos de Mejora</div>
-          <div id="compromisos-mini"></div>
         </div>
       </div>
     </div>
@@ -137,41 +111,19 @@
         <h2>Seguridad Ciudadana</h2>
         <p>Incidencias delictivas, robos frustrados y nivel de inseguridad</p>
       </div>
-      <div class="grid-3 mb14">
-        <div class="mm"><div class="ml">Incidencias Delictivas</div><div class="mv" id="s-incidentes">—</div><div class="ms" id="s-inc-var">vs. mes anterior</div></div>
+      <div class="grid-2 mb14">
+        <div class="mm"><div class="ml">Incidencias Delictivas</div><div class="mv" id="s-incidentes">—</div><div class="ms">este mes</div></div>
         <div class="mm"><div class="ml">Robos frustrados</div><div class="mv" id="s-frustrados">—</div><div class="ms">este mes</div></div>
-        <div class="mm"><div class="ml">Nivel de Inseguridad</div><div class="mv" id="s-inseguridad">—</div><div class="ms">índice compuesto</div></div>
+        <div class="mm"><div class="ml">Tasa de respuesta</div><div class="mv" id="s-respuesta">—</div><div class="ms">minutos prom.</div></div>
       </div>
       <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Incidencias por Semana <span class="badge-cat">Tendencia</span></div>
-          <div class="chart-wrap" style="height:200px;"><canvas id="chartSemanas"></canvas></div>
-        </div>
         <div class="card">
           <div class="card-title">Delitos por Franja Horaria</div>
           <div id="franja-chart"></div>
         </div>
-      </div>
-      <div class="grid-2">
         <div class="card">
           <div class="card-title">Tipos de Delito</div>
-          <div class="chart-wrap" style="height:210px;"><canvas id="chartTiposDelito"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Robos Frustrados — Últimas Semanas</div>
-          <div class="chart-wrap" style="height:190px;"><canvas id="chartRobos"></canvas></div>
-          <div style="margin-top:12px;display:flex;align-items:center;gap:var(--s4);">
-            <div class="mm" style="flex:1;"><div class="ml">Tasa de respuesta</div><div class="mv" id="s-respuesta">—</div><div class="ms">minutos prom.</div></div>
-            <div class="mm" style="flex:1;"><div class="ml">Intervenciones prev.</div><div class="mv" id="s-intervenciones">—</div><div class="ms">identificaciones</div></div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Factores del Nivel de Inseguridad</div>
-        <div class="grid-3" style="gap:10px;margin-bottom:0;">
-          <div class="mm"><div class="ml">Índice delictivo</div><div class="mv" id="s-factor-inc">—</div><div class="ms">incidencias / mes</div></div>
-          <div class="mm"><div class="ml">Cobertura de patrullaje</div><div class="mv" id="s-rutas">—</div><div class="ms">% del plan</div></div>
-          <div class="mm"><div class="ml">Tasa de respuesta</div><div class="mv" id="s-factor-resp">—</div><div class="ms">minutos promedio</div></div>
+          <div class="chart-wrap" style="height:240px;"><canvas id="chartTiposDelito"></canvas></div>
         </div>
       </div>
     </div>
@@ -182,25 +134,9 @@
         <h2>Desempeño Operativo</h2>
         <p>Operativos realizados y capturas efectuadas</p>
       </div>
-      <div class="grid-3 mb14">
+      <div class="grid-2 mb14">
         <div class="mm"><div class="ml">Operativos realizados</div><div class="mv" id="o-operativos">—</div><div class="ms">este mes</div></div>
         <div class="mm"><div class="ml">Capturas efectuadas</div><div class="mv" id="o-capturas">—</div><div class="ms">retenciones documentadas</div></div>
-        <div class="mm"><div class="ml">Supervisiones</div><div class="mv" id="o-sup">—</div><div class="ms" id="o-sup-plan">de — planificadas</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Tipos de Operativo</div>
-          <div id="operativos-list" style="margin-bottom:12px;"></div>
-          <div class="chart-wrap" style="height:160px;"><canvas id="chartOperativos"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Capturas — Historial por Semana</div>
-          <div class="chart-wrap" style="height:190px;"><canvas id="chartCapturas"></canvas></div>
-          <div style="margin-top:12px;display:flex;align-items:center;gap:var(--s4);">
-            <div class="mm" style="flex:1;"><div class="ml">Hallazgos detectados</div><div class="mv" id="o-hallazgos">—</div><div class="ms">incidencias corregidas</div></div>
-            <div class="mm" style="flex:1;"><div class="ml">Reportes cumplidos</div><div class="mv" id="o-reportes">—</div><div class="ms">vs. plan</div></div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -211,7 +147,7 @@
         <p>Asistencia, disciplina, rendimiento por supervisor y rotación</p>
       </div>
       <div id="sup-info-box"></div>
-      <div class="grid-4 mb14">
+      <div class="grid-2 mb14">
         <div class="mm"><div class="ml">Asistencia general</div><div class="mv" id="p-asist">—</div><div class="ms">% mensual</div></div>
         <div class="mm"><div class="ml">Índice de tardanzas</div><div class="mv" id="p-tard">—</div><div class="ms">% por turno</div></div>
         <div class="mm"><div class="ml">Incidencias discipl.</div><div class="mv" id="p-disc">—</div><div class="ms">llamadas / faltas</div></div>
@@ -241,98 +177,12 @@
         <h2>Coordinación Vecinal y Patrullaje</h2>
         <p>Coordinaciones con la comunidad, comisarías y patrullaje integrado</p>
       </div>
-      <div class="grid-3 mb14">
+      <div class="grid-2 mb14">
         <div class="mm"><div class="ml">Coordinaciones Vecinales</div><div class="mv" id="c-coord">—</div><div class="ms">reuniones / mes</div></div>
-        <div class="mm"><div class="ml">Patrullaje Integrado</div><div class="mv" id="c-pat">—</div><div class="ms">% cumplimiento</div></div>
-        <div class="mm"><div class="ml">Zonas Reforzadas</div><div class="mv" id="c-zonas">—</div><div class="ms">puntos críticos</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Patrullaje Integrado vs Planificado <span class="badge-cat">Cobertura</span></div>
-          <div class="chart-wrap" style="height:220px;"><canvas id="chartPatInt"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Acuerdos y Comisarías Involucradas</div>
-          <div id="acuerdos-list"></div>
-          <hr class="divider">
-          <div id="comisarias-tags"></div>
-        </div>
       </div>
       <div class="card">
-        <div class="card-title">Resultados del Patrullaje Integrado</div>
-        <div class="grid-3" style="gap:10px;margin-bottom:0;">
-          <div class="mm"><div class="ml">Intervenciones conjuntas</div><div class="mv" id="c-intconj">—</div><div class="ms">PNP + Serenazgo</div></div>
-          <div class="mm"><div class="ml">Incidentes evitados</div><div class="mv" id="c-evitados">—</div><div class="ms">estimado</div></div>
-          <div class="mm"><div class="ml">Reuniones con comisarías</div><div class="mv" id="c-reuniones">—</div><div class="ms">este mes</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ━━━━ ESTRATEGIA ━━━━ -->
-    <div class="section-panel" id="panel-estrategia">
-      <div class="section-header">
-        <h2>Gestión Estratégica — Compromisos de Mejora</h2>
-        <p>Seguimiento de compromisos asumidos, avance y cumplimiento</p>
-      </div>
-      <div class="grid-4 mb14">
-        <div class="mm"><div class="ml">Total compromisos</div><div class="mv" id="e-total">—</div><div class="ms">activos</div></div>
-        <div class="mm"><div class="ml">Cumplidos</div><div class="mv" id="e-cumplidos">—</div><div class="ms">al 100%</div></div>
-        <div class="mm"><div class="ml">En progreso</div><div class="mv" id="e-progreso">—</div><div class="ms">parcial</div></div>
-        <div class="mm"><div class="ml">Promedio avance</div><div class="mv" id="e-prom">—</div><div class="ms">% general</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Compromisos por Sector</div>
-          <div class="chart-wrap" style="height:220px;"><canvas id="chartComp"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Detalle de Compromisos</div>
-          <div id="compromisos-detail"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Impacto de las Mejoras Implementadas</div>
-        <div class="grid-3" style="gap:10px;margin-bottom:0;">
-          <div class="mm"><div class="ml">Reducción incidentes</div><div class="mv" id="e-red">—</div><div class="ms">% vs. período anterior</div></div>
-          <div class="mm"><div class="ml">Aumento intervenciones</div><div class="mv" id="e-aum">—</div><div class="ms">% más que antes</div></div>
-          <div class="mm"><div class="ml">Mejora disciplina</div><div class="mv" id="e-disc">—</div><div class="ms">% reducción tardanzas</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ━━━━ RANKING ━━━━ -->
-    <div class="section-panel" id="panel-ranking">
-      <div class="section-header">
-        <h2>Ranking General por Sector</h2>
-        <p>Comparativo integral de todos los jefes de área — período mensual</p>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Puntuación Global por Sector</div>
-          <div class="chart-wrap" style="height:200px;"><canvas id="chartRankGlobal"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Radar Multidimensional</div>
-          <div class="chart-wrap" style="height:200px;"><canvas id="chartRadar"></canvas></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Tabla Comparativa — KPIs por Sector</div>
-        <table class="tbl" id="tbl-ranking">
-          <thead>
-            <tr>
-              <th>#</th><th>Jefe de Área</th><th>Sector</th>
-              <th class="num">Seguridad</th><th class="num">Operaciones</th>
-              <th class="num">Personal</th><th class="num">Coordinación</th>
-              <th class="num">Estrategia</th><th class="num">Puntaje</th><th>Estado</th>
-            </tr>
-          </thead>
-          <tbody id="tbody-ranking"></tbody>
-        </table>
-      </div>
-      <div class="card" style="margin-top:12px;">
-        <div class="card-title">Medición Semanal — Checklist</div>
-        <div id="checklist-semanal"></div>
+        <div class="card-title">Comisarías Involucradas</div>
+        <div id="comisarias-tags"></div>
       </div>
     </div>
 

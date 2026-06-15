@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 
 const htmlPath = 'dashboard-c4-mss.html';
 let html = fs.readFileSync(htmlPath, 'utf8');
