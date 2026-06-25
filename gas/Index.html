@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <?!= include('Styles'); ?>
 </head>
 <body>
@@ -17,7 +18,7 @@
 <div class="loading-overlay" id="loading-overlay">
   <div class="spinner"></div>
   <div class="loading-text">Cargando Dashboard C4...</div>
-  <div class="loading-sub">Conectando con Google Sheets y procesando incidencias</div>
+  <div class="loading-sub">Cargando datos desde Supabase y Google Sheets</div>
 </div>
 
 <!-- SIDEBAR -->
@@ -77,9 +78,9 @@
       <option value="noche">Noche (22:30–6:30)</option>
     </select>
     <div class="date-range">
-      <input type="date" id="fechaInicio" class="tb-date" onchange="updateDash()">
+      <input type="date" id="fechaInicio" class="tb-date" onchange="onFechaChange()">
       <span>al</span>
-      <input type="date" id="fechaFin" class="tb-date" onchange="updateDash()">
+      <input type="date" id="fechaFin" class="tb-date" onchange="onFechaChange()">
     </div>
     <div class="badge-period" id="badgePeriod">Abril 2025</div>
   </div>
