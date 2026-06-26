@@ -41,7 +41,9 @@ function getSectorData(){
 function getSupData(sector){
   const v=document.getElementById('selSup').value;
   if(v==='0'||!sector)return null;
-  return {sup:sector.supervisores.find(p=>p.n===v),rend:sector.rendimiento.find(r=>r.sup===v)};
+  var supEntry=sector.supervisores.find(function(p){return baseName(p.n)===v;});
+  var rendEntry=sector.rendimiento.find(function(r){return baseName(r.sup)===v;});
+  return {sup:supEntry||null,rend:rendEntry||null};
 }
 function populateJefes(){
   const sel=document.getElementById('selJefe');
@@ -55,6 +57,7 @@ const TURNO_MAP={manana:'M',tarde:'T',noche:'N'};
 const LETTER_MAP={M:'manana',T:'tarde',N:'noche'};
 function turnoLetter(v){ return TURNO_MAP[v]||null; }
 function letterFromName(n){ var m=n.match(/\((\w)\)/); return m?m[1].toUpperCase():null; }
+function baseName(n){ return (n||'').replace(/\s*\([MTN]\)\s*$/,'').trim(); }
 
 function populateSupervisores(){
   const sel=document.getElementById('selSup');
@@ -62,13 +65,21 @@ function populateSupervisores(){
   const sid=document.getElementById('selJefe').value;
   const turno=document.getElementById('selTurno').value;
   const tl=turnoLetter(turno);
-  var lista=sid==='0'?SECTORES.flatMap(x=>x.supervisores.map(p=>({...p,s:x.sector.replace('Sector ','')})))
-    :SECTORES.find(s=>s.id===sid)?.supervisores||[];
-  if(tl)lista=lista.filter(function(p){ return letterFromName(p.n)===tl; });
+  var raw=sid==='0'
+    ? SECTORES.flatMap(x=>x.supervisores)
+    : (SECTORES.find(s=>s.id===sid)?.supervisores||[]);
+  if(tl)raw=raw.filter(function(p){ return letterFromName(p.n)===tl; });
+  var seen={};
+  var lista=raw.filter(function(p){
+    var b=baseName(p.n);
+    if(seen[b])return false;
+    seen[b]=true;
+    return true;
+  });
   const opts='<option value="0">Todos los Supervisores</option>'+
-    lista.map(p=>`<option value="${p.n.replace(/"/g,'&quot;')}">${sid==='0'?p.s+' ':''}${p.n}</option>`).join('');
+    lista.map(p=>`<option value="${baseName(p.n).replace(/"/g,'&quot;')}">${baseName(p.n)}</option>`).join('');
   sel.innerHTML=opts;
-  if([...sel.options].some(o=>o.value===sv)&&(!tl||letterFromName(sv)===tl))sel.value=sv;else sel.value='0';
+  if([...sel.options].some(o=>o.value===sv))sel.value=sv;else sel.value='0';
 }
 function statusLabel(s){
   if(s==='verde')return['verde','Cumplido'];
@@ -86,8 +97,17 @@ function chartDefaults(){return{
 function onSupChange(){
   var sv=document.getElementById('selSup').value;
   if(sv&&sv!=='0'){
-    var lt=letterFromName(sv);
-    if(lt)document.getElementById('selTurno').value=LETTER_MAP[lt]||'';
+    var letters={};
+    SECTORES.forEach(function(sec){
+      sec.supervisores.forEach(function(p){
+        if(baseName(p.n)===sv){
+          var lt=letterFromName(p.n);
+          if(lt)letters[lt]=true;
+        }
+      });
+    });
+    var keys=Object.keys(letters);
+    document.getElementById('selTurno').value=keys.length===1?LETTER_MAP[keys[0]]||'':'';
   }
   updateDash();
 }
@@ -451,9 +471,6 @@ function loadData(turnoFilter){
     return jc;
   });
 
-  var fStart = document.getElementById('fechaInicio').value;
-  var fEnd = document.getElementById('fechaFin').value;
-
   Promise.all([pSupabase,pJefes]).then(function(results){
     var incidencias=results[0];
     var jefesConfig=results[1];
@@ -512,15 +529,11 @@ function onFechaChange(){
 }
 
 window.addEventListener('load',function(){
-  var today=new Date();
-  var firstDayPrevMonth=new Date(today.getFullYear(),today.getMonth()-1,1);
-  var lastDayPrevMonth=new Date(today.getFullYear(),today.getMonth(),0);
-  
   var fInicioInput=document.getElementById('fechaInicio');
   var fFinInput=document.getElementById('fechaFin');
 
-  if(!fInicioInput.value)fInicioInput.value=firstDayPrevMonth.toISOString().slice(0,10);
-  if(!fFinInput.value)fFinInput.value=lastDayPrevMonth.toISOString().slice(0,10);
+  if(!fInicioInput.value)fInicioInput.value='2026-01-01';
+  if(!fFinInput.value)fFinInput.value='2026-12-31';
 
   loadData('');
 });
