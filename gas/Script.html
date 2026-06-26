@@ -309,9 +309,9 @@ function renderResumen(s){
   const supsData=s?s.supervisores:SECTORES.flatMap(x=>x.supervisores.map(p=>({...p,n:x.sector.replace('Sector ','')+' '+p.n})));
   document.getElementById('asistencia-prog').innerHTML=supsData.sort((a,b)=>b.ast-a.ast).slice(0,6).map(p=>{
     const cls=p.ast>=95?'verde':p.ast>=85?'amarillo':'rojo';
-    return `<div class="prog-row"><span class="prog-name">${p.n}</span>
-      <div class="prog-track"><div class="prog-bar ${cls}" style="width:${p.ast}%"></div></div>
-      <span class="prog-val">${p.ast}%</span></div>`;
+    return '<div class="prog-row"><span class="prog-name">' + p.n + '</span>' +
+      '<div class="prog-track"><div class="prog-bar ' + cls + '"></div></div>' +
+      '<span class="prog-val">' + p.ast + '%</span></div>';
   }).join('');
 }
 
@@ -326,9 +326,9 @@ function renderSeguridad(s){
   document.getElementById('franja-chart').innerHTML=franData.map(f=>{
     const maxVal=Math.max(...franData.map(fd=>fd.v))||1;
     const w=Math.round((f.v/maxVal)*90)+10;
-    return `<div class="franja-row"><span class="franja-label">${f.l}</span>
-      <div class="franja-bar" style="width:${w}%;background:${f.c};min-width:32px;">${f.v}</div>
-      <span style="font-size:11px;color:var(--g5);margin-left:6px;">${f.v} casos</span></div>`;
+    return '<div class="franja-row"><span class="franja-label">' + f.l + '</span>' +
+      '<div class="franja-bar" style="width:' + w + '%;background:' + f.c + ';min-width:32px;">' + f.v + '</div>' +
+      '<span style="font-size:11px;color:var(--g5);margin-left:6px;">' + f.v + ' casos</span></div>';
   }).join('');
   const delData=s?d.tiposDelito:(()=>{
     const keys=Object.keys(SECTORES[0].tiposDelito),agg={};
@@ -363,9 +363,9 @@ function renderPersonal(s,sup){
   document.getElementById('rank-asistencia').innerHTML=allSups.sort((a,b)=>b.ast-a.ast).slice(0,8).map(p=>{
     const cls=p.ast>=95?'verde':p.ast>=85?'amarillo':'rojo';
     const hl=sup?' style="background:var(--cpl);border-radius:var(--rmd);padding:4px 6px;"':'';
-    return `<div class="prog-row"${hl}><span class="prog-name">${p.n}</span>
-      <div class="prog-track"><div class="prog-bar ${cls}" style="width:${p.ast}%"></div></div>
-      <span class="prog-val">${p.ast}%</span></div>`;
+    return '<div class="prog-row"' + hl + '><span class="prog-name">' + p.n + '</span>' +
+      '<div class="prog-track"><div class="prog-bar ' + cls + '"></div></div>' +
+      '<span class="prog-val">' + p.ast + '%</span></div>';
   }).join('');
   const turnoAvg=m=>{
     const match=supsRaw.filter(p=>p.n.includes(m));
@@ -383,15 +383,15 @@ function renderPersonal(s,sup){
   const rendRaw=s?d.rendimiento:SECTORES.flatMap(x=>x.rendimiento.map(r=>({...r,sup:x.sector.replace('Sector ','')+' '+r.sup,sec:x.sector.replace('Sector ','')})));
   const allRend=sup?rendRaw.filter(r=>baseName(r.sup)===baseName(sup.rend?.sup)):rendRaw;
   const tbl=document.getElementById('tbl-rendimiento');
-  tbl.innerHTML=`<thead><tr>
-    <th>${s?'':'Sector '}Supervisor</th><th class="num">Rutas %</th><th class="num">Reportes %</th>
-    <th class="num">Actitud</th><th class="num">Puntaje Total</th><th>SemÃ¡foro</th>
-  </tr></thead><tbody>`+allRend.slice(0,10).map(r=>{
+  tbl.innerHTML = '<thead><tr>' +
+    '<th>' + (s?'':'Sector ') + 'Supervisor</th><th class="num">Rutas %</th><th class="num">Reportes %</th>' +
+    '<th class="num">Actitud</th><th class="num">Puntaje Total</th><th>Semáforo</th>' +
+  '</tr></thead><tbody>' + allRend.slice(0,10).map(function(r){
     const cls=r.total>=90?'verde':r.total>=75?'amarillo':'rojo';
-    return `<tr><td>${r.sup}</td><td class="num">${r.rutas}</td><td class="num">${r.reportes}</td>
-      <td class="num">${r.actitud}</td><td class="num"><strong>${r.total}</strong></td>
-      <td><span class="status-badge ${cls}"><span class="dot ${cls}"></span>${statusLabel(cls)[1]}</span></td></tr>`;
-  }).join('')+'</tbody>';
+    return '<tr><td>' + r.sup + '</td><td class="num">' + r.rutas + '</td><td class="num">' + r.reportes + '</td>' +
+      '<td class="num">' + r.actitud + '</td><td class="num"><strong>' + r.total + '</strong></td>' +
+      '<td><span class="status-badge ' + cls + '"><span class="dot ' + cls + '"></span>' + statusLabel(cls)[1] + '</span></td></tr>';
+  }).join('') + '</tbody>';
 }
 
 function renderCoordinacion(s){
