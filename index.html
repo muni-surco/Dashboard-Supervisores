@@ -9,9 +9,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading-overlay" style="display:none;">
+  <div class="spinner"></div>
+  <div class="loading-text">Cargando Dashboard C4...</div>
+  <div class="loading-sub">Cargando datos reales desde Supabase y Google Sheets</div>
+</div>
 
 <!-- SIDEBAR -->
 <aside class="sb">
@@ -35,21 +43,9 @@
     <i data-lucide="shield" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
     Seguridad Ciudadana
   </div>
-  <div class="nav-item" onclick="showPanel('operaciones',this)">
-    <i data-lucide="clock" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Desempeño Operativo
-  </div>
   <div class="nav-item" onclick="showPanel('personal',this)">
     <i data-lucide="users" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Gestión de Personal
-  </div>
-  <div class="nav-item" onclick="showPanel('coordinacion',this)">
-    <i data-lucide="handshake" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Coordinación Vecinal
-  </div>
-  <div class="nav-item" onclick="showPanel('estrategia',this)">
-    <i data-lucide="trending-up" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Gestión Estratégica
+    Supervisores
   </div>
   <div class="nav-item" onclick="showPanel('ranking',this)">
     <i data-lucide="bar-chart-3" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
@@ -71,16 +67,16 @@
     <select id="selSup" class="tb-select tb-sup" onchange="onSupChange()">
       <option value="0">Todos los Supervisores</option>
     </select>
-    <select id="selTurno" class="tb-select tb-turno" onchange="updateDash()">
+    <select id="selTurno" class="tb-select tb-turno" onchange="onTurnoChange()">
       <option value="">Todos los Turnos</option>
       <option value="manana">Mañana (6:30–14:30)</option>
       <option value="tarde">Tarde (14:30–22:30)</option>
       <option value="noche">Noche (22:30–6:30)</option>
     </select>
     <div class="date-range">
-      <input type="date" id="fechaInicio" class="tb-date" onchange="updateDash()">
+      <input type="date" id="fechaInicio" class="tb-date" onchange="onFechaChange()">
       <span>al</span>
-      <input type="date" id="fechaFin" class="tb-date" onchange="updateDash()">
+      <input type="date" id="fechaFin" class="tb-date" onchange="onFechaChange()">
     </div>
     <div class="badge-period" id="badgePeriod">Abril 2025</div>
   </div>
@@ -169,129 +165,6 @@
       </div>
     </div>
 
-    <!-- ━━━━ OPERACIONES ━━━━ -->
-    <div class="section-panel" id="panel-operaciones">
-      <div class="section-header">
-        <h2>Desempeño Operativo</h2>
-        <p>Operativos realizados y capturas efectuadas</p>
-      </div>
-      <div class="grid-3 mb14">
-        <div class="mm"><div class="ml">Operativos realizados</div><div class="mv" id="o-operativos">—</div><div class="ms">este mes</div></div>
-        <div class="mm"><div class="ml">Capturas efectuadas</div><div class="mv" id="o-capturas">—</div><div class="ms">retenciones documentadas</div></div>
-        <div class="mm"><div class="ml">Supervisiones</div><div class="mv" id="o-sup">—</div><div class="ms" id="o-sup-plan">de — planificadas</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Tipos de Operativo</div>
-          <div id="operativos-list" style="margin-bottom:12px;"></div>
-          <div class="chart-wrap" style="height:160px;"><canvas id="chartOperativos"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Capturas — Historial por Semana</div>
-          <div class="chart-wrap" style="height:190px;"><canvas id="chartCapturas"></canvas></div>
-          <div style="margin-top:12px;display:flex;align-items:center;gap:var(--s4);">
-            <div class="mm" style="flex:1;"><div class="ml">Hallazgos detectados</div><div class="mv" id="o-hallazgos">—</div><div class="ms">incidencias corregidas</div></div>
-            <div class="mm" style="flex:1;"><div class="ml">Reportes cumplidos</div><div class="mv" id="o-reportes">—</div><div class="ms">vs. plan</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ━━━━ PERSONAL ━━━━ -->
-    <div class="section-panel" id="panel-personal">
-      <div class="section-header">
-        <h2>Gestión del Personal</h2>
-        <p>Asistencia, disciplina, rendimiento por supervisor y rotación</p>
-      </div>
-      <div id="sup-info-box"></div>
-      <div class="grid-4 mb14">
-        <div class="mm"><div class="ml">Asistencia general</div><div class="mv" id="p-asist">—</div><div class="ms">% mensual</div></div>
-        <div class="mm"><div class="ml">Índice de tardanzas</div><div class="mv" id="p-tard">—</div><div class="ms">% por turno</div></div>
-        <div class="mm"><div class="ml">Incidencias discipl.</div><div class="mv" id="p-disc">—</div><div class="ms">llamadas / faltas</div></div>
-        <div class="mm"><div class="ml">Rotación personal</div><div class="mv" id="p-rot">—</div><div class="ms">cambios/reemplazos</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Ranking de Asistencia — Supervisores</div>
-          <div id="rank-asistencia" class="prog-wrap"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Asistencia por Turno</div>
-          <div class="chart-wrap" style="height:220px;"><canvas id="chartTurnos"></canvas></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Evaluación de Rendimiento por Supervisor</div>
-        <div style="overflow-x:auto;">
-          <table class="tbl" id="tbl-rendimiento"></table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ━━━━ COORDINACIÓN ━━━━ -->
-    <div class="section-panel" id="panel-coordinacion">
-      <div class="section-header">
-        <h2>Coordinación Vecinal y Patrullaje</h2>
-        <p>Coordinaciones con la comunidad, comisarías y patrullaje integrado</p>
-      </div>
-      <div class="grid-3 mb14">
-        <div class="mm"><div class="ml">Coordinaciones Vecinales</div><div class="mv" id="c-coord">—</div><div class="ms">reuniones / mes</div></div>
-        <div class="mm"><div class="ml">Patrullaje Integrado</div><div class="mv" id="c-pat">—</div><div class="ms">% cumplimiento</div></div>
-        <div class="mm"><div class="ml">Zonas Reforzadas</div><div class="mv" id="c-zonas">—</div><div class="ms">puntos críticos</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Patrullaje Integrado vs Planificado <span class="badge-cat">Cobertura</span></div>
-          <div class="chart-wrap" style="height:220px;"><canvas id="chartPatInt"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Acuerdos y Comisarías Involucradas</div>
-          <div id="acuerdos-list"></div>
-          <hr class="divider">
-          <div id="comisarias-tags"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Resultados del Patrullaje Integrado</div>
-        <div class="grid-3" style="gap:10px;margin-bottom:0;">
-          <div class="mm"><div class="ml">Intervenciones conjuntas</div><div class="mv" id="c-intconj">—</div><div class="ms">PNP + Serenazgo</div></div>
-          <div class="mm"><div class="ml">Incidentes evitados</div><div class="mv" id="c-evitados">—</div><div class="ms">estimado</div></div>
-          <div class="mm"><div class="ml">Reuniones con comisarías</div><div class="mv" id="c-reuniones">—</div><div class="ms">este mes</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ━━━━ ESTRATEGIA ━━━━ -->
-    <div class="section-panel" id="panel-estrategia">
-      <div class="section-header">
-        <h2>Gestión Estratégica — Compromisos de Mejora</h2>
-        <p>Seguimiento de compromisos asumidos, avance y cumplimiento</p>
-      </div>
-      <div class="grid-4 mb14">
-        <div class="mm"><div class="ml">Total compromisos</div><div class="mv" id="e-total">—</div><div class="ms">activos</div></div>
-        <div class="mm"><div class="ml">Cumplidos</div><div class="mv" id="e-cumplidos">—</div><div class="ms">al 100%</div></div>
-        <div class="mm"><div class="ml">En progreso</div><div class="mv" id="e-progreso">—</div><div class="ms">parcial</div></div>
-        <div class="mm"><div class="ml">Promedio avance</div><div class="mv" id="e-prom">—</div><div class="ms">% general</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Compromisos por Sector</div>
-          <div class="chart-wrap" style="height:220px;"><canvas id="chartComp"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Detalle de Compromisos</div>
-          <div id="compromisos-detail"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Impacto de las Mejoras Implementadas</div>
-        <div class="grid-3" style="gap:10px;margin-bottom:0;">
-          <div class="mm"><div class="ml">Reducción incidentes</div><div class="mv" id="e-red">—</div><div class="ms">% vs. período anterior</div></div>
-          <div class="mm"><div class="ml">Aumento intervenciones</div><div class="mv" id="e-aum">—</div><div class="ms">% más que antes</div></div>
-          <div class="mm"><div class="ml">Mejora disciplina</div><div class="mv" id="e-disc">—</div><div class="ms">% reducción tardanzas</div></div>
-        </div>
-      </div>
-    </div>
 
     <!-- ━━━━ RANKING ━━━━ -->
     <div class="section-panel" id="panel-ranking">

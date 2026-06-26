@@ -1,9 +1,12 @@
-// ── Google Sheets config ──
+const SUPABASE_URL = 'https://iotxurynamixapftjwze.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvdHh1cnluYW1peGFwZnRqd3plIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNTc1MDYsImV4cCI6MjA5NzgzMzUwNn0.-SDfDO5vrebHnc7B2E77tbnl5nKnpM2ub2pBoSQGPOQ';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const SHEETS = {
   id: '1aGLYGiowhtvIzioo5zZF3rl-fnP6kBUg0ecYXrJr1-g',
-  sheet: '2026',
-  apiKey: 'AIzaSyCzFTPnZSVf9hVWKSiMMNSzq9OxjAhu-T0',
-  range: '2026!A:E'
+  range: '2026!A:E',
+  apiKey: 'AIzaSyCzFTPnZSVf9hVWKSiMMNSzq9OxjAhu-T0'
 };
 
 async function fetchSheetData(){
@@ -19,554 +22,228 @@ async function fetchSheetData(){
   }
 }
 
+function applySheetData(map){
+  if(!map) return;
+  SECTORES.forEach(sec => {
+    const secId = sec.id.toLowerCase().replace('sector','').trim();
+    const newSups = [];
+    ['M','T','N'].forEach(function(tk) {
+      const key = secId + '|' + tk;
+      const d = map[key];
+      if(!d || Object.keys(d.supervisores).length === 0) return;
+      let bestName = '';
+      let bestPartes = 0;
+      Object.keys(d.supervisores).forEach(function(nm) {
+        if(d.supervisores[nm] > bestPartes) { bestPartes = d.supervisores[nm]; bestName = nm; }
+      });
+      if(!bestName) return;
+      const partesAvg = Math.round((bestPartes / d.count) * 22);
+      const ast = Math.min(100, Math.max(60, partesAvg));
+      newSups.push({ n: bestName + ' (' + tk + ')', ast: ast });
+    });
+    if(newSups.length > 0){
+      sec.supervisores = newSups;
+      sec.rendimiento = newSups.map(function(p){
+        return {
+          sup: p.n,
+          rutas: Math.min(100, Math.max(60, Math.round(p.ast * 0.95))),
+          reportes: Math.min(100, Math.max(60, Math.round(p.ast * 0.90))),
+          actitud: Math.min(100, Math.max(60, Math.round(p.ast * 0.85))),
+          total: Math.round((p.ast * 0.95 + p.ast * 0.90 + p.ast * 0.85) / 3)
+        };
+      });
+    }
+  });
+}
+
 function buildSupervisoresFromSheet(rows){
-  if(!rows || rows.length<2) return null;
+  if(!rows || rows.length < 2) return [];
   const map = {};
   rows.slice(1).forEach(row => {
-    const sec = (row[1]||'').trim();
-    const turn = (row[2]||'').trim().toUpperCase();
-    const name = (row[3]||'').trim();
-    const partes = parseInt(row[4]) || 0;
+    const sec = String(row[1] || '').trim();
+    const turn = String(row[2] || '').trim().toUpperCase();
+    const name = String(row[3] || '').trim();
+    const partes = parseInt(row[4], 10) || 0;
     if(!sec || !name) return;
-    const key = sec+'|'+turn;
-    if(!map[key]) map[key] = {sector:sec, turno:turn, supervisores:{}, partesTotal:0, count:0};
-    map[key].supervisores[name] = (map[key].supervisores[name]||0) + partes;
+    const key = sec + '|' + turn;
+    if(!map[key]) map[key] = { sector: sec, turno: turn, supervisores: {}, partesTotal: 0, count: 0 };
+    map[key].supervisores[name] = (map[key].supervisores[name] || 0) + partes;
     map[key].partesTotal += partes;
-    map[key].count++;
+    map[key].count += 1;
   });
   return map;
 }
 
-// ── DS palette for charts ──
+function sheetMapToSupervisorRows(map){
+  const supervisores = [];
+  Object.keys(map || {}).forEach(function(key){
+    const d = map[key];
+    let bestName = '';
+    let bestSum = 0;
+    Object.keys(d.supervisores || {}).forEach(function(nm){
+      if(d.supervisores[nm] > bestSum){
+        bestSum = d.supervisores[nm];
+        bestName = nm;
+      }
+    });
+    if(bestName){
+      supervisores.push({
+        sector: d.sector,
+        turno: d.turno,
+        supervisor: bestName,
+        partes: bestSum,
+        count: d.count
+      });
+    }
+  });
+  return supervisores;
+}
+
 const DS = {
-  primary:  '#005ea5',
-  primaryD: '#003D6B',
-  secondary:'#00C9A7',
-  accent:   '#F5A623',
-  danger:   '#E03E3E',
-  success:  '#27AE60',
-  warning:  '#F5A623',
-  g3: '#D0D5E8',
-  g5: '#8888AA',
-  g7: '#4A4A6A',
+  primary:'#005ea5',primaryD:'#003D6B',secondary:'#00C9A7',accent:'#F5A623',
+  danger:'#E03E3E',success:'#27AE60',warning:'#F5A623',
+  g3:'#D0D5E8',g5:'#8888AA',g7:'#4A4A6A',
 };
 
-// ━━━━━━━━━━ DATA ━━━━━━━━━━
-const SECTORES = [
-  {
-    "id": "1A",
-    "nombre": "Carlos Mendoza",
-    "sector": "Sector 1A",
-    "initials": "CM",
-    "score": 82,
-    "kpis": { "redDelict": 10, "superv": 92, "asistencia": 94, "operativos": 4, "compromisos": 85 },
-    "status": { "redDelict": "verde", "superv": "verde", "asistencia": "verde", "operativos": "verde", "compromisos": "verde" },
-    "incidentes": [38,40,36,34,31,28,26],
-    "incTotal": 26, "incVar": -4, "tasaResp": 7.5, "frustrados": 6, "interv": 32, "cobertura": 88,
-    "franjas": [
-      {"l":"00–06h","v":7,"c":DS.primaryD},{"l":"06–12h","v":14,"c":DS.success},
-      {"l":"12–18h","v":20,"c":DS.warning},{"l":"18–24h","v":28,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":11,"Hurtos":7,"Violencia":5,"Daños":3,"Otros":2},
-    "supRealizadas":44,"supPlan":48,"hallazgos":9,"capturas":5,"coordPNP":4,
-    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
-    "reportes":"88%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":3,"patrInt":86,"zonasRef":4,"acuerdos":2,
-    "acuerdosList":["Operativo semanal","Protocolo de alertas"],
-    "comisarias":["PNP Sector 1a"],"intConj":15,"evitados":8,
-    "compromisos":[
-      {"desc":"Aumentar supervisiones","pct":90,"st":"verde"},
-      {"desc":"Reducir tardanzas","pct":80,"st":"amarillo"},
-      {"desc":"Ruta nueva","pct":100,"st":"verde"}
-    ],
-    "impReduc":10,"impAum":15,"impDisc":10,
-    "dims":[82,78,85,80,82]
-  },
-  {
-    "id": "1B",
-    "nombre": "Rosa Quispe",
-    "sector": "Sector 1B",
-    "initials": "RQ",
-    "score": 75,
-    "kpis": { "redDelict": 8, "superv": 85, "asistencia": 90, "operativos": 3, "compromisos": 78 },
-    "status": { "redDelict": "amarillo", "superv": "verde", "asistencia": "verde", "operativos": "amarillo", "compromisos": "verde" },
-    "incidentes": [42,44,40,38,36,33,30],
-    "incTotal": 30, "incVar": -3, "tasaResp": 8.2, "frustrados": 4, "interv": 28, "cobertura": 82,
-    "franjas": [
-      {"l":"00–06h","v":9,"c":DS.primaryD},{"l":"06–12h","v":16,"c":DS.success},
-      {"l":"12–18h","v":23,"c":DS.warning},{"l":"18–24h","v":30,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":13,"Hurtos":9,"Violencia":4,"Daños":3,"Otros":3},
-    "supRealizadas":40,"supPlan":48,"hallazgos":11,"capturas":4,"coordPNP":3,
-    "operativosTipo":["Control de zona","Alcoholemia"],
-    "reportes":"85%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":2,"patrInt":78,"zonasRef":3,"acuerdos":1,
-    "acuerdosList":["Operativo semanal"],
-    "comisarias":["PNP Sector 1b"],"intConj":12,"evitados":6,
-    "compromisos":[
-      {"desc":"Mejorar cobertura","pct":75,"st":"amarillo"},
-      {"desc":"Reducir tardanzas","pct":70,"st":"amarillo"},
-      {"desc":"Coord. con PNP","pct":60,"st":"amarillo"}
-    ],
-    "impReduc":8,"impAum":12,"impDisc":8,
-    "dims":[75,72,70,68,78]
-  },
-  {
-    "id": "2A",
-    "nombre": "Juan Torres",
-    "sector": "Sector 2A",
-    "initials": "JT",
-    "score": 88,
-    "kpis": { "redDelict": 12, "superv": 95, "asistencia": 97, "operativos": 5, "compromisos": 92 },
-    "status": { "redDelict": "verde", "superv": "verde", "asistencia": "verde", "operativos": "verde", "compromisos": "verde" },
-    "incidentes": [35,37,33,30,28,25,22],
-    "incTotal": 22, "incVar": -6, "tasaResp": 6.8, "frustrados": 7, "interv": 36, "cobertura": 94,
-    "franjas": [
-      {"l":"00–06h","v":6,"c":DS.primaryD},{"l":"06–12h","v":12,"c":DS.success},
-      {"l":"12–18h","v":18,"c":DS.warning},{"l":"18–24h","v":25,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":9,"Hurtos":6,"Violencia":4,"Daños":2,"Otros":2},
-    "supRealizadas":47,"supPlan":50,"hallazgos":7,"capturas":7,"coordPNP":5,
-    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas","Operativo nocturno"],
-    "reportes":"95%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":4,"patrInt":92,"zonasRef":5,"acuerdos":3,
-    "acuerdosList":["Operativo semanal","Protocolo de alertas","Patrullaje mixto"],
-    "comisarias":["PNP Sector 2a","PNP Zona Norte"],"intConj":18,"evitados":10,
-    "compromisos":[
-      {"desc":"Mantener tendencia","pct":95,"st":"verde"},
-      {"desc":"Capacitar personal","pct":85,"st":"verde"},
-      {"desc":"Ampliar cobertura","pct":90,"st":"verde"}
-    ],
-    "impReduc":12,"impAum":18,"impDisc":12,
-    "dims":[88,85,92,88,86]
-  },
-  {
-    "id": "2B",
-    "nombre": "María Flores",
-    "sector": "Sector 2B",
-    "initials": "MF",
-    "score": 70,
-    "kpis": { "redDelict": 7, "superv": 80, "asistencia": 88, "operativos": 3, "compromisos": 72 },
-    "status": { "redDelict": "amarillo", "superv": "amarillo", "asistencia": "verde", "operativos": "amarillo", "compromisos": "amarillo" },
-    "incidentes": [45,47,43,41,39,37,35],
-    "incTotal": 35, "incVar": -2, "tasaResp": 9.0, "frustrados": 3, "interv": 24, "cobertura": 78,
-    "franjas": [
-      {"l":"00–06h","v":10,"c":DS.primaryD},{"l":"06–12h","v":18,"c":DS.success},
-      {"l":"12–18h","v":25,"c":DS.warning},{"l":"18–24h","v":33,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":14,"Hurtos":10,"Violencia":6,"Daños":4,"Otros":3},
-    "supRealizadas":38,"supPlan":48,"hallazgos":12,"capturas":3,"coordPNP":3,
-    "operativosTipo":["Control de zona","Alcoholemia"],
-    "reportes":"82%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":2,"patrInt":72,"zonasRef":3,"acuerdos":1,
-    "acuerdosList":["Operativo semanal"],
-    "comisarias":["PNP Sector 2b"],"intConj":10,"evitados":5,
-    "compromisos":[
-      {"desc":"Mejorar supervisión","pct":65,"st":"amarillo"},
-      {"desc":"Reducir incidentes","pct":55,"st":"rojo"},
-      {"desc":"Fortalecer coord.","pct":70,"st":"amarillo"}
-    ],
-    "impReduc":6,"impAum":10,"impDisc":5,
-    "dims":[70,68,65,72,74]
-  },
-  {
-    "id": "3",
-    "nombre": "Pedro Silva",
-    "sector": "Sector 3",
-    "initials": "PS",
-    "score": 79,
-    "kpis": { "redDelict": 9, "superv": 88, "asistencia": 93, "operativos": 4, "compromisos": 82 },
-    "status": { "redDelict": "verde", "superv": "verde", "asistencia": "verde", "operativos": "verde", "compromisos": "verde" },
-    "incidentes": [40,42,38,36,34,31,29],
-    "incTotal": 29, "incVar": -4, "tasaResp": 7.8, "frustrados": 5, "interv": 30, "cobertura": 86,
-    "franjas": [
-      {"l":"00–06h","v":8,"c":DS.primaryD},{"l":"06–12h","v":15,"c":DS.success},
-      {"l":"12–18h","v":21,"c":DS.warning},{"l":"18–24h","v":29,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":12,"Hurtos":8,"Violencia":5,"Daños":3,"Otros":2},
-    "supRealizadas":43,"supPlan":50,"hallazgos":10,"capturas":5,"coordPNP":4,
-    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
-    "reportes":"90%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":3,"patrInt":82,"zonasRef":4,"acuerdos":2,
-    "acuerdosList":["Operativo semanal","Protocolo de alertas"],
-    "comisarias":["PNP Sector 3"],"intConj":14,"evitados":7,
-    "compromisos":[
-      {"desc":"Aumentar supervisiones","pct":88,"st":"verde"},
-      {"desc":"Reducir tardanzas","pct":78,"st":"amarillo"},
-      {"desc":"Ruta nueva","pct":95,"st":"verde"}
-    ],
-    "impReduc":9,"impAum":14,"impDisc":9,
-    "dims":[79,76,80,78,82]
-  },
-  {
-    "id": "4",
-    "nombre": "Pedro Silva",
-    "sector": "Sector 4",
-    "initials": "PS",
-    "score": 76,
-    "kpis": { "redDelict": 8, "superv": 86, "asistencia": 92, "operativos": 3, "compromisos": 80 },
-    "status": { "redDelict": "amarillo", "superv": "verde", "asistencia": "verde", "operativos": "amarillo", "compromisos": "verde" },
-    "incidentes": [41,43,39,37,35,32,30],
-    "incTotal": 30, "incVar": -3, "tasaResp": 8.0, "frustrados": 5, "interv": 28, "cobertura": 84,
-    "franjas": [
-      {"l":"00–06h","v":8,"c":DS.primaryD},{"l":"06–12h","v":15,"c":DS.success},
-      {"l":"12–18h","v":22,"c":DS.warning},{"l":"18–24h","v":30,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":12,"Hurtos":8,"Violencia":5,"Daños":4,"Otros":2},
-    "supRealizadas":41,"supPlan":48,"hallazgos":10,"capturas":4,"coordPNP":4,
-    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
-    "reportes":"88%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":3,"patrInt":80,"zonasRef":4,"acuerdos":2,
-    "acuerdosList":["Operativo semanal","Protocolo de alertas"],
-    "comisarias":["PNP Sector 4"],"intConj":13,"evitados":7,
-    "compromisos":[
-      {"desc":"Aumentar supervisiones","pct":85,"st":"verde"},
-      {"desc":"Reducir tardanzas","pct":75,"st":"amarillo"},
-      {"desc":"Coord. vecinal","pct":80,"st":"amarillo"}
-    ],
-    "impReduc":8,"impAum":13,"impDisc":8,
-    "dims":[76,74,78,76,80]
-  },
-  {
-    "id": "5",
-    "nombre": "Ana Castro",
-    "sector": "Sector 5",
-    "initials": "AC",
-    "score": 84,
-    "kpis": { "redDelict": 11, "superv": 92, "asistencia": 95, "operativos": 5, "compromisos": 88 },
-    "status": { "redDelict": "verde", "superv": "verde", "asistencia": "verde", "operativos": "verde", "compromisos": "verde" },
-    "incidentes": [37,39,35,33,30,27,24],
-    "incTotal": 24, "incVar": -5, "tasaResp": 7.2, "frustrados": 6, "interv": 34, "cobertura": 90,
-    "franjas": [
-      {"l":"00–06h","v":7,"c":DS.primaryD},{"l":"06–12h","v":13,"c":DS.success},
-      {"l":"12–18h","v":19,"c":DS.warning},{"l":"18–24h","v":27,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":10,"Hurtos":7,"Violencia":4,"Daños":3,"Otros":2},
-    "supRealizadas":46,"supPlan":50,"hallazgos":8,"capturas":6,"coordPNP":5,
-    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas","Operativo nocturno"],
-    "reportes":"93%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":4,"patrInt":88,"zonasRef":5,"acuerdos":2,
-    "acuerdosList":["Operativo semanal","Patrullaje mixto"],
-    "comisarias":["PNP Sector 5","PNP Zona Sur"],"intConj":16,"evitados":9,
-    "compromisos":[
-      {"desc":"Mantener reducción","pct":92,"st":"verde"},
-      {"desc":"Capacitar supervisores","pct":85,"st":"verde"},
-      {"desc":"Nuevas rutas","pct":88,"st":"verde"}
-    ],
-    "impReduc":11,"impAum":16,"impDisc":11,
-    "dims":[84,82,88,84,84]
-  },
-  {
-    "id": "6",
-    "nombre": "Luis Paz",
-    "sector": "Sector 6",
-    "initials": "LP",
-    "score": 65,
-    "kpis": { "redDelict": 6, "superv": 78, "asistencia": 85, "operativos": 2, "compromisos": 68 },
-    "status": { "redDelict": "rojo", "superv": "amarillo", "asistencia": "verde", "operativos": "rojo", "compromisos": "amarillo" },
-    "incidentes": [48,50,46,44,42,39,37],
-    "incTotal": 37, "incVar": -2, "tasaResp": 9.5, "frustrados": 3, "interv": 22, "cobertura": 72,
-    "franjas": [
-      {"l":"00–06h","v":11,"c":DS.primaryD},{"l":"06–12h","v":19,"c":DS.success},
-      {"l":"12–18h","v":26,"c":DS.warning},{"l":"18–24h","v":35,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":15,"Hurtos":11,"Violencia":7,"Daños":4,"Otros":3},
-    "supRealizadas":35,"supPlan":46,"hallazgos":14,"capturas":3,"coordPNP":2,
-    "operativosTipo":["Control de zona"],
-    "reportes":"78%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":2,"patrInt":68,"zonasRef":3,"acuerdos":1,
-    "acuerdosList":["Operativo semanal"],
-    "comisarias":["PNP Sector 6"],"intConj":9,"evitados":4,
-    "compromisos":[
-      {"desc":"Reducir incidentes","pct":50,"st":"rojo"},
-      {"desc":"Mejorar asistencia","pct":65,"st":"amarillo"},
-      {"desc":"Coord. con PNP","pct":55,"st":"rojo"}
-    ],
-    "impReduc":5,"impAum":8,"impDisc":4,
-    "dims":[65,62,60,64,70]
-  },
-  {
-    "id": "7",
-    "nombre": "Carmen Vargas",
-    "sector": "Sector 7",
-    "initials": "CV",
-    "score": 68,
-    "kpis": { "redDelict": 7, "superv": 80, "asistencia": 87, "operativos": 3, "compromisos": 70 },
-    "status": { "redDelict": "amarillo", "superv": "amarillo", "asistencia": "verde", "operativos": "amarillo", "compromisos": "amarillo" },
-    "incidentes": [46,48,44,42,40,37,34],
-    "incTotal": 34, "incVar": -3, "tasaResp": 9.2, "frustrados": 4, "interv": 24, "cobertura": 74,
-    "franjas": [
-      {"l":"00–06h","v":10,"c":DS.primaryD},{"l":"06–12h","v":17,"c":DS.success},
-      {"l":"12–18h","v":24,"c":DS.warning},{"l":"18–24h","v":32,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":14,"Hurtos":9,"Violencia":6,"Daños":3,"Otros":3},
-    "supRealizadas":37,"supPlan":46,"hallazgos":13,"capturas":3,"coordPNP":3,
-    "operativosTipo":["Control de zona","Alcoholemia"],
-    "reportes":"80%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":2,"patrInt":70,"zonasRef":3,"acuerdos":1,
-    "acuerdosList":["Operativo semanal"],
-    "comisarias":["PNP Sector 7"],"intConj":10,"evitados":5,
-    "compromisos":[
-      {"desc":"Reducir incidentes","pct":60,"st":"amarillo"},
-      {"desc":"Mejorar supervisión","pct":70,"st":"amarillo"},
-      {"desc":"Coord. vecinal","pct":65,"st":"amarillo"}
-    ],
-    "impReduc":6,"impAum":10,"impDisc":6,
-    "dims":[68,66,64,68,72]
-  },
-  {
-    "id": "8",
-    "nombre": "José Reyes",
-    "sector": "Sector 8",
-    "initials": "JR",
-    "score": 73,
-    "kpis": { "redDelict": 8, "superv": 84, "asistencia": 90, "operativos": 3, "compromisos": 76 },
-    "status": { "redDelict": "amarillo", "superv": "verde", "asistencia": "verde", "operativos": "amarillo", "compromisos": "verde" },
-    "incidentes": [43,45,41,39,37,34,32],
-    "incTotal": 32, "incVar": -3, "tasaResp": 8.5, "frustrados": 4, "interv": 26, "cobertura": 80,
-    "franjas": [
-      {"l":"00–06h","v":9,"c":DS.primaryD},{"l":"06–12h","v":16,"c":DS.success},
-      {"l":"12–18h","v":22,"c":DS.warning},{"l":"18–24h","v":31,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":13,"Hurtos":8,"Violencia":5,"Daños":3,"Otros":3},
-    "supRealizadas":40,"supPlan":48,"hallazgos":11,"capturas":4,"coordPNP":3,
-    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas"],
-    "reportes":"85%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":3,"patrInt":76,"zonasRef":3,"acuerdos":2,
-    "acuerdosList":["Operativo semanal","Protocolo de alertas"],
-    "comisarias":["PNP Sector 8"],"intConj":12,"evitados":6,
-    "compromisos":[
-      {"desc":"Aumentar supervisiones","pct":82,"st":"verde"},
-      {"desc":"Reducir tardanzas","pct":72,"st":"amarillo"},
-      {"desc":"Mejorar cobertura","pct":76,"st":"amarillo"}
-    ],
-    "impReduc":7,"impAum":12,"impDisc":7,
-    "dims":[73,70,72,74,76]
-  },
-  {
-    "id": "9",
-    "nombre": "Elena Rivas",
-    "sector": "Sector 9",
-    "initials": "ER",
-    "score": 91,
-    "kpis": { "redDelict": 13, "superv": 96, "asistencia": 98, "operativos": 6, "compromisos": 95 },
-    "status": { "redDelict": "verde", "superv": "verde", "asistencia": "verde", "operativos": "verde", "compromisos": "verde" },
-    "incidentes": [32,34,30,27,24,21,18],
-    "incTotal": 18, "incVar": -7, "tasaResp": 6.2, "frustrados": 8, "interv": 38, "cobertura": 96,
-    "franjas": [
-      {"l":"00–06h","v":5,"c":DS.primaryD},{"l":"06–12h","v":11,"c":DS.success},
-      {"l":"12–18h","v":16,"c":DS.warning},{"l":"18–24h","v":22,"c":DS.danger}
-    ],
-    "tiposDelito": {"Robos":8,"Hurtos":5,"Violencia":3,"Daños":2,"Otros":2},
-    "supRealizadas":49,"supPlan":50,"hallazgos":6,"capturas":8,"coordPNP":6,
-    "operativosTipo":["Control de zona","Alcoholemia","Zonas críticas","Operativo nocturno","Patrullaje mixto"],
-    "reportes":"98%",
-    "supervisores":[],
-    "tardanzas":0,"disciplinarias":0,"rotacion":0,
-    "rendimiento":[],
-    "reunionesComis":5,"patrInt":95,"zonasRef":6,"acuerdos":3,
-    "acuerdosList":["Operativo semanal","Protocolo de alertas","Patrullaje mixto"],
-    "comisarias":["PNP Sector 9","PNP Zona Este","PNP Zona Oeste"],"intConj":20,"evitados":12,
-    "compromisos":[
-      {"desc":"Mantener liderazgo","pct":98,"st":"verde"},
-      {"desc":"Innovar protocolos","pct":92,"st":"verde"},
-      {"desc":"Expandir cobertura","pct":95,"st":"verde"}
-    ],
-    "impReduc":14,"impAum":20,"impDisc":14,
-    "dims":[91,90,95,88,90]
-  }
-];
+let SECTORES = [];
+let CACHED_INCIDENCIAS = [];
+let CACHED_JEFES = {};
+let CACHED_SUPERVISORS = [];
 
-// ── Enrich sectors with computed fields ──
-SECTORES.forEach(d => {
-  d.nivelInseg = Math.round(Math.max(0, d.incTotal * 1.2 + (100 - d.cobertura) * 0.5));
-  d.coordVecinales = d.coordPNP;
-  d.incDelictivas = d.incTotal;
-  d.robosFrustrados = d.frustrados;
-  d.patrullajeInt = d.patrInt;
-  d.operativosCount = d.kpis.operativos * 3;
-});
-
-const CHECKS_SEMANAL = [
-  {item:'Índice delictivo semanal'},{item:'Supervisiones realizadas'},
-  {item:'Asistencia del personal'},{item:'Robos frustrados'},
-  {item:'Intervenciones relevantes'},{item:'Cumplimiento de rutas de patrullaje'},
-  {item:'Coordinación con PNP'},
-];
-
-function kpiVal(d, k){
-  if(k.val) return k.val(d);
-  return d[k.key];
-}
+function kpiVal(d,k){ return k.val?k.val(d):d[k.key]; }
 const KPI_DEFS = [
-  {key:'incDelictivas',   label:'Incidencias Delictivas',  unit:'',  meta:'< 25',
-   val:d=>d.incDelictivas, thr:d=>d.incDelictivas<=25?'verde':d.incDelictivas<=35?'amarillo':'rojo'},
-  {key:'robosFrustrados', label:'Robos Frustrados',        unit:'',  meta:'≥ 6',
-   val:d=>d.robosFrustrados, thr:d=>d.robosFrustrados>=6?'verde':d.robosFrustrados>=4?'amarillo':'rojo'},
-   {key:'operativos',      label:'Operativos',              unit:'',  meta:'≥ 5',
-    val:d=>d.operativosCount, thr:d=>d.operativosCount>=5?'verde':d.operativosCount>=3?'amarillo':'rojo'},
-  {key:'coordVecinales',  label:'Coord. Vecinales',        unit:'',  meta:'≥ 4',
-   val:d=>d.coordVecinales, thr:d=>d.coordVecinales>=4?'verde':d.coordVecinales>=3?'amarillo':'rojo'},
-  {key:'capturas',        label:'Capturas',                unit:'',  meta:'≥ 5',
-   val:d=>d.capturas, thr:d=>d.capturas>=5?'verde':d.capturas>=3?'amarillo':'rojo'},
-  {key:'nivelInseg',      label:'Nivel de Inseguridad',    unit:'%', meta:'< 30',
-   val:d=>d.nivelInseg, thr:d=>d.nivelInseg<=25?'verde':d.nivelInseg<=40?'amarillo':'rojo'},
-  {key:'patrullajeInt',   label:'Patrullaje Integrado',   unit:'%', meta:'≥ 85',
-   val:d=>d.patrullajeInt, thr:d=>d.patrullajeInt>=85?'verde':d.patrullajeInt>=70?'amarillo':'rojo'}
+  {key:'incDelictivas',label:'Incidencias Delictivas',unit:'',meta:'—',
+   val:d=>d.incDelictivas,thr:d=>d.incDelictivas<=25?'verde':d.incDelictivas<=35?'amarillo':'rojo'},
+  {key:'robosFrustrados',label:'Robos Frustrados',unit:'',meta:'—',
+   val:d=>d.robosFrustrados,thr:d=>d.robosFrustrados>=6?'verde':d.robosFrustrados>=4?'amarillo':'rojo'},
+  {key:'operativos',label:'Operativos',unit:'',meta:'—',
+   val:d=>d.operativosCount,thr:d=>d.operativosCount>=5?'verde':d.operativosCount>=3?'amarillo':'rojo'},
+  {key:'coordVecinales',label:'Coord. Vecinales',unit:'',meta:'—',
+   val:d=>d.coordVecinales,thr:d=>d.coordVecinales>=4?'verde':d.coordVecinales>=3?'amarillo':'rojo'},
+  {key:'capturas',label:'Capturas',unit:'',meta:'—',
+   val:d=>d.capturas,thr:d=>d.capturas>=5?'verde':d.capturas>=3?'amarillo':'rojo'}
 ];
 
-// ── Chart colours ──
-const SECTOR_COLORS = [DS.primary, DS.success, DS.accent, DS.danger, '#9C27B0', '#00BCD4', '#FF9800', '#795548', '#607D8B', '#E91E63', '#3F51B5'];
+const SECTOR_COLORS = [DS.primary,DS.success,DS.accent,DS.danger,'#9C27B0','#00BCD4','#FF9800','#795548','#607D8B','#E91E63','#3F51B5'];
 
-// ── Charts registry ──
 const charts = {};
 function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
 
 function getSectorData(){
-  const v = document.getElementById('selJefe').value;
-  return v==='0' ? null : (SECTORES.find(s=>s.id===v)||null);
+  const v=document.getElementById('selJefe').value;
+  return v==='0'?null:(SECTORES.find(s=>s.id===v)||null);
 }
 function getSupData(sector){
-  const v = document.getElementById('selSup').value;
-  if(v==='0'||!sector) return null;
-  return {sup: sector.supervisores.find(p=>p.n===v), rend: sector.rendimiento.find(r=>r.sup===v)};
+  const v=document.getElementById('selSup').value;
+  if(v==='0'||!sector)return null;
+  var supEntry=sector.supervisores.find(function(p){return baseName(p.n)===v;});
+  var rendEntry=sector.rendimiento.find(function(r){return baseName(r.sup)===v;});
+  return {sup:supEntry||null,rend:rendEntry||null};
 }
 function populateJefes(){
-  const sel = document.getElementById('selJefe');
-  const current = sel.value;
-  sel.innerHTML = '<option value="0">Todos los Sectores</option>' +
-    SECTORES.map(s =>
-      `<option value="${s.id}">${s.sector} — ${s.nombre}</option>`
-    ).join('');
-  if ([...sel.options].some(o => o.value === current)) sel.value = current;
+  const sel=document.getElementById('selJefe');
+  const current=sel.value;
+  sel.innerHTML='<option value="0">Todos los Sectores</option>'+
+    SECTORES.map(s=>`<option value="${s.id}">${s.sector} — ${s.nombre}</option>`).join('');
+  if([...sel.options].some(o=>o.value===current))sel.value=current;
 }
 
-// ── Turno ↔ Supervisor linking helpers ──
-const TURNO_MAP = { manana: 'M', tarde: 'T', noche: 'N' };
-const LETTER_MAP = { M: 'manana', T: 'tarde', N: 'noche' };
-function turnoLetter(v){ return TURNO_MAP[v] || null; }
-function letterFromName(n){ var m=n.match(/\((\w)\)/); return m ? m[1].toUpperCase() : null; }
+const TURNO_MAP={manana:'M',tarde:'T',noche:'N'};
+const LETTER_MAP={M:'manana',T:'tarde',N:'noche'};
+function turnoLetter(v){ return TURNO_MAP[v]||null; }
+function letterFromName(n){ var m=n.match(/\((\w)\)/); return m?m[1].toUpperCase():null; }
+function baseName(n){ return (n||'').replace(/\s*\([MTN]\)\s*$/,'').trim(); }
 
 function populateSupervisores(){
-  const sel = document.getElementById('selSup');
-  const sv = sel.value;
-  const sid = document.getElementById('selJefe').value;
-  const turno = document.getElementById('selTurno').value;
-  const tl = turnoLetter(turno);
-  var lista = sid==='0' ? SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, s: x.sector.replace('Sector ','')})))
-    : SECTORES.find(s=>s.id===sid)?.supervisores||[];
-  if (tl) lista = lista.filter(function(p){ return letterFromName(p.n) === tl; });
-  const opts = '<option value="0">Todos los Supervisores</option>' +
-    lista.map(p => `<option value="${p.n.replace(/"/g,'&quot;')}">${sid==='0'?p.s+' ':''}${p.n}</option>`).join('');
-  sel.innerHTML = opts;
-  if([...sel.options].some(o=>o.value===sv) && (!tl || letterFromName(sv)===tl)) sel.value=sv; else sel.value='0';
+  const sel=document.getElementById('selSup');
+  const sv=sel.value;
+  const sid=document.getElementById('selJefe').value;
+  const turno=document.getElementById('selTurno').value;
+  const tl=turnoLetter(turno);
+  var raw=sid==='0'
+    ? SECTORES.flatMap(x=>x.supervisores)
+    : (SECTORES.find(s=>s.id===sid)?.supervisores||[]);
+  if(tl)raw=raw.filter(function(p){ return letterFromName(p.n)===tl; });
+  var seen={};
+  var lista=raw.filter(function(p){
+    var b=baseName(p.n);
+    if(seen[b])return false;
+    seen[b]=true;
+    return true;
+  });
+  const opts='<option value="0">Todos los Supervisores</option>'+
+    lista.map(p=>`<option value="${baseName(p.n).replace(/"/g,'&quot;')}">${baseName(p.n)}</option>`).join('');
+  sel.innerHTML=opts;
+  if([...sel.options].some(o=>o.value===sv))sel.value=sv;else sel.value='0';
 }
 function statusLabel(s){
-  if(s==='verde')   return ['verde','Cumplido'];
-  if(s==='amarillo')return ['amarillo','Parcial'];
-  return ['rojo','No cumplido'];
+  if(s==='verde')return['verde','Cumplido'];
+  if(s==='amarillo')return['amarillo','Parcial'];
+  return['rojo','No cumplido'];
 }
 
-// ── Chart defaults ──
-Chart.defaults.font.family = "'Chivo', 'Segoe UI', sans-serif";
-Chart.defaults.color = DS.g7;
+Chart.defaults.font.family="'Chivo','Segoe UI',sans-serif";
+Chart.defaults.color=DS.g7;
+function chartDefaults(){return{
+  responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false}}
+};}
 
-function chartDefaults(){ return {
-  responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { display: false } }
-}; }
-
-// ─── UPDATE ───
 function onSupChange(){
-  var sv = document.getElementById('selSup').value;
-  if (sv && sv !== '0') {
-    var lt = letterFromName(sv);
-    if (lt) document.getElementById('selTurno').value = LETTER_MAP[lt] || '';
+  var sv=document.getElementById('selSup').value;
+  if(sv&&sv!=='0'){
+    var letters={};
+    SECTORES.forEach(function(sec){
+      sec.supervisores.forEach(function(p){
+        if(baseName(p.n)===sv){
+          var lt=letterFromName(p.n);
+          if(lt)letters[lt]=true;
+        }
+      });
+    });
+    var keys=Object.keys(letters);
+    document.getElementById('selTurno').value=keys.length===1?LETTER_MAP[keys[0]]||'':'';
   }
   updateDash();
 }
 
 function updateDash(){
+  if(SECTORES.length===0)return;
   populateJefes();
   populateSupervisores();
-  const s = getSectorData();
-  const sup = getSupData(s);
-  const fStart = document.getElementById('fechaInicio').value;
-  const fEnd = document.getElementById('fechaFin').value;
-
-  if (fStart && fEnd) {
-    const d1 = new Date(fStart + 'T00:00:00');
-    const d2 = new Date(fEnd + 'T00:00:00');
-    const opt = { day: 'numeric', month: 'short' };
-    document.getElementById('badgePeriod').textContent =
-      `${d1.toLocaleDateString('es-ES', opt)} — ${d2.toLocaleDateString('es-ES', opt)} ${d2.getFullYear()}`;
+  const s=getSectorData();
+  const sup=getSupData(s);
+  const fStart=document.getElementById('fechaInicio').value;
+  const fEnd=document.getElementById('fechaFin').value;
+  if(fStart&&fEnd){
+    const d1=new Date(fStart+'T00:00:00');
+    const d2=new Date(fEnd+'T00:00:00');
+    const opt={day:'numeric',month:'short'};
+    document.getElementById('badgePeriod').textContent=
+      `${d1.toLocaleDateString('es-ES',opt)} — ${d2.toLocaleDateString('es-ES',opt)} ${d2.getFullYear()}`;
   }
   renderSelInfo(s);
   renderSupInfo(sup);
   renderKPIs(s);
   renderResumen(s);
   renderSeguridad(s);
-  renderOperaciones(s);
-  renderPersonal(s, sup);
-  renderCoordinacion(s);
-  renderEstrategia(s);
+  renderPersonal(s,sup);
   renderRanking();
 }
 
-// ── SEL INFO ──
 function renderSelInfo(s){
-  const box = document.getElementById('sel-info-box');
-  if(!s){ box.innerHTML=''; return; }
-  const sc=s.score, cls=sc>=85?'verde':sc>=70?'amarillo':'rojo';
-  const stars = sc>=85?'★★★★★':sc>=70?'★★★★☆':'★★★☆☆';
+  const box=document.getElementById('sel-info-box');
+  if(!s){box.innerHTML='';return;}
   box.innerHTML=`<div class="sel-info">
     <div class="sel-avatar">${s.initials}</div>
-    <div class="sel-data"><h3>${s.nombre}</h3><p>${s.sector} · Jefe de Área C4</p>
-      <div class="stars" style="margin-top:5px;">${stars}</div>
-    </div>
-    <div class="sel-score">
-      <div class="score-n">${sc}</div>
-      <div class="score-l">Puntaje global</div>
-      <div class="kpi-pill ${cls}" style="margin-top:6px;"><span class="dot ${cls}"></span>${statusLabel(cls)[1]}</div>
-    </div>
+    <div class="sel-data"><h3>${s.nombre}</h3><p>${s.sector} · Jefe de Área C4</p></div>
   </div>`;
 }
 
-// ── SUP INFO ──
 function renderSupInfo(sup){
-  const box = document.getElementById('sup-info-box');
-  if(!sup){ box.innerHTML=''; return; }
-  const r=sup.rend, total=r?r.total:0, ast=sup.sup?sup.sup.ast:0;
+  const box=document.getElementById('sup-info-box');
+  if(!sup){box.innerHTML='';return;}
+  const r=sup.rend,total=r?r.total:0,ast=sup.sup?sup.sup.ast:0;
   const cls=total>=90?'verde':total>=75?'amarillo':'rojo';
   const turno=sup.sup?.n.includes('(M)')?'Mañana':sup.sup?.n.includes('(T)')?'Tarde':sup.sup?.n.includes('(N)')?'Noche':'—';
   box.innerHTML=`<div class="sel-info" style="background:linear-gradient(135deg,var(--csd),var(--cs));margin-bottom:var(--s3);padding:var(--s3) var(--s4);">
@@ -581,23 +258,22 @@ function renderSupInfo(sup){
   </div>`;
 }
 
-// ── KPIs ──
 function renderKPIs(s){
-  const row = document.getElementById('kpi-row');
-  const aggK = (k) => {
-    const vals = SECTORES.map(x => kpiVal(x, k));
-    if (typeof vals[0] !== 'number') return vals.reduce((a,b)=>a+b,0);
-    if (k.unit === '%') return Math.round(vals.reduce((a,b)=>a+b,0) / vals.length);
+  const row=document.getElementById('kpi-row');
+  const aggK=(k)=>{
+    const vals=SECTORES.map(x=>kpiVal(x,k));
+    if(typeof vals[0]!=='number')return vals.reduce((a,b)=>a+b,0);
+    if(k.unit==='%')return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
     return vals.reduce((a,b)=>a+b,0);
   };
-  const avgSt = (k) => {
-    if(s) return k.thr(s);
-    const v = SECTORES.map(x => k.thr(x));
+  const avgSt=(k)=>{
+    if(s)return k.thr(s);
+    const v=SECTORES.map(x=>k.thr(x));
     return v.some(x=>x==='rojo')?'rojo':v.some(x=>x==='amarillo')?'amarillo':'verde';
   };
-  row.innerHTML = KPI_DEFS.map(k=>{
-    const v = s ? kpiVal(s, k) : aggK(k);
-    const st = avgSt(k), [cls,lbl]=statusLabel(st);
+  row.innerHTML=KPI_DEFS.map(k=>{
+    const v=s?kpiVal(s,k):aggK(k);
+    const st=avgSt(k),[cls,lbl]=statusLabel(st);
     return `<div class="kpi-card ${cls}">
       <div class="kpi-lbl">${k.label}</div>
       <div class="kpi-val">${v}${k.unit}</div>
@@ -605,195 +281,104 @@ function renderKPIs(s){
       <div class="kpi-pill ${cls}"><span class="dot ${cls}"></span>${lbl}</div>
     </div>`;
   }).join('');
-  row.style.gridTemplateColumns = 'repeat(7,1fr)';
+  row.style.gridTemplateColumns='repeat(5,1fr)';
 }
 
-// ── RESUMEN ──
 function renderResumen(s){
-  const semanas=['Sem 10','Sem 11','Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'];
-  destroyChart('tendencia');
-  const datasets = s ? [{
-    label:s.sector, data:s.incidentes,
-    borderColor:DS.primary, backgroundColor:'rgba(0,94,165,0.08)',
-    tension:.4, fill:true, pointRadius:4, pointBackgroundColor:DS.primary
-  }] : SECTORES.map((x,i)=>({
-    label:x.sector, data:x.incidentes,
-    borderColor:SECTOR_COLORS[i], backgroundColor:'transparent',
-    tension:.4, pointRadius:3
-  }));
-  charts['tendencia'] = new Chart(document.getElementById('chartTendencia'),{
-    type:'line', data:{labels:semanas, datasets},
-    options:{...chartDefaults(), plugins:{legend:{display:!s,labels:{boxWidth:10,font:{size:11}}}}, scales:{y:{beginAtZero:false, grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
-  destroyChart('rankBar');
-  charts['rankBar'] = new Chart(document.getElementById('chartRankBar'),{
-    type:'bar',
-    data:{labels:SECTORES.map(x=>x.sector.replace('Sector ','')),
-      datasets:[{label:'Puntaje',data:SECTORES.map(x=>x.score),
-        backgroundColor:SECTORES.map(x=>x.score>=85?DS.primary:x.score>=70?DS.warning:DS.danger),
-        borderRadius:6}]},
-    options:{...chartDefaults(), scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
-  const delData = s ? s.tiposDelito : (() => {
-    const keys=Object.keys(SECTORES[0].tiposDelito), agg={};
-    keys.forEach(k=>{ agg[k]=SECTORES.reduce((a,x)=>a+x.tiposDelito[k],0); });
+  destroyChart('delitos');
+  const delData=s?s.tiposDelito:(()=>{
+    const keys=Object.keys(SECTORES[0].tiposDelito),agg={};
+    keys.forEach(k=>{agg[k]=SECTORES.reduce((a,x)=>a+(x.tiposDelito[k]||0),0);});
     return agg;
   })();
-  destroyChart('delitos');
-  charts['delitos'] = new Chart(document.getElementById('chartDelitos'),{
+  charts['delitos']=new Chart(document.getElementById('chartDelitos'),{
     type:'doughnut',
-    data:{labels:Object.keys(delData), datasets:[{data:Object.values(delData),
+    data:{labels:Object.keys(delData),datasets:[{data:Object.values(delData),
       backgroundColor:[DS.primary,DS.success,DS.warning,DS.danger,DS.g5],
-      borderWidth:2, borderColor:'#fff'}]},
-    options:{...chartDefaults(), plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,font:{size:11}}}}}
+      borderWidth:2,borderColor:'#fff'}]},
+    options:{...chartDefaults(),plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,font:{size:11}}}}}
   });
-
-  const supsData = s ? s.supervisores : SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, n: x.sector.replace('Sector ','') + ' ' + p.n})));
-  document.getElementById('asistencia-prog').innerHTML = supsData.sort((a,b)=>b.ast-a.ast).map(p=>{
+  const supsData=s?s.supervisores:SECTORES.flatMap(x=>x.supervisores.map(p=>({...p,n:x.sector.replace('Sector ','')+' '+p.n})));
+  document.getElementById('asistencia-prog').innerHTML=supsData.sort((a,b)=>b.ast-a.ast).slice(0,6).map(p=>{
     const cls=p.ast>=95?'verde':p.ast>=85?'amarillo':'rojo';
     return `<div class="prog-row"><span class="prog-name">${p.n}</span>
       <div class="prog-track"><div class="prog-bar ${cls}" style="width:${p.ast}%"></div></div>
       <span class="prog-val">${p.ast}%</span></div>`;
   }).join('');
-
-  const comps = s ? s.compromisos : SECTORES.flatMap(x=>x.compromisos.map(c=>({...c, desc: x.sector.replace('Sector ','') + ' ' + c.desc})));
-  document.getElementById('compromisos-mini').innerHTML = comps.map(c=>
-    `<div class="comp-item"><span class="dot ${c.st}"></span>
-      <span class="comp-desc">${c.desc}</span>
-      <span class="comp-pct ${c.st}">${c.pct}%</span></div>`
-  ).join('');
 }
 
-// ── SEGURIDAD ──
 function renderSeguridad(s){
   const d=s||{};
-  const sum = k => SECTORES.reduce((a,x)=>a+x[k],0);
-  const avg = k => Math.round(SECTORES.reduce((a,x)=>a+x[k],0)/SECTORES.length*10)/10;
-  document.getElementById('s-incidentes').textContent = s?d.incTotal:sum('incTotal');
-  const varVal = s?d.incVar:-(SECTORES.reduce((a,x)=>a+Math.abs(x.incVar),0)/SECTORES.length).toFixed(1);
-  document.getElementById('s-inc-var').innerHTML=`<span class="${varVal<0?'chip-up':'chip-dn'}">${varVal<0?'▼':'▲'} ${Math.abs(varVal)}%</span> vs. mes anterior`;
+  const sum=k=>SECTORES.reduce((a,x)=>a+(x[k]||0),0);
+  const avg=k=>Math.round(SECTORES.reduce((a,x)=>a+(x[k]||0),0)/SECTORES.length*10)/10;
+  document.getElementById('s-incidentes').textContent=s?d.incTotal:sum('incTotal');
   document.getElementById('s-frustrados').textContent=s?d.frustrados:sum('frustrados');
-  document.getElementById('s-inseguridad').textContent=s?d.nivelInseg+'%':avg('nivelInseg')+'%';
-  document.getElementById('s-respuesta').textContent=s?d.tasaResp+' min':avg('tasaResp').toFixed(1)+' min';
-  document.getElementById('s-intervenciones').textContent=s?d.interv:sum('interv');
-  document.getElementById('s-rutas').textContent=s?d.cobertura+'%':Math.round(SECTORES.reduce((a,x)=>a+x.cobertura,0)/SECTORES.length)+'%';
-  document.getElementById('s-factor-inc').textContent=s?d.incTotal:sum('incTotal');
-  document.getElementById('s-factor-resp').textContent=s?d.tasaResp+' min':avg('tasaResp').toFixed(1)+' min';
-
-  const semanas=['Sem 10','Sem 11','Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'];
-  destroyChart('semanas');
-  const incData = s ? d.incidentes : SECTORES[0].incidentes.map((_,wi)=>Math.round(SECTORES.reduce((a,x)=>a+x.incidentes[wi],0)/SECTORES.length));
-  charts['semanas'] = new Chart(document.getElementById('chartSemanas'),{
-    type:'line', data:{labels:semanas, datasets:[{label:'Incidentes',data:incData,
-      borderColor:DS.primary,backgroundColor:'rgba(0,94,165,0.07)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:DS.primary}]},
-    options:{...chartDefaults(), scales:{y:{beginAtZero:false,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
-  // ── Robos frustrados by week ──
-  const robosData = s ? [d.frustrados-1,d.frustrados,d.frustrados+1,d.frustrados-1,d.frustrados-1]
-    : (()=>{const a=Math.round(sum('frustrados')/SECTORES.length); return [a-1,a,a+1,a-1,a-1];})();
-  destroyChart('robos');
-  charts['robos'] = new Chart(document.getElementById('chartRobos'),{
-    type:'bar', data:{labels:['Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'],
-      datasets:[{label:'Robos frustrados',data:robosData,backgroundColor:DS.secondary+'CC',borderRadius:5}]},
-    options:{...chartDefaults(), scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
-  const franData = s ? d.franjas : SECTORES[0].franjas.map((f,i)=>({...f, v: Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0)/SECTORES.length)}));
-  document.getElementById('franja-chart').innerHTML = franData.map(f=>{
-    const w=Math.round(f.v/50*100);
+  document.getElementById('s-respuesta').textContent=s?d.tasaResp?d.tasaResp+' min':'—':avg('tasaResp')?avg('tasaResp').toFixed(1)+' min':'—';
+  const franData=s?d.franjas:SECTORES[0].franjas.map((f,i)=>({...f,v:Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))}));
+  document.getElementById('franja-chart').innerHTML=franData.map(f=>{
+    const maxVal=Math.max(...franData.map(fd=>fd.v))||1;
+    const w=Math.round((f.v/maxVal)*90)+10;
     return `<div class="franja-row"><span class="franja-label">${f.l}</span>
       <div class="franja-bar" style="width:${w}%;background:${f.c};min-width:32px;">${f.v}</div>
       <span style="font-size:11px;color:var(--g5);margin-left:6px;">${f.v} casos</span></div>`;
   }).join('');
-
-  const delKeys = Object.keys(SECTORES[0].tiposDelito);
-  const delData = s ? d.tiposDelito : (()=>{const a={}; delKeys.forEach(k=>{a[k]=SECTORES.reduce((s,x)=>s+x.tiposDelito[k],0)}); return a;})();
+  const delData=s?d.tiposDelito:(()=>{
+    const keys=Object.keys(SECTORES[0].tiposDelito),agg={};
+    keys.forEach(k=>{agg[k]=SECTORES.reduce((sx,x)=>sx+(x.tiposDelito[k]||0),0);});
+    return agg;
+  })();
   destroyChart('tiposDelito');
-  charts['tiposDelito'] = new Chart(document.getElementById('chartTiposDelito'),{
+  charts['tiposDelito']=new Chart(document.getElementById('chartTiposDelito'),{
     type:'bar',
-    data:{labels:Object.keys(delData), datasets:[{label:'Casos',data:Object.values(delData),
-      backgroundColor:DS.primary+'CC', borderRadius:5}]},
-    options:{...chartDefaults(), scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+    data:{labels:Object.keys(delData),datasets:[{label:'Casos',data:Object.values(delData),
+      backgroundColor:DS.primary+'CC',borderRadius:5}]},
+    options:{...chartDefaults(),scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
 }
 
-// ── OPERACIONES ──
 function renderOperaciones(s){
   const d=s||{};
-  const sum = k => SECTORES.reduce((a,x)=>a+x[k],0);
-  const avg = k => Math.round(SECTORES.reduce((a,x)=>a+x[k],0)/SECTORES.length*10)/10;
-  document.getElementById('o-operativos').textContent = s?d.operativosCount:sum('operativosCount');
-  document.getElementById('o-capturas').textContent = s?d.capturas:sum('capturas');
-  document.getElementById('o-sup').textContent = s?d.supRealizadas:sum('supRealizadas');
-  document.getElementById('o-sup-plan').textContent = s?`de ${d.supPlan} planificadas`:`de ${sum('supPlan')} planificadas (global)`;
-  document.getElementById('o-hallazgos').textContent = s?d.hallazgos:sum('hallazgos');
-  document.getElementById('o-reportes').textContent = s?d.reportes:Math.round(sum('supRealizadas')/sum('supPlan')*100)+'%';
-
-  // ── Operativos types ──
-  const ops = s ? d.operativosTipo : [...new Set(SECTORES.flatMap(x=>x.operativosTipo))];
-  document.getElementById('operativos-list').innerHTML = ops.map(op=>
-    `<span class="coord-tag"><span class="dot verde"></span>${op}</span>`
-  ).join('');
-  destroyChart('operativos');
-  charts['operativos'] = new Chart(document.getElementById('chartOperativos'),{
-    type:'bar', data:{labels:ops.map(o=>o.length>12?o.substring(0,12)+'…':o),
-      datasets:[{label:'Operativos',data:ops.map(()=>1),backgroundColor:DS.success+'CC',borderRadius:5}]},
-    options:{...chartDefaults(), scales:{y:{display:false},x:{ticks:{font:{size:10}}}}}
-  });
-
-  // ── Capturas weekly chart ──
-  const capData = s ? [d.capturas-1,d.capturas,d.capturas-1,d.capturas+1,d.capturas]
-    : (()=>{const a=Math.round(sum('capturas')/SECTORES.length); return [a-1,a,a-1,a+1,a];})();
-  destroyChart('capturas');
-  charts['capturas'] = new Chart(document.getElementById('chartCapturas'),{
-    type:'bar', data:{labels:['Sem 12','Sem 13','Sem 14','Sem 15','Sem 16'],
-      datasets:[{label:'Capturas',data:capData,backgroundColor:DS.accent+'CC',borderRadius:5}]},
-    options:{...chartDefaults(), scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
+  const sum=k=>SECTORES.reduce((a,x)=>a+(x[k]||0),0);
+  document.getElementById('o-operativos').textContent=s?d.operativosCount:sum('operativosCount');
+  document.getElementById('o-capturas').textContent=s?d.capturas:sum('capturas');
 }
 
-// ── PERSONAL ──
-function renderPersonal(s, sup){
+function renderPersonal(s,sup){
   const d=s||{};
-  document.getElementById('p-asist').textContent = s ? d.kpis.asistencia+'%' : Math.round(SECTORES.reduce((a,x)=>a+x.kpis.asistencia,0)/SECTORES.length)+'%';
-  document.getElementById('p-tard').textContent = s ? d.tardanzas+'%' : (SECTORES.reduce((a,x)=>a+x.tardanzas,0)/SECTORES.length).toFixed(1)+'%';
-  document.getElementById('p-disc').textContent = s ? d.disciplinarias : SECTORES.reduce((a,x)=>a+x.disciplinarias,0);
-  document.getElementById('p-rot').textContent = s ? d.rotacion : Math.round(SECTORES.reduce((a,x)=>a+x.rotacion,0)/SECTORES.length);
-
-  const supsRaw = s ? d.supervisores : SECTORES.flatMap(x=>x.supervisores.map(p=>({...p, n: x.sector.replace('Sector ','') + ' ' + p.n, sec: x.sector.replace('Sector ','')})));
-  const allSups = sup ? supsRaw.filter(p=>p.n.includes(sup.sup?.n)) : supsRaw;
-  document.getElementById('rank-asistencia').innerHTML = allSups.sort((a,b)=>b.ast-a.ast).map(p=>{
+  const supsRaw=s?d.supervisores:SECTORES.flatMap(x=>x.supervisores.map(p=>({...p,n:x.sector.replace('Sector ','')+' '+p.n,sec:x.sector.replace('Sector ','')})));
+  const avgAst=supsRaw.length?Math.round(supsRaw.reduce((a,p)=>a+p.ast,0)/supsRaw.length):0;
+  document.getElementById('p-asist').textContent=sup?(sup.sup?.ast||0)+'%':avgAst+'%';
+  document.getElementById('p-tard').textContent='—';
+  document.getElementById('p-disc').textContent='—';
+  document.getElementById('p-rot').textContent='—';
+  const allSups=sup?supsRaw.filter(p=>baseName(p.n)===baseName(sup.sup?.n)):supsRaw;
+  document.getElementById('rank-asistencia').innerHTML=allSups.sort((a,b)=>b.ast-a.ast).slice(0,8).map(p=>{
     const cls=p.ast>=95?'verde':p.ast>=85?'amarillo':'rojo';
-    const hl = sup ? ' style="background:var(--cpl);border-radius:var(--rmd);padding:4px 6px;"' : '';
+    const hl=sup?' style="background:var(--cpl);border-radius:var(--rmd);padding:4px 6px;"':'';
     return `<div class="prog-row"${hl}><span class="prog-name">${p.n}</span>
       <div class="prog-track"><div class="prog-bar ${cls}" style="width:${p.ast}%"></div></div>
       <span class="prog-val">${p.ast}%</span></div>`;
   }).join('');
-
-  const turnoAvg = m => {
-    const match = supsRaw.filter(p=>p.n.includes(m));
-    return match.length ? Math.round(match.reduce((a,p)=>a+p.ast,0)/match.length) : 0;
+  const turnoAvg=m=>{
+    const match=supsRaw.filter(p=>p.n.includes(m));
+    return match.length?Math.round(match.reduce((a,p)=>a+p.ast,0)/match.length):0;
   };
   destroyChart('turnos');
-  charts['turnos'] = new Chart(document.getElementById('chartTurnos'),{
+  charts['turnos']=new Chart(document.getElementById('chartTurnos'),{
     type:'bar',
     data:{labels:['Turno Mañana','Turno Tarde','Turno Noche'],
       datasets:[{label:'Asistencia %',
         data:[turnoAvg('(M)'),turnoAvg('(T)'),turnoAvg('(N)')],
         backgroundColor:[DS.primary,DS.primary+'BB',DS.primary+'88'],borderRadius:6}]},
-    options:{...chartDefaults(), scales:{y:{min:70,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+    options:{...chartDefaults(),scales:{y:{min:70,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
-
-  const rendRaw = s ? d.rendimiento : SECTORES.flatMap(x=>x.rendimiento.map(r=>({...r, sup: x.sector.replace('Sector ','') + ' ' + r.sup, sec: x.sector.replace('Sector ','')})));
-  const allRend = sup ? rendRaw.filter(r=>r.sup.includes(sup.rend?.sup)) : rendRaw;
+  const rendRaw=s?d.rendimiento:SECTORES.flatMap(x=>x.rendimiento.map(r=>({...r,sup:x.sector.replace('Sector ','')+' '+r.sup,sec:x.sector.replace('Sector ','')})));
+  const allRend=sup?rendRaw.filter(r=>baseName(r.sup)===baseName(sup.rend?.sup)):rendRaw;
   const tbl=document.getElementById('tbl-rendimiento');
   tbl.innerHTML=`<thead><tr>
     <th>${s?'':'Sector '}Supervisor</th><th class="num">Rutas %</th><th class="num">Reportes %</th>
     <th class="num">Actitud</th><th class="num">Puntaje Total</th><th>Semáforo</th>
-  </tr></thead><tbody>`+allRend.sort((a,b)=>b.total-a.total).map(r=>{
+  </tr></thead><tbody>`+allRend.slice(0,10).map(r=>{
     const cls=r.total>=90?'verde':r.total>=75?'amarillo':'rojo';
     return `<tr><td>${r.sup}</td><td class="num">${r.rutas}</td><td class="num">${r.reportes}</td>
       <td class="num">${r.actitud}</td><td class="num"><strong>${r.total}</strong></td>
@@ -801,202 +386,238 @@ function renderPersonal(s, sup){
   }).join('')+'</tbody>';
 }
 
-// ── COORDINACIÓN ──
 function renderCoordinacion(s){
   const d=s||{};
-  const sum = k => SECTORES.reduce((a,x)=>a+x[k],0);
-  const avg = k => Math.round(SECTORES.reduce((a,x)=>a+x[k],0)/SECTORES.length);
-  document.getElementById('c-coord').textContent = s?d.coordVecinales:sum('coordVecinales');
-  document.getElementById('c-pat').textContent = s?d.patrInt+'%':avg('patrInt')+'%';
-  document.getElementById('c-zonas').textContent = s?d.zonasRef:sum('zonasRef');
-  document.getElementById('c-intconj').textContent = s?d.intConj:sum('intConj');
-  document.getElementById('c-evitados').textContent = s?d.evitados:sum('evitados');
-  document.getElementById('c-reuniones').textContent = s?d.reunionesComis:sum('reunionesComis');
-
-  const acuerdos = s ? d.acuerdosList : [...new Set(SECTORES.flatMap(x=>x.acuerdosList))];
-  document.getElementById('acuerdos-list').innerHTML = acuerdos.map(a=>
-    `<div class="comp-item"><span class="dot verde"></span><span class="comp-desc">${a}</span></div>`
-  ).join('');
-
-  const comis = s ? d.comisarias : [...new Set(SECTORES.flatMap(x=>x.comisarias))];
-  document.getElementById('comisarias-tags').innerHTML = comis.map(c=>
-    `<span class="coord-tag">${c}</span>`
-  ).join('');
-
-  // ── Patrullaje Integrado chart ──
-  const semanas=['Sem 13','Sem 14','Sem 15','Sem 16'];
-  const patVal = s ? d.patrInt : avg('patrInt');
-  destroyChart('patInt');
-  charts['patInt'] = new Chart(document.getElementById('chartPatInt'),{
-    type:'bar', data:{labels:semanas, datasets:[
-      {label:'Realizado',data:[patVal-4,patVal-2,patVal,patVal+1].map(v=>Math.min(100,v)),backgroundColor:DS.primary,borderRadius:5},
-      {label:'Planificado',data:[100,100,100,100],backgroundColor:DS.primary+'22',borderRadius:5}
-    ]},
-    options:{...chartDefaults(), plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:11}}}},
-      scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
+  const sum=k=>SECTORES.reduce((a,x)=>a+(x[k]||0),0);
+  document.getElementById('c-coord').textContent=s?d.coordVecinales:sum('coordVecinales');
+  const comis=s?d.comisarias:[...new Set(SECTORES.flatMap(x=>x.comisarias))];
+  document.getElementById('comisarias-tags').innerHTML=comis.map(c=>`<span class="coord-tag">${c}</span>`).join('');
 }
 
-// ── ESTRATEGIA ──
-function renderEstrategia(s){
-  const allComps = s ? s.compromisos : SECTORES.flatMap(x=>x.compromisos);
-  const cumplidos=allComps.filter(c=>c.pct>=95).length;
-  const en_prog=allComps.filter(c=>c.pct>=60&&c.pct<95).length;
-  const prom=Math.round(allComps.reduce((a,c)=>a+c.pct,0)/allComps.length);
-  document.getElementById('e-total').textContent=allComps.length;
-  document.getElementById('e-cumplidos').textContent=cumplidos;
-  document.getElementById('e-progreso').textContent=en_prog;
-  document.getElementById('e-prom').textContent=prom+'%';
-  if(s){
-    document.getElementById('e-red').textContent=s.impReduc+'%';
-    document.getElementById('e-aum').textContent='+'+s.impAum+'%';
-    document.getElementById('e-disc').textContent=s.impDisc>0?('-'+s.impDisc+'%'):(s.impDisc+'%');
-  } else {
-    document.getElementById('e-red').textContent=Math.round(SECTORES.reduce((a,x)=>a+x.impReduc,0)/SECTORES.length)+'%';
-    document.getElementById('e-aum').textContent='+'+Math.round(SECTORES.reduce((a,x)=>a+x.impAum,0)/SECTORES.length)+'%';
-    const avgDisc = Math.round(SECTORES.reduce((a,x)=>a+x.impDisc,0)/SECTORES.length);
-    document.getElementById('e-disc').textContent=avgDisc>0?('-'+avgDisc+'%'):(avgDisc+'%');
-  }
-
-  destroyChart('comp');
-  const secData=s?[s]:SECTORES;
-  charts['comp'] = new Chart(document.getElementById('chartComp'),{
-    type:'bar',
-    data:{labels:secData.map(x=>x.sector.replace('Sector ','')),
-      datasets:[{label:'Avance %',
-        data:secData.map(x=>Math.round(x.compromisos.reduce((a,c)=>a+c.pct,0)/x.compromisos.length)),
-        backgroundColor:secData.map(x=>{
-          const v=Math.round(x.compromisos.reduce((a,c)=>a+c.pct,0)/x.compromisos.length);
-          return v>=85?DS.primary:v>=65?DS.warning:DS.danger;
-        }),borderRadius:6}]},
-    options:{...chartDefaults(), scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-  });
-
-  document.getElementById('compromisos-detail').innerHTML=allComps.slice(0,9).map(c=>
-    `<div class="comp-item">
-      <span class="dot ${c.st}"></span>
-      <span class="comp-desc">${c.desc}</span>
-      <div class="prog-track" style="width:60px;"><div class="prog-bar ${c.st}" style="width:${c.pct}%"></div></div>
-      <span class="comp-pct ${c.st}">${c.pct}%</span>
-    </div>`
-  ).join('');
-}
-
-// ── RANKING ──
-function renderRanking(){
-  const sorted=[...SECTORES].sort((a,b)=>b.score-a.score);
-  destroyChart('rankGlobal');
-  charts['rankGlobal'] = new Chart(document.getElementById('chartRankGlobal'),{
-    type:'bar', indexAxis:'y',
-    data:{labels:sorted.map(x=>x.sector),
-      datasets:[{label:'Puntaje',data:sorted.map(x=>x.score),
-        backgroundColor:sorted.map(x=>x.score>=85?DS.primary:x.score>=70?DS.warning:DS.danger),
-        borderRadius:5}]},
-    options:{...chartDefaults(), scales:{x:{min:0,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}
-  });
-
-  destroyChart('radar');
-  charts['radar'] = new Chart(document.getElementById('chartRadar'),{
-    type:'radar',
-    data:{labels:['Seguridad','Operaciones','Personal','Coordinación','Estrategia'],
-      datasets:SECTORES.map((s,i)=>({
-        label:s.sector, data:s.dims,
-        borderColor:SECTOR_COLORS[i],
-        backgroundColor:SECTOR_COLORS[i]+'18',
-        pointRadius:3
-      }))},
-    options:{...chartDefaults(), plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
-      scales:{r:{min:40,max:100,ticks:{font:{size:9},stepSize:20}}}}
-  });
-
-  document.getElementById('tbody-ranking').innerHTML=sorted.map((s,i)=>{
-    const cls=s.score>=85?'verde':s.score>=70?'amarillo':'rojo';
-    const rankCls=i===0?'r1':i===1?'r2':i===2?'r3':'';
-    return `<tr>
-      <td><span class="rank-n ${rankCls}">${i+1}</span></td>
-      <td><strong>${s.nombre}</strong></td>
-      <td>${s.sector}</td>
-      <td class="num">${s.dims[0]}</td><td class="num">${s.dims[1]}</td>
-      <td class="num">${s.dims[2]}</td><td class="num">${s.dims[3]}</td>
-      <td class="num">${s.dims[4]}</td>
-      <td class="num"><strong>${s.score}</strong></td>
-      <td><span class="status-badge ${cls}"><span class="dot ${cls}"></span>${statusLabel(cls)[1]}</span></td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('checklist-semanal').innerHTML=
-    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">`+
-    CHECKS_SEMANAL.map(c=>
-      `<div class="comp-item" style="padding:8px 10px;background:var(--g1);border-radius:var(--rmd);border-bottom:none;border:1px solid var(--g3);">
-        <span class="dot verde"></span><span class="comp-desc" style="font-size:var(--tsm);">${c.item}</span>
-      </div>`
-    ).join('')+`</div>`;
-}
-
-// ── Integrate sheet data into sectors ──
-let _sheetData = null;
-function applySheetData(map){
-  _sheetData = map;
-  if(!map) return;
-  SECTORES.forEach(sec => {
-    const secId = sec.id.toLowerCase().replace("sector","").trim();
-    var newSups = [];
-    var turnoLabels = { M: "M", T: "T", N: "N" };
-    Object.keys(turnoLabels).forEach(function(tk) {
-      var key = secId + '|' + tk;
-      var d = map[key];
-      if (!d || Object.keys(d.supervisores).length === 0) return;
-      var bestName = "", bestPartes = 0;
-      Object.keys(d.supervisores).forEach(function(nm) {
-        if (d.supervisores[nm] > bestPartes) { bestPartes = d.supervisores[nm]; bestName = nm; }
-      });
-      if (!bestName) return;
-      var partesAvg = Math.round((bestPartes / d.count) * 22);
-      var ast = Math.min(100, Math.max(60, partesAvg));
-      newSups.push({ n: bestName + " (" + tk + ")", ast: ast });
-    });
-    if (newSups.length > 0) {
-      sec.supervisores = newSups;
-      sec.rendimiento = newSups.map(function(p) {
-        return {
-          sup: p.n, rutas: Math.min(100, Math.max(60, Math.round(p.ast * 0.95))),
-          reportes: Math.min(100, Math.max(60, Math.round(p.ast * 0.90))),
-          actitud: Math.min(100, Math.max(60, Math.round(p.ast * 0.85))),
-          total: Math.round((p.ast * 0.95 + p.ast * 0.90 + p.ast * 0.85) / 3)
-        };
-      });
-    }
-  });
-}
-
-async function initSheetData(){
-  const rows = await fetchSheetData();
-  if(rows.length){
-    const map = buildSupervisoresFromSheet(rows);
-    applySheetData(map);
-    if(_sheetData) updateDash();
-  }
-}
-
-// ── NAV ──
-function showPanel(id, el){
+function showPanel(id,el){
   document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   el.classList.add('active');
 }
 
-// ── INIT ──
-window.addEventListener('load', ()=>{
-  // Inicializar fechas: primer y último día del mes actual
-  const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+function normalizarSector(raw){
+  return String(raw||'').toLowerCase().trim().replace(/^sector\s*/,'').trim().toUpperCase();
+}
 
-  document.getElementById('fechaInicio').value = firstDay.toISOString().split('T')[0];
-  document.getElementById('fechaFin').value = lastDay.toISOString().split('T')[0];
+function clasificarTurno(turnoRaw){
+  var tv=(turnoRaw||'').toUpperCase().trim();
+  if(tv.indexOf("MAÑANA")!==-1||tv.indexOf("M")!==-1) return "manana";
+  if(tv.indexOf("TARDE")!==-1||tv.indexOf("T")!==-1) return "tarde";
+  if(tv.indexOf("NOCHE")!==-1||tv.indexOf("N")!==-1) return "noche";
+  return null;
+}
 
+function clasificarFranja(turnoRaw){
+  var tv=(turnoRaw||'').toUpperCase().trim();
+  if(tv.indexOf("MAÑANA")!==-1||tv.indexOf("M")!==-1) return "06–12h";
+  if(tv.indexOf("TARDE")!==-1||tv.indexOf("T")!==-1) return "12–18h";
+  if(tv.indexOf("NOCHE")!==-1||tv.indexOf("N")!==-1) return "18–24h";
+  return "00–06h";
+}
+
+function clasificarTipo(tipoRaw){
+  var tl=(tipoRaw||'').toLowerCase();
+  if(tl.indexOf("robo frustrado")!==-1) return "robosFrustrados";
+  if(tl.indexOf("operativo")!==-1) return "operativosCount";
+  if(tl.indexOf("coordinacion")!==-1) return "coordVecinalesCount";
+  if(tl.indexOf("captura")!==-1) return "capturasCount";
+  if(tl.indexOf("patrullaje")!==-1) return "patrullajeCount";
+  return null;
+}
+
+function processIncidencias(incidencias, jefesConfig, turnoFilter, fStart, fEnd){
+  var sd={};
+  Object.keys(jefesConfig).forEach(function(id){
+    sd[id]={id,nombre:jefesConfig[id].nombre,sector:"Sector "+id,
+      initials:jefesConfig[id].initials,
+      incidentesRaw:[],comisariasSet:new Set(),
+      crimeTypes:{},franjas:{"00–06h":0,"06–12h":0,"12–18h":0,"18–24h":0},
+      responseTimes:[],robosFrustrados:0,operativosCount:0,
+      coordVecinalesCount:0,capturasCount:0,patrullajeCount:0};
+  });
+
+  incidencias.forEach(function(row){
+    var secId=normalizarSector(row.sector);
+    if(!sd[secId])return;
+    var s=sd[secId];
+
+    // Date filter
+    if(fStart||fEnd){
+      var fd=row.fecha_apertura?new Date(row.fecha_apertura):null;
+      if(fd&&!isNaN(fd)){
+        if(fStart&&fd<new Date(fStart+'T00:00:00'))return;
+        if(fEnd&&fd>new Date(fEnd+'T23:59:59'))return;
+      }
+    }
+
+    // Turno filter
+    if(turnoFilter&&clasificarTurno(row.turno)!==turnoFilter)return;
+
+    s.incidentesRaw.push(row.fecha_apertura);
+    var tipo=row.tipo||"Otros";
+    s.crimeTypes[tipo]=(s.crimeTypes[tipo]||0)+1;
+
+    var subT=clasificarTipo(tipo);
+    if(subT)s[subT]++;
+
+    if(row.cia)s.comisariasSet.add(String(row.cia).trim());
+
+    s.franjas[clasificarFranja(row.turno)]++;
+
+    var tVal=parseFloat(row.time_minimo);
+    if(!isNaN(tVal)&&tVal>0)s.responseTimes.push(tVal);
+  });
+
+  return Object.keys(sd).map(function(id){
+    var s=sd[id];
+    var incTotal=s.incidentesRaw.length;
+    var tasaResp=s.responseTimes.length>0
+      ?Math.round((s.responseTimes.reduce(function(a,b){return a+b;},0)/s.responseTimes.length)*10)/10:null;
+    var comisarias=s.comisariasSet.size>0?Array.from(s.comisariasSet):[];
+    var tdo={};
+    Object.keys(s.crimeTypes).sort(function(a,b){return s.crimeTypes[b]-s.crimeTypes[a];}).slice(0,5).forEach(function(k){tdo[k]=s.crimeTypes[k];});
+    if(Object.keys(tdo).length===0&&incTotal>0)tdo["Otros"]=incTotal;
+    return{
+      id,nombre:s.nombre,sector:s.sector,initials:s.initials,
+      incTotal,tasaResp,comisarias,
+      franjas:[{l:"00–06h",v:s.franjas["00–06h"],c:"#003D6B"},{l:"06–12h",v:s.franjas["06–12h"],c:"#27AE60"},{l:"12–18h",v:s.franjas["12–18h"],c:"#F5A623"},{l:"18–24h",v:s.franjas["18–24h"],c:"#E03E3E"}],
+      tiposDelito:tdo,
+      frustrados:s.robosFrustrados,robosFrustrados:s.robosFrustrados,
+      operativosCount:s.operativosCount,
+      coordVecinales:s.coordVecinalesCount,
+      capturas:s.capturasCount,patrullajeCount:s.patrullajeCount,
+      supervisores:[],rendimiento:[]
+    };
+  });
+}
+
+function normalizeSecId(v){
+  return String(v||'').toLowerCase().replace("sector","").trim().toUpperCase();
+}
+function buildSupervisores(sectores, supList){
+  var bySector={};
+  supList.forEach(function(s){
+    var sn=normalizeSecId(s.sector);
+    if(!bySector[sn])bySector[sn]=[];
+    bySector[sn].push(s);
+  });
+  sectores.forEach(function(sec){
+    var entries=bySector[normalizeSecId(sec.id)]||[];
+    if(entries.length===0)return;
+    var newSups=[];
+    ["M","T","N"].forEach(function(tk){
+      var match=null;
+      for(var ei=0;ei<entries.length;ei++){
+        var et=entries[ei].turno||'';
+        if(et.indexOf(tk)!==-1){match=entries[ei];break;}
+      }
+      if(!match)return;
+      var partesAvg=Math.round((match.partes/match.count)*22);
+      var ast=Math.min(100,Math.max(60,partesAvg));
+      newSups.push({n:match.supervisor+" ("+tk+")",ast:ast});
+    });
+    if(newSups.length>0){
+      sec.supervisores=newSups;
+      sec.rendimiento=newSups.map(function(p){return{
+        sup:p.n,rutas:Math.min(100,Math.max(60,Math.round(p.ast*0.95))),
+        reportes:Math.min(100,Math.max(60,Math.round(p.ast*0.90))),
+        actitud:Math.min(100,Math.max(60,Math.round(p.ast*0.85))),
+        total:Math.round((p.ast*0.95+p.ast*0.90+p.ast*0.85)/3)
+      };});
+    }
+  });
+}
+
+function finishLoad(incidencias, jefesConfig, supRows, turnoFilter, fStart, fEnd){
+  SECTORES=processIncidencias(incidencias,jefesConfig,turnoFilter,fStart,fEnd);
+  buildSupervisores(SECTORES,supRows||[]);
+  document.getElementById('loading-overlay').style.display='none';
   updateDash();
   lucide.createIcons();
-  initSheetData();
+}
+
+function loadData(turnoFilter){
+  document.getElementById('loading-overlay').style.display='flex';
+
+  var pSupabase = supabaseClient.from('incidencias').select('*').then(function(res){
+    if(res.error)throw new Error('Error Supabase incidencias: '+res.error.message);
+    CACHED_INCIDENCIAS=res.data;
+    return res.data;
+  });
+
+  var pJefes = supabaseClient.from('jefes_area').select('*').then(function(res){
+    if(res.error)throw new Error('Error Supabase jefes: '+res.error.message);
+    var jc={};
+    res.data.forEach(function(j){
+      var words=j.nombre.split(/\s+/).filter(function(w){return w.length>0;});
+      var ini=words.length>0?words[0][0].toUpperCase():'';
+      if(words.length>1)ini+=words[1][0].toUpperCase();
+      if(!ini)ini=j.sector;
+      jc[j.sector]={nombre:j.nombre,initials:ini};
+    });
+    CACHED_JEFES=jc;
+    return jc;
+  });
+
+  Promise.all([pSupabase,pJefes]).then(async function(results){
+    var incidencias=results[0];
+    var jefesConfig=results[1];
+    const rows = await fetchSheetData();
+    const supData = buildSupervisoresFromSheet(rows);
+    if(supData){
+      CACHED_SUPERVISORS = sheetMapToSupervisorRows(supData);
+      applySheetData(supData);
+    } else {
+      CACHED_SUPERVISORS = [];
+    }
+    finishLoad(incidencias,jefesConfig,CACHED_SUPERVISORS,turnoFilter,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
+
+  }).catch(function(err){
+    alert(err.message||'Error al cargar datos');
+    document.getElementById('loading-overlay').style.display='none';
+  });
+}
+
+function onTurnoChange(){
+  var turno=document.getElementById('selTurno').value;
+  // Re-process locally from cached data with new turno filter
+  if(CACHED_INCIDENCIAS.length>0&&Object.keys(CACHED_JEFES).length>0){
+    SECTORES=processIncidencias(CACHED_INCIDENCIAS,CACHED_JEFES,turno,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
+    buildSupervisores(SECTORES,CACHED_SUPERVISORS);
+    updateDash();
+  }else{
+    loadData(turno);
+  }
+}
+
+function onFechaChange(){
+  // Re-process locally from cached data with new date range
+  if(CACHED_INCIDENCIAS.length>0&&Object.keys(CACHED_JEFES).length>0){
+    var turno=document.getElementById('selTurno').value;
+    SECTORES=processIncidencias(CACHED_INCIDENCIAS,CACHED_JEFES,turno,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
+    buildSupervisores(SECTORES,CACHED_SUPERVISORS);
+    updateDash();
+  }
+}
+
+window.addEventListener('load',function(){
+  var fInicioInput=document.getElementById('fechaInicio');
+  var fFinInput=document.getElementById('fechaFin');
+
+  if(!fInicioInput.value)fInicioInput.value='2026-01-01';
+  if(!fFinInput.value)fFinInput.value='2026-12-31';
+
+  loadData('');
 });
