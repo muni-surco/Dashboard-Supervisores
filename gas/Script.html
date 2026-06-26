@@ -383,33 +383,30 @@ function processIncidencias(incidencias, jefesConfig, turnoFilter, fStart, fEnd)
   });
 }
 
-function buildSupervisores(sectores, supRows){
-  var supData={};
-  supRows.forEach(function(r){
-    if(!supData[r.sector])supData[r.sector]=[];
-    supData[r.sector].push(r);
+function normalizeSecId(v){
+  return String(v||'').toLowerCase().replace("sector","").trim().toUpperCase();
+}
+function buildSupervisores(sectores, supList){
+  var bySector={};
+  supList.forEach(function(s){
+    var sn=normalizeSecId(s.sector);
+    if(!bySector[sn])bySector[sn]=[];
+    bySector[sn].push(s);
   });
   sectores.forEach(function(sec){
-    var rows=supData[sec.id]||[];
-    if(rows.length===0)return;
-    var turnoMap={};
-    rows.forEach(function(r){
-      var t=(r.turno||'').toUpperCase();
-      var key=t.indexOf("M")!==-1?"M":t.indexOf("T")!==-1?"T":t.indexOf("N")!==-1?"N":"X";
-      if(!turnoMap[key])turnoMap[key]={names:{},count:0};
-      turnoMap[key].names[r.supervisor]=(turnoMap[key].names[r.supervisor]||0)+r.partes;
-      turnoMap[key].count++;
-    });
+    var entries=bySector[normalizeSecId(sec.id)]||[];
+    if(entries.length===0)return;
     var newSups=[];
     ["M","T","N"].forEach(function(tk){
-      var td=turnoMap[tk];
-      if(!td||Object.keys(td.names).length===0)return;
-      var bestName="",bestPartes=0;
-      Object.keys(td.names).forEach(function(nm){if(td.names[nm]>bestPartes){bestPartes=td.names[nm];bestName=nm;}});
-      if(!bestName)return;
-      var partesAvg=Math.round((bestPartes/td.count)*22);
+      var match=null;
+      for(var ei=0;ei<entries.length;ei++){
+        var et=entries[ei].turno||'';
+        if(et.indexOf(tk)!==-1){match=entries[ei];break;}
+      }
+      if(!match)return;
+      var partesAvg=Math.round((match.partes/match.count)*22);
       var ast=Math.min(100,Math.max(60,partesAvg));
-      newSups.push({n:bestName+" ("+tk+")",ast:ast});
+      newSups.push({n:match.supervisor+" ("+tk+")",ast:ast});
     });
     if(newSups.length>0){
       sec.supervisores=newSups;
@@ -464,9 +461,9 @@ function loadData(turnoFilter){
     google.script.run
       .withSuccessHandler(function(supData){
         if(supData&&!supData.error){
-          CACHED_SUPERVISORS=supData.rows||[];
+          CACHED_SUPERVISORS=supData.supervisores||[];
         }else{
-          console.warn('Supervisores:',supData?.error||'sin datos');
+          console.warn('Supervisores error:',supData?.error||'sin datos');
           CACHED_SUPERVISORS=[];
         }
         finishLoad(incidencias,jefesConfig,CACHED_SUPERVISORS,turnoFilter,
@@ -480,7 +477,7 @@ function loadData(turnoFilter){
           document.getElementById('fechaInicio').value,
           document.getElementById('fechaFin').value);
       })
-      .getSupervisoresData(fStart, fEnd);
+      .getSupervisoresData();
 
   }).catch(function(err){
     alert(err.message||'Error al cargar datos');
