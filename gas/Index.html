@@ -9,7 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <?!= include('Styles'); ?>
 </head>
 <body>
@@ -67,12 +66,6 @@
     <select id="selSup" class="tb-select tb-sup" onchange="onSupChange()">
       <option value="0">Todos los Supervisores</option>
     </select>
-    <select id="selTurno" class="tb-select tb-turno" onchange="onTurnoChange()">
-      <option value="">Todos los Turnos</option>
-      <option value="manana">Mañana (6:30–14:30)</option>
-      <option value="tarde">Tarde (14:30–22:30)</option>
-      <option value="noche">Noche (22:30–6:30)</option>
-    </select>
     <div class="date-range">
       <input type="date" id="fechaInicio" class="tb-date" onchange="onFechaChange()">
       <span>al</span>
@@ -87,6 +80,7 @@
     <!-- ━━━━ RESUMEN ━━━━ -->
     <div class="section-panel active" id="panel-resumen">
       <div id="sel-info-box"></div>
+      <div id="sup-info-box"></div>
       <div class="kpi-row" id="kpi-row"></div>
       <div class="grid-2">
         <div class="card">
@@ -102,20 +96,10 @@
           </div>
         </div>
       </div>
-      <div class="grid-3">
-        <div class="card">
-          <div class="card-title">Delitos por Tipo</div>
-          <div class="chart-wrap" style="height:170px;">
-            <canvas id="chartDelitos"></canvas>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">Asistencia del Personal</div>
-          <div id="asistencia-prog" class="prog-wrap"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Compromisos de Mejora</div>
-          <div id="compromisos-mini"></div>
+      <div class="card">
+        <div class="card-title">Delitos por Tipo</div>
+        <div class="chart-wrap" style="height:170px;">
+          <canvas id="chartDelitos"></canvas>
         </div>
       </div>
     </div>
