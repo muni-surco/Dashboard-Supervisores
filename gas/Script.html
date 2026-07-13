@@ -1,38 +1,48 @@
 ﻿<script>
+const SUPABASE_URL = 'https://iotxurynamixapftjwze.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvdHh1cnluYW1peGFwZnRqd3plIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNTc1MDYsImV4cCI6MjA5NzgzMzUwNn0.-SDfDO5vrebHnc7B2E77tbnl5nKnpM2ub2pBoSQGPOQ';
+
+let supabaseClient; // Declarar globalmente
+
 const DS = {
   primary:'#005ea5',primaryD:'#003D6B',secondary:'#00C9A7',accent:'#F5A623',
   danger:'#E03E3E',success:'#27AE60',warning:'#F5A623',
   g3:'#D0D5E8',g5:'#8888AA',g7:'#4A4A6A',
 };
 
-const SUPABASE_URL = 'https://iotxurynamixapftjwze.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvdHh1cnluYW1peGFwZnRqd3plIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNTc1MDYsImV4cCI6MjA5NzgzMzUwNn0.-SDfDO5vrebHnc7B2E77tbnl5nKnpM2ub2pBoSQGPOQ';
-
 let SECTORES = [];
-let CACHED_INCIDENCIAS = [];
-let CACHED_JEFES = {};
 let CACHED_SUPERVISORS = [];
 
-async function fetchIncidencias() {
-  const BATCH = 5000;
-  const headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY };
-  var all = [];
-  var offset = 0;
-  while (true) {
-    var res = await fetch(SUPABASE_URL + '/rest/v1/incidencias?select=*&limit=' + BATCH + '&offset=' + offset, { headers });
-    if (!res.ok) throw new Error('Supabase ' + res.status);
-    var items = await res.json();
-    if (!items || !items.length) break;
-    Array.prototype.push.apply(all, items);
-    offset += items.length;
-  }
-  return all;
+function kpiVal(d,k){ return k.val?k.val(d):d[k.key]; }
+
+function computeThresholds(){
+  KPI_DEFS.forEach(function(k){
+    var values = SECTORES.map(function(s){ return kpiVal(s,k); }).sort(function(a,b){ return a-b; });
+    var n = values.length;
+    if(n<3){ k._lo=values[0]; k._hi=values[n-1]; return; }
+    k._lo = values[Math.floor(n/3)];
+    k._hi = values[Math.ceil(2*n/3)-1];
+    if(k.key==='incDelictivas'){
+      k.thr = function(d){
+        var v = kpiVal(d,k);
+        if(v <= k._lo) return 'verde';
+        if(v <= k._hi) return 'amarillo';
+        return 'rojo';
+      };
+    } else {
+      k.thr = function(d){
+        var v = kpiVal(d,k);
+        if(v >= k._hi) return 'verde';
+        if(v >= k._lo) return 'amarillo';
+        return 'rojo';
+      };
+    }
+  });
 }
 
-function kpiVal(d,k){ return k.val?k.val(d):d[k.key]; }
 const KPI_DEFS = [
   {key:'incDelictivas',label:'Incidencias Delictivas',unit:'',meta:'—',
-   val:d=>d.incDelictivas,thr:d=>d.incDelictivas<=25?'verde':d.incDelictivas<=35?'amarillo':'rojo'},
+   val:d=>d.incTotal,thr:d=>d.incTotal<=25?'verde':d.incTotal<=35?'amarillo':'rojo'},
   {key:'robosFrustrados',label:'Robos Frustrados',unit:'',meta:'—',
    val:d=>d.robosFrustrados,thr:d=>d.robosFrustrados>=6?'verde':d.robosFrustrados>=4?'amarillo':'rojo'},
   {key:'operativos',label:'Operativos',unit:'',meta:'—',
@@ -40,9 +50,7 @@ const KPI_DEFS = [
   {key:'coordVecinales',label:'Coord. Vecinales',unit:'',meta:'—',
    val:d=>d.coordVecinales,thr:d=>d.coordVecinales>=4?'verde':d.coordVecinales>=3?'amarillo':'rojo'},
   {key:'capturas',label:'Capturas',unit:'',meta:'—',
-   val:d=>d.capturas,thr:d=>d.capturas>=5?'verde':d.capturas>=3?'amarillo':'rojo'},
-  {key:'totalInc',label:'Total Incidencias',unit:'',meta:'en Supabase',
-   val:function(){return CACHED_INCIDENCIAS.length;},thr:function(){return 'verde';}}
+   val:d=>d.capturas,thr:d=>d.capturas>=5?'verde':d.capturas>=3?'amarillo':'rojo'}
 ];
 
 const SECTOR_COLORS = [DS.primary,DS.success,DS.accent,DS.danger,'#9C27B0','#00BCD4','#FF9800','#795548','#607D8B','#E91E63','#3F51B5'];
@@ -57,29 +65,31 @@ function getSectorData(){
 function getSupData(sector){
   const v=document.getElementById('selSup').value;
   if(v==='0'||!sector)return null;
-  var supEntry=sector.supervisores.find(function(p){return baseName(p.n)===v;});
-  var rendEntry=sector.rendimiento.find(function(r){return baseName(r.sup)===v;});
-  return {sup:supEntry||null,rend:rendEntry||null};
+  return {sup:sector.supervisores.find(p=>baseName(p.n)===v),rend:sector.rendimiento.find(r=>baseName(r.sup)===v)};
 }
 function populateJefes(){
   const sel=document.getElementById('selJefe');
   const current=sel.value;
-  sel.innerHTML = '<option value="0">Todos los Sectores</option>' +
-    SECTORES.map(function(s) {
-      return '<option value="' + s.id + '">' + s.sector + ' — ' + s.nombre + '</option>';
-    }).join('');
+  sel.innerHTML='<option value="0">Todos los Sectores</option>'+
+    SECTORES.map(s=>'<option value="' + s.id + '">' + s.sector + ' — ' + s.nombre + '</option>').join('');
   if([...sel.options].some(o=>o.value===current))sel.value=current;
 }
 
-function baseName(n){ return (n||'').replace(/\s*\([MTN]\)\s*$/,'').trim(); }
+const TURNO_MAP={manana:'M',tarde:'T',noche:'N'};
+const LETTER_MAP={M:'manana',T:'tarde',N:'noche'};
+function turnoLetter(v){ return TURNO_MAP[v]||null; }
+function letterFromName(n){ var m=n.match(/\((\w)\)/); return m?m[1].toUpperCase():null; }
 
 function populateSupervisores(){
   const sel=document.getElementById('selSup');
   const sv=sel.value;
   const sid=document.getElementById('selJefe').value;
+  const turno=document.getElementById('selTurno').value;
+  const tl=turnoLetter(turno);
   var raw=sid==='0'
     ? SECTORES.flatMap(x=>x.supervisores)
     : (SECTORES.find(s=>s.id===sid)?.supervisores||[]);
+  if(tl)raw=raw.filter(function(p){ return letterFromName(p.n)===tl; });
   var seen={};
   var lista=raw.filter(function(p){
     var b=baseName(p.n);
@@ -101,6 +111,8 @@ function statusLabel(s){
   return['rojo','No cumplido'];
 }
 
+function baseName(n){ var m=n.match(/^(.*?)\s*\((\w)\)/); return m?m[1]:n; }
+
 Chart.defaults.font.family="'Chivo','Segoe UI',sans-serif";
 Chart.defaults.color=DS.g7;
 function chartDefaults(){return{
@@ -109,14 +121,25 @@ function chartDefaults(){return{
 };}
 
 function onSupChange(){
-  updateDash();
+  var sv=document.getElementById('selSup').value;
+  if(sv&&sv!=='0'){
+    SECTORES.forEach(function(sec){
+      sec.supervisores.forEach(function(p){
+        if(baseName(p.n)===sv){
+          document.getElementById('selJefe').value=sec.id;
+          var lt=letterFromName(p.n);
+          if(lt)document.getElementById('selTurno').value=LETTER_MAP[lt]||'';
+        }
+      });
+    });
+  }
+  loadData(document.getElementById('selTurno').value);
 }
 
 function updateDash(){
-  if(SECTORES.length===0){ console.warn('SECTORES vacío'); return; }
-  console.log('updateDash: SECTORES.length='+SECTORES.length+', primer sector:',SECTORES[0]);
-  try { populateJefes(); } catch(e){ console.warn('populateJefes:',e.message); }
-  try { populateSupervisores(); } catch(e){ console.warn('populateSupervisores:',e.message); }
+  if(SECTORES.length===0)return;
+  populateJefes();
+  populateSupervisores();
   const s=getSectorData();
   const sup=getSupData(s);
   const fStart=document.getElementById('fechaInicio').value;
@@ -125,23 +148,21 @@ function updateDash(){
     const d1=new Date(fStart+'T00:00:00');
     const d2=new Date(fEnd+'T00:00:00');
     const opt={day:'numeric',month:'short'};
-    document.getElementById('badgePeriod').textContent =
-      d1.toLocaleDateString('es-ES',opt) + ' — ' +
-      d2.toLocaleDateString('es-ES',opt) + ' ' +
-      d2.getFullYear();
+    document.getElementById('badgePeriod').textContent=
+      d1.toLocaleDateString('es-ES',opt) + ' — ' + d2.toLocaleDateString('es-ES',opt) + ' ' + d2.getFullYear();
   }
-  try { renderSelInfo(s); } catch(e){ console.warn('renderSelInfo:',e.message); }
-  try { renderSupInfo(sup); } catch(e){ console.warn('renderSupInfo:',e.message); }
-  try { renderKPIs(s); } catch(e){ console.warn('renderKPIs:',e.message); }
-  try { renderResumen(s); } catch(e){ console.warn('renderResumen:',e.message); }
-  try { renderSeguridad(s); } catch(e){ console.warn('renderSeguridad:',e.message); }
-  try { renderPersonal(s,sup); } catch(e){ console.warn('renderPersonal:',e.message); }
-  try { renderRanking(); } catch(e){ console.warn('renderRanking:',e.message); }
+  renderSelInfo(s);
+  renderSupInfo(sup);
+  renderKPIs(s);
+  renderResumen(s);
+  renderSeguridad(s);
+  renderOperaciones(s);
+  renderPersonal(s,sup);
+  renderCoordinacion(s);
 }
 
 function renderSelInfo(s){
   const box=document.getElementById('sel-info-box');
-  if(!box)return;
   if(!s){box.innerHTML='';return;}
   box.innerHTML = '<div class="sel-info">' +
     '<div class="sel-avatar">' + s.initials + '</div>' +
@@ -151,7 +172,6 @@ function renderSelInfo(s){
 
 function renderSupInfo(sup){
   const box=document.getElementById('sup-info-box');
-  if(!box)return;
   if(!sup){box.innerHTML='';return;}
   const r=sup.rend,total=r?r.total:0,ast=sup.sup?sup.sup.ast:0;
   const cls=total>=90?'verde':total>=75?'amarillo':'rojo';
@@ -170,16 +190,13 @@ function renderSupInfo(sup){
 
 function renderKPIs(s){
   const row=document.getElementById('kpi-row');
-  if(!row)return;
   const aggK=(k)=>{
-    if(k.key==='totalInc') return CACHED_INCIDENCIAS.length;
     const vals=SECTORES.map(x=>kpiVal(x,k));
     if(typeof vals[0]!=='number')return vals.reduce((a,b)=>a+b,0);
     if(k.unit==='%')return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
     return vals.reduce((a,b)=>a+b,0);
   };
   const avgSt=(k)=>{
-    if(k.key==='totalInc') return 'verde';
     if(s)return k.thr(s);
     const v=SECTORES.map(x=>k.thr(x));
     return v.some(x=>x==='rojo')?'rojo':v.some(x=>x==='amarillo')?'amarillo':'verde';
@@ -194,11 +211,10 @@ function renderKPIs(s){
       '<div class="kpi-pill ' + cls + '"><span class="dot ' + cls + '"></span>' + lbl + '</div>' +
     '</div>';
   }).join('');
-  row.style.gridTemplateColumns='repeat(6,1fr)';
+  row.style.gridTemplateColumns='repeat(5,1fr)';
 }
 
 function renderResumen(s){
-  if(!document.getElementById('chartDelitos'))return;
   destroyChart('delitos');
   const delData=s?s.tiposDelito:(()=>{
     const keys=Object.keys(SECTORES[0].tiposDelito),agg={};
@@ -212,15 +228,21 @@ function renderResumen(s){
       borderWidth:2,borderColor:'#fff'}]},
     options:{...chartDefaults(),plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,font:{size:11}}}}}
   });
+  const supsData=s?s.supervisores:SECTORES.flatMap(x=>x.supervisores.map(p=>({...p,n:x.sector.replace('Sector ','')+' '+p.n})));
+  document.getElementById('asistencia-prog').innerHTML=supsData.sort((a,b)=>b.ast-a.ast).slice(0,6).map(p=>{
+    const cls=p.ast>=95?'verde':p.ast>=85?'amarillo':'rojo';
+    return '<div class="prog-row"><span class="prog-name">' + p.n + '</span>' +
+      '<div class="prog-track"><div class="prog-bar ' + cls + '"></div></div>' +
+      '<span class="prog-val">' + p.ast + '%</span></div>';
+  }).join('');
 }
 
 function renderSeguridad(s){
-  if(!document.getElementById('s-incidentes'))return;
   const d=s||{};
   const sum=k=>SECTORES.reduce((a,x)=>a+(x[k]||0),0);
   const avg=k=>Math.round(SECTORES.reduce((a,x)=>a+(x[k]||0),0)/SECTORES.length*10)/10;
   document.getElementById('s-incidentes').textContent=s?d.incTotal:sum('incTotal');
-  document.getElementById('s-frustrados').textContent=s?d.frustrados:sum('frustrados');
+  document.getElementById('s-frustrados').textContent=s?d.robosFrustrados:sum('robosFrustrados');
   document.getElementById('s-respuesta').textContent=s?d.tasaResp?d.tasaResp+' min':'—':avg('tasaResp')?avg('tasaResp').toFixed(1)+' min':'—';
   const franData=s?d.franjas:SECTORES[0].franjas.map((f,i)=>({...f,v:Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))}));
   document.getElementById('franja-chart').innerHTML=franData.map(f=>{
@@ -245,7 +267,6 @@ function renderSeguridad(s){
 }
 
 function renderOperaciones(s){
-  if(!document.getElementById('o-operativos'))return;
   const d=s||{};
   const sum=k=>SECTORES.reduce((a,x)=>a+(x[k]||0),0);
   document.getElementById('o-operativos').textContent=s?d.operativosCount:sum('operativosCount');
@@ -253,7 +274,6 @@ function renderOperaciones(s){
 }
 
 function renderPersonal(s,sup){
-  if(!document.getElementById('p-asist'))return;
   const d=s||{};
   const supsRaw=s?d.supervisores:SECTORES.flatMap(x=>x.supervisores.map(p=>({...p,n:x.sector.replace('Sector ','')+' '+p.n,sec:x.sector.replace('Sector ','')})));
   const avgAst=supsRaw.length?Math.round(supsRaw.reduce((a,p)=>a+p.ast,0)/supsRaw.length):0;
@@ -261,7 +281,7 @@ function renderPersonal(s,sup){
   document.getElementById('p-tard').textContent='—';
   document.getElementById('p-disc').textContent='—';
   document.getElementById('p-rot').textContent='—';
-  const allSups=sup?supsRaw.filter(p=>baseName(p.n)===baseName(sup.sup?.n)):supsRaw;
+  const allSups=sup?supsRaw.filter(p=>p.n.includes(sup.sup?.n)):supsRaw;
   document.getElementById('rank-asistencia').innerHTML=allSups.sort((a,b)=>b.ast-a.ast).slice(0,8).map(p=>{
     const cls=p.ast>=95?'verde':p.ast>=85?'amarillo':'rojo';
     const hl=sup?' style="background:var(--cpl);border-radius:var(--rmd);padding:4px 6px;"':'';
@@ -283,9 +303,8 @@ function renderPersonal(s,sup){
     options:{...chartDefaults(),scales:{y:{min:70,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
   const rendRaw=s?d.rendimiento:SECTORES.flatMap(x=>x.rendimiento.map(r=>({...r,sup:x.sector.replace('Sector ','')+' '+r.sup,sec:x.sector.replace('Sector ','')})));
-  const allRend=sup?rendRaw.filter(r=>baseName(r.sup)===baseName(sup.rend?.sup)):rendRaw;
+  const allRend=sup?rendRaw.filter(r=>r.sup.includes(sup.rend?.sup)):rendRaw;
   const tbl=document.getElementById('tbl-rendimiento');
-  if(!tbl)return;
   tbl.innerHTML = '<thead><tr>' +
     '<th>' + (s?'':'Sector ') + 'Supervisor</th><th class="num">Rutas %</th><th class="num">Reportes %</th>' +
     '<th class="num">Actitud</th><th class="num">Puntaje Total</th><th>Semáforo</th>' +
@@ -298,273 +317,47 @@ function renderPersonal(s,sup){
 }
 
 function renderCoordinacion(s){
-  if(!document.getElementById('c-coord'))return;
   const d=s||{};
   const sum=k=>SECTORES.reduce((a,x)=>a+(x[k]||0),0);
   document.getElementById('c-coord').textContent=s?d.coordVecinales:sum('coordVecinales');
   const comis=s?d.comisarias:[...new Set(SECTORES.flatMap(x=>x.comisarias))];
-  document.getElementById('comisarias-tags').innerHTML = comis.map(function(c){ return '<span class="coord-tag">' + c + '</span>'; }).join('');
-}
-
-function renderRanking(){
-  try {
-    // Tendencia mensual (chartTendencia)
-    destroyChart('tendencia');
-    var totalInc=0, datesOk=0;
-    var mesesData = {};
-    SECTORES.forEach(function(sec){
-      (sec.incidentesRaw||[]).forEach(function(fecha){
-        totalInc++;
-        if(!fecha)return;
-        var d=new Date(fecha);
-        if(isNaN(d))return;
-        datesOk++;
-        var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-        mesesData[key] = (mesesData[key]||0)+1;
-      });
-    });
-    var mesLabels=Object.keys(mesesData).sort();
-    console.log('renderRanking: SECTORES='+SECTORES.length+', totalInc='+totalInc+', datesOk='+datesOk+', mesLabels=', mesLabels);
-    if(mesLabels.length>0){
-      var mesNombres = mesLabels.map(function(k){
-        var p=k.split('-');
-        var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-        return meses[parseInt(p[1],10)-1]+' '+p[0];
-      });
-      charts['tendencia']=new Chart(document.getElementById('chartTendencia'),{
-        type:'line',
-        data:{labels:mesNombres,datasets:[{label:'Incidencias',data:mesLabels.map(function(s){return mesesData[s];}),
-          borderColor:DS.primary,backgroundColor:DS.primary+'33',fill:true,tension:0.3}]},
-        options:{...chartDefaults(),scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
-      });
-    }
-
-    // Rank bar (chartRankBar) - puntuación por sector
-    destroyChart('rankBar');
-    var rankData = SECTORES.map(function(sec){return sec.incDelictivas||0;});
-    var rankLabels = SECTORES.map(function(sec){return sec.sector||sec.id;});
-    charts['rankBar'] = new Chart(document.getElementById('chartRankBar'),{
-      type:'bar',
-      data:{labels:rankLabels,datasets:[{label:'Incidencias',data:rankData,
-        backgroundColor:SECTOR_COLORS.slice(0,rankData.length),borderRadius:4}]},
-      options:{...chartDefaults(),scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}}}}
-    });
-
-    // Semanas (chartSemanas) en seguridad
-    destroyChart('semanas');
-    if(mesLabels&&mesLabels.length>0){
-      charts['semanas']=new Chart(document.getElementById('chartSemanas'),{
-        type:'line',
-        data:{labels:mesNombres,datasets:[{label:'Incidencias',data:mesLabels.map(function(s){return mesesData[s];}),
-          borderColor:DS.secondary,backgroundColor:DS.secondary+'33',fill:true,tension:0.3}]},
-        options:{...chartDefaults(),scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}}}}
-      });
-    }
-
-    // Robos (chartRobos)
-    destroyChart('robos');
-    var robosLabels = SECTORES.map(function(sec){return sec.sector||sec.id;});
-    var robosData = SECTORES.map(function(sec){return sec.frustrados||0;});
-    charts['robos'] = new Chart(document.getElementById('chartRobos'),{
-      type:'bar',
-      data:{labels:robosLabels,datasets:[{label:'Robos Frustrados',data:robosData,
-        backgroundColor:DS.warning+'CC',borderRadius:4}]},
-      options:{...chartDefaults(),scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}}}}
-    });
-
-    // Rank global (chartRankGlobal)
-    destroyChart('rankGlobal');
-    charts['rankGlobal'] = new Chart(document.getElementById('chartRankGlobal'),{
-      type:'bar',
-      data:{labels:rankLabels,datasets:[{label:'Incidencias',data:rankData,
-        backgroundColor:SECTOR_COLORS.slice(0,rankData.length),borderRadius:4}]},
-      options:{...chartDefaults(),indexAxis:'y',scales:{x:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}}}}
-    });
-
-    // Radar (chartRadar)
-    destroyChart('radar');
-    var radarMetrics = ['incDelictivas','robosFrustrados','operativosCount','coordVecinales','capturas'];
-    charts['radar'] = new Chart(document.getElementById('chartRadar'),{
-      type:'radar',
-      data:{
-        labels:['Inc.Delictivas','Robos','Operativos','Coord.Vecinales','Capturas'],
-        datasets:SECTORES.slice(0,6).map(function(sec,i){
-          return {
-            label:sec.sector||sec.id,
-            data:radarMetrics.map(function(m){return sec[m]||0;}),
-            borderColor:SECTOR_COLORS[i],backgroundColor:SECTOR_COLORS[i]+'33',borderWidth:2
-          };
-        })
-      },
-      options:{...chartDefaults(),plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}
-    });
-
-    // Tabla ranking
-    var sorted = SECTORES.slice().sort(function(a,b){return (b.incDelictivas||0)-(a.incDelictivas||0);});
-    document.getElementById('tbody-ranking').innerHTML = sorted.map(function(sec,i){
-      var total = sec.incDelictivas||0;
-      var cls = total<=25?'verde':total<=35?'amarillo':'rojo';
-      return '<tr><td>'+(i+1)+'</td><td>'+sec.nombre+'</td><td>'+(sec.sector||sec.id)+'</td>'+
-        '<td class="num">'+(sec.incDelictivas||0)+'</td><td class="num">'+(sec.operativosCount||0)+'</td>'+
-        '<td class="num">'+(sec.supervisores?sec.supervisores.length:0)+'</td>'+
-        '<td class="num">'+(sec.coordVecinales||0)+'</td><td class="num">0</td>'+
-        '<td class="num"><strong>'+total+'</strong></td>'+
-        '<td><span class="status-badge '+cls+'"><span class="dot '+cls+'"></span>'+statusLabel(cls)[1]+'</span></td></tr>';
-    }).join('');
-
-    // Checklist semanal
-    document.getElementById('checklist-semanal').innerHTML = SECTORES.slice(0,5).map(function(sec){
-      var items = ['Reportes','Rondas','Coord. Vecinal','Incidencias','Capacitación'];
-      var pct = Math.round(60 + Math.random()*35);
-      var cls2 = pct>=90?'verde':pct>=75?'amarillo':'rojo';
-      return '<div class="prog-row"><span class="prog-name">'+(sec.sector||sec.id)+'</span>'+
-        '<div class="prog-track"><div class="prog-bar '+cls2+'" style="width:'+pct+'%"></div></div>'+
-        '<span class="prog-val">'+pct+'%</span></div>';
-    }).join('');
-  } catch(e){ console.warn('renderRanking error:',e.message); }
+  document.getElementById('comisarias-tags').innerHTML=comis.map(c=>'<span class="coord-tag">' + c + '</span>').join('');
 }
 
 function showPanel(id,el){
   document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  var p=document.getElementById('panel-'+id);
-  if(p)p.classList.add('active');
-  if(el)el.classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+  el.classList.add('active');
 }
 
-function normalizarSector(raw){
-  return String(raw||'').toLowerCase().trim().replace(/^sector\s*/,'').trim().toUpperCase();
-}
-
-function clasificarTurno(turnoRaw){
-  var tv=(turnoRaw||'').toUpperCase().trim();
-  if(tv.indexOf("MAÑANA")!==-1||tv.indexOf("M")!==-1) return "manana";
-  if(tv.indexOf("TARDE")!==-1||tv.indexOf("T")!==-1) return "tarde";
-  if(tv.indexOf("NOCHE")!==-1||tv.indexOf("N")!==-1) return "noche";
-  return null;
-}
-
-function clasificarFranja(turnoRaw){
-  var tv=(turnoRaw||'').toUpperCase().trim();
-  if(tv.indexOf("MAÑANA")!==-1||tv.indexOf("M")!==-1) return "06–12h";
-  if(tv.indexOf("TARDE")!==-1||tv.indexOf("T")!==-1) return "12–18h";
-  if(tv.indexOf("NOCHE")!==-1||tv.indexOf("N")!==-1) return "18–24h";
-  return "00–06h";
-}
-
-function clasificarTipo(tipoRaw){
-  var tl=(tipoRaw||'').toLowerCase();
-  if(tl.indexOf("robo frustrado")!==-1) return "robosFrustrados";
-  if(tl.indexOf("operativo")!==-1) return "operativosCount";
-  if(tl.indexOf("coordinacion")!==-1) return "coordVecinalesCount";
-  if(tl.indexOf("captura")!==-1) return "capturasCount";
-  if(tl.indexOf("patrullaje")!==-1) return "patrullajeCount";
-  return null;
-}
-
-function processIncidencias(incidencias, jefesConfig, turnoFilter, fStart, fEnd){
-  var sd={};
-  Object.keys(jefesConfig).forEach(function(id){
-    sd[id]={id,nombre:jefesConfig[id].nombre,sector:"Sector "+id,
-      initials:jefesConfig[id].initials,
-      incidentesRaw:[],comisariasSet:new Set(),
-      crimeTypes:{},franjas:{"00–06h":0,"06–12h":0,"12–18h":0,"18–24h":0},
-      responseTimes:[],robosFrustrados:0,operativosCount:0,
-      coordVecinalesCount:0,capturasCount:0,patrullajeCount:0};
-  });
-
-  var matched=0, unmatched=0;
-  incidencias.forEach(function(row){
-    var secId=normalizarSector(row.sector);
-    if(!sd[secId]){unmatched++;return;}
-    matched++;
-    var s=sd[secId];
-
-    if(fStart||fEnd){
-      var fd=row.fecha_apertura?new Date(row.fecha_apertura):null;
-      if(fd&&!isNaN(fd)){
-        if(fStart&&fd<new Date(fStart+'T00:00:00'))return;
-        if(fEnd&&fd>new Date(fEnd+'T23:59:59'))return;
-      }
-    }
-
-    if(turnoFilter&&clasificarTurno(row.turno)!==turnoFilter)return;
-
-    s.incidentesRaw.push(row.fecha_apertura);
-    var tipo=row.tipo||"Otros";
-    s.crimeTypes[tipo]=(s.crimeTypes[tipo]||0)+1;
-
-    var subT=clasificarTipo(tipo);
-    if(subT)s[subT]++;
-
-    if(row.cia)s.comisariasSet.add(String(row.cia).trim());
-
-    s.franjas[clasificarFranja(row.turno)]++;
-
-    var tVal=parseFloat(row.time_minimo);
-    if(!isNaN(tVal)&&tVal>0)s.responseTimes.push(tVal);
-  });
-
-  console.log('processIncidencias: total='+(matched+unmatched)+', matched='+matched+', unmatched='+unmatched+', sectores='+Object.keys(sd).join(','));
-  return Object.keys(sd).map(function(id){
-    var s=sd[id];
-    var incTotal=s.incidentesRaw.length;
-    var tasaResp=s.responseTimes.length>0
-      ?Math.round((s.responseTimes.reduce(function(a,b){return a+b;},0)/s.responseTimes.length)*10)/10:null;
-    var comisarias=s.comisariasSet.size>0?Array.from(s.comisariasSet):[];
-    var tdo={};
-    Object.keys(s.crimeTypes).sort(function(a,b){return s.crimeTypes[b]-s.crimeTypes[a];}).slice(0,5).forEach(function(k){tdo[k]=s.crimeTypes[k];});
-    if(Object.keys(tdo).length===0&&incTotal>0)tdo["Otros"]=incTotal;
-    var incDelictivas=incTotal-s.patrullajeCount-s.coordVecinalesCount;
-    return{
-      id,nombre:s.nombre,sector:s.sector,initials:s.initials,
-      incTotal,incDelictivas,tasaResp,comisarias,
-      franjas:[{l:"00–06h",v:s.franjas["00–06h"],c:"#003D6B"},{l:"06–12h",v:s.franjas["06–12h"],c:"#27AE60"},{l:"12–18h",v:s.franjas["12–18h"],c:"#F5A623"},{l:"18–24h",v:s.franjas["18–24h"],c:"#E03E3E"}],
-      tiposDelito:tdo,
-      frustrados:s.robosFrustrados,robosFrustrados:s.robosFrustrados,
-      operativosCount:s.operativosCount,
-      coordVecinales:s.coordVecinalesCount,
-      capturas:s.capturasCount,patrullajeCount:s.patrullajeCount,
-      supervisores:[],rendimiento:[]
-    };
-  });
-}
-
-function normalizeSecId(v){
-  return String(v||'').toLowerCase().replace("sector","").trim().toUpperCase();
-}
-function sortSectores(arr){
-  return arr.sort(function(a,b){
-    var am = (a.id||'').match(/^(\d+)([a-z])$/i);
-    var bm = (b.id||'').match(/^(\d+)([a-z])$/i);
-    if(am&&bm){
-      var an=parseInt(am[1],10),bn=parseInt(bm[1],10);
-      return an!==bn ? an-bn : am[2].localeCompare(bm[2]);
-    }
-    return String(a.id||'').localeCompare(String(b.id||''));
-  });
-}
-function buildSupervisores(sectores, supList){
-  var bySector={};
-  supList.forEach(function(s){
-    var sn=normalizeSecId(s.sector);
-    if(!bySector[sn])bySector[sn]=[];
-    bySector[sn].push(s);
+function buildSupervisores(sectores, supRows){
+  var supData={};
+  supRows.forEach(function(r){
+    if(!supData[r.sector])supData[r.sector]=[];
+    supData[r.sector].push(r);
   });
   sectores.forEach(function(sec){
-    var entries=bySector[normalizeSecId(sec.id)]||[];
-    if(entries.length===0)return;
+    var rows=supData[sec.id]||[];
+    if(rows.length===0)return;
+    var turnoMap={};
+    rows.forEach(function(r){
+      var t=(r.turno||'').toUpperCase();
+      var key=t.indexOf("M")!==-1?"M":t.indexOf("T")!==-1?"T":t.indexOf("N")!==-1?"N":"X";
+      if(!turnoMap[key])turnoMap[key]={names:{},count:0};
+      turnoMap[key].names[r.supervisor]=(turnoMap[key].names[r.supervisor]||0)+r.partes;
+      turnoMap[key].count++;
+    });
     var newSups=[];
     ["M","T","N"].forEach(function(tk){
-      var match=null;
-      for(var ei=0;ei<entries.length;ei++){
-        var et=entries[ei].turno||'';
-        if(et.indexOf(tk)!==-1){match=entries[ei];break;}
-      }
-      if(!match)return;
-      var partesAvg=Math.round((match.partes/match.count)*22);
+      var td=turnoMap[tk];
+      if(!td||Object.keys(td.names).length===0)return;
+      var bestName="",bestPartes=0;
+      Object.keys(td.names).forEach(function(nm){if(td.names[nm]>bestPartes){bestPartes=td.names[nm];bestName=nm;}});
+      if(!bestName)return;
+      var partesAvg=Math.round((bestPartes/td.count)*22);
       var ast=Math.min(100,Math.max(60,partesAvg));
-      newSups.push({n:match.supervisor+" ("+tk+")",ast:ast});
+      newSups.push({n:bestName+" ("+tk+")",ast:ast});
     });
     if(newSups.length>0){
       sec.supervisores=newSups;
@@ -578,10 +371,29 @@ function buildSupervisores(sectores, supList){
   });
 }
 
-function finishLoad(incidencias, jefesConfig, supRows, turnoFilter, fStart, fEnd){
-  SECTORES=processIncidencias(incidencias,jefesConfig,turnoFilter,fStart,fEnd);
-  sortSectores(SECTORES);
+function finishLoad(sectoresData, supRows, turnoFilter, fStart, fEnd){
+  SECTORES=sectoresData.map(s => ({
+    id: s.id,
+    nombre: s.nombre,
+    sector: s.sector_display,
+    initials: s.initials,
+    incTotal: s.incTotal,
+    tasaResp: parseFloat(s.tasaResp),
+    comisarias: s.comisarias || [],
+    franjas: s.franjas,
+    tiposDelito: s.tiposDelito || {},
+    frustrados: s.robosFrustrados,
+    robosFrustrados: s.robosFrustrados,
+    operativosCount: s.operativosCount,
+    coordVecinales: s.coordVecinales,
+    capturas: s.capturas,
+    patrullajeCount: s.patrullajeCount,
+    supervisores: [], // Will be filled by buildSupervisores
+    rendimiento: []   // Will be filled by buildSupervisores
+  }));
+
   buildSupervisores(SECTORES,supRows||[]);
+  computeThresholds();
   document.getElementById('loading-overlay').style.display='none';
   updateDash();
   lucide.createIcons();
@@ -589,59 +401,66 @@ function finishLoad(incidencias, jefesConfig, supRows, turnoFilter, fStart, fEnd
 
 function loadData(turnoFilter){
   document.getElementById('loading-overlay').style.display='flex';
-  google.script.run
-    .withSuccessHandler(async function(result){
-      if(result.error){
-        alert(result.error);
-        document.getElementById('loading-overlay').style.display='none';
-        return;
-      }
-      if(result.jefes&&result.jefes.length>0)console.log('Primer jefe:',JSON.stringify(result.jefes[0]));
-      (result.jefes || []).forEach(function(j){
-        var words = j.nombre.split(/\s+/).filter(function(w){return w.length>0;});
-        var ini = words.length>0 ? words[0][0].toUpperCase() : '';
-        if(words.length>1) ini += words[1][0].toUpperCase();
-        if(!ini) ini = j.sector;
-        CACHED_JEFES[j.sector] = {nombre: j.nombre, initials: ini};
-      });
-      CACHED_SUPERVISORS = result.supervisores || [];
-      try {
-        CACHED_INCIDENCIAS = await fetchIncidencias();
-      } catch(fetchErr) {
-        alert('Error al cargar incidencias desde Supabase: ' + (fetchErr.message||fetchErr));
-        document.getElementById('loading-overlay').style.display='none';
-        return;
-      }
-      if(CACHED_INCIDENCIAS.length>0)console.log('Primera incidencia:',JSON.stringify(CACHED_INCIDENCIAS[0]),'Total:',CACHED_INCIDENCIAS.length);
-      finishLoad(CACHED_INCIDENCIAS, CACHED_JEFES, CACHED_SUPERVISORS, turnoFilter,
-        document.getElementById('fechaInicio').value,
-        document.getElementById('fechaFin').value);
-    })
-    .withFailureHandler(function(err){
-      alert('Error al cargar datos: ' + (err.message || err));
-      document.getElementById('loading-overlay').style.display='none';
-    })
-    .getAllData();
+
+  var fStart = document.getElementById('fechaInicio').value;
+  var fEnd = document.getElementById('fechaFin').value;
+
+  var pDashboardData = supabaseClient.rpc('get_dashboard_sectors', {
+    p_fecha_inicio: fStart || null,
+    p_fecha_fin: fEnd || null,
+    p_turno_filter: turnoFilter || null
+  }).then(function(res){
+    if(res.error)throw new Error('Error Supabase RPC: '+res.error.message);
+    return res.data;
+  });
+
+  Promise.all([pDashboardData]).then(function(results){
+    var sectoresData=results[0];
+
+    google.script.run
+      .withSuccessHandler(function(supData){
+        if(supData&&!supData.error){
+          CACHED_SUPERVISORS=supData.supervisores||[];
+        }else{
+          console.warn('Supervisores:',supData?.error||'sin datos');
+          CACHED_SUPERVISORS=[];
+        }
+        finishLoad(sectoresData,CACHED_SUPERVISORS,turnoFilter,fStart,fEnd);
+      })
+      .withFailureHandler(function(err){
+        console.warn('Error GAS supervisores:',err);
+        CACHED_SUPERVISORS=[];
+        finishLoad(sectoresData,[],turnoFilter,fStart,fEnd);
+      })
+      .getSupervisoresData(fStart,fEnd);
+
+  }).catch(function(err){
+    alert(err.message||'Error al cargar datos');
+    document.getElementById('loading-overlay').style.display='none';
+  });
+}
+
+function onTurnoChange(){
+  var turno=document.getElementById('selTurno').value;
+  loadData(turno);
 }
 
 function onFechaChange(){
-  if(CACHED_INCIDENCIAS.length>0&&Object.keys(CACHED_JEFES).length>0){
-    SECTORES=processIncidencias(CACHED_INCIDENCIAS,CACHED_JEFES,'',
-      document.getElementById('fechaInicio').value,
-      document.getElementById('fechaFin').value);
-    sortSectores(SECTORES);
-    buildSupervisores(SECTORES,CACHED_SUPERVISORS);
-    updateDash();
-  }
+  loadData(document.getElementById('selTurno').value);
 }
 
 window.addEventListener('load',function(){
+  var today=new Date();
+  var firstDayPrevMonth=new Date(today.getFullYear(),today.getMonth()-1,1);
+  var lastDayPrevMonth=new Date(today.getFullYear(),today.getMonth(),0);
+  
   var fInicioInput=document.getElementById('fechaInicio');
   var fFinInput=document.getElementById('fechaFin');
 
-  if(!fInicioInput.value)fInicioInput.value='2026-01-01';
-  if(!fFinInput.value)fFinInput.value='2026-12-31';
+  if(!fInicioInput.value)fInicioInput.value=firstDayPrevMonth.toISOString().slice(0,10);
+  if(!fFinInput.value)fFinInput.value=lastDayPrevMonth.toISOString().slice(0,10);
 
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   loadData('');
 });
 </script>
