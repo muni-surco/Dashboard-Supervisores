@@ -1,3 +1,5 @@
+-- Requiere ejecutar primero mv_dashboard.sql (MV incidencias_diaria, incidencias_tipos_diaria)
+-- DROP FUNCTION si cambia la firma. Luego: NOTIFY pgrst, 'reload schema';
 CREATE OR REPLACE FUNCTION public.get_dashboard_sectors(
   p_fecha_inicio DATE DEFAULT NULL,
   p_fecha_fin DATE DEFAULT NULL,
@@ -23,63 +25,109 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
   RETURN QUERY
+  WITH filt AS (
+    SELECT
+      d.sector,
+      d.franja,
+      d.inc_total,
+      d.tasa_resp,
+      d.n_tasa,
+      d.comisarias,
+      d.robos_frustrados,
+      d.operativos,
+      d.coord_vecinales,
+      d.capturas,
+      d.patrullaje
+    FROM public.incidencias_diaria d
+    WHERE
+      (p_fecha_inicio IS NULL OR d.fecha >= p_fecha_inicio) AND
+      (p_fecha_fin IS NULL OR d.fecha <= p_fecha_fin) AND
+      (p_turno_filter IS NULL OR p_turno_filter = '' OR d.franja = (
+        CASE p_turno_filter
+          WHEN 'manana' THEN '0612'
+          WHEN 'tarde' THEN '1218'
+          WHEN 'noche' THEN '1824'
+          ELSE NULL
+        END))
+  ),
+  agg AS (
+    SELECT
+      d.sector,
+      SUM(d.inc_total)::BIGINT AS inc_total,
+      CASE WHEN SUM(d.n_tasa) = 0 THEN 0 ELSE SUM(d.tasa_resp * d.n_tasa) / SUM(d.n_tasa) END AS tasa_resp,
+      SUM(d.inc_total) FILTER (WHERE d.franja = '0006') AS f0006,
+      SUM(d.inc_total) FILTER (WHERE d.franja = '0612') AS f0612,
+      SUM(d.inc_total) FILTER (WHERE d.franja = '1218') AS f1218,
+      SUM(d.inc_total) FILTER (WHERE d.franja = '1824') AS f1824,
+      SUM(d.robos_frustrados)::BIGINT AS robos_frustrados,
+      SUM(d.operativos)::BIGINT AS operativos,
+      SUM(d.coord_vecinales)::BIGINT AS coord_vecinales,
+      SUM(d.capturas)::BIGINT AS capturas,
+      SUM(d.patrullaje)::BIGINT AS patrullaje
+    FROM filt d
+    GROUP BY d.sector
+  ),
+  comis AS (
+    SELECT
+      d.sector,
+      ARRAY_AGG(DISTINCT c ORDER BY c) FILTER (WHERE c IS NOT NULL AND c != '') AS comisarias
+    FROM filt d, LATERAL UNNEST(d.comisarias) AS c
+    GROUP BY d.sector
+  ),
+  t AS (
+    SELECT
+      d.sector,
+      d.tipo,
+      SUM(d.cnt) AS cnt
+    FROM public.incidencias_tipos_diaria d
+    WHERE
+      (p_fecha_inicio IS NULL OR d.fecha >= p_fecha_inicio) AND
+      (p_fecha_fin IS NULL OR d.fecha <= p_fecha_fin) AND
+      (p_turno_filter IS NULL OR p_turno_filter = '' OR d.franja = (
+        CASE p_turno_filter
+          WHEN 'manana' THEN '0612'
+          WHEN 'tarde' THEN '1218'
+          WHEN 'noche' THEN '1824'
+          ELSE NULL
+        END))
+    GROUP BY d.sector, d.tipo
+  ),
+  ranked AS (
+    SELECT sector, tipo, cnt,
+      ROW_NUMBER() OVER (PARTITION BY sector ORDER BY cnt DESC) AS rn
+    FROM t
+  ),
+  top5 AS (
+    SELECT sector,
+      JSONB_OBJECT_AGG(tipo, cnt) AS tipos
+    FROM ranked
+    WHERE rn <= 5
+    GROUP BY sector
+  )
   SELECT
     ja.sector AS id,
     ja.nombre,
     'Sector ' || ja.sector AS sector_display,
     UPPER(SUBSTRING(ja.nombre FROM 1 FOR 1) || COALESCE(SUBSTRING(ja.nombre FROM POSITION(' ' IN ja.nombre) + 1 FOR 1), '')) AS initials,
-    COUNT(i.codigo) AS incTotal,
-    COALESCE(AVG(i.time_minimo) FILTER (WHERE i.time_minimo > 0)::NUMERIC, 0) AS tasaResp,
-    COALESCE(ARRAY_AGG(DISTINCT i.cia) FILTER (WHERE i.cia IS NOT NULL AND i.cia != ''), '{}'::TEXT[]) AS comisarias,
-    
-    -- Franjas
+    COALESCE(a.inc_total, 0) AS incTotal,
+    COALESCE(a.tasa_resp, 0) AS tasaResp,
+    COALESCE(c.comisarias, '{}'::TEXT[]) AS comisarias,
     JSONB_BUILD_ARRAY(
-      JSONB_BUILD_OBJECT('l', '00–06h', 'v', COUNT(i.codigo) FILTER (WHERE public.clasificar_franja(i.turno) = '00–06h'), 'c', '#003D6B'),
-      JSONB_BUILD_OBJECT('l', '06–12h', 'v', COUNT(i.codigo) FILTER (WHERE public.clasificar_franja(i.turno) = '06–12h'), 'c', '#27AE60'),
-      JSONB_BUILD_OBJECT('l', '12–18h', 'v', COUNT(i.codigo) FILTER (WHERE public.clasificar_franja(i.turno) = '12–18h'), 'c', '#F5A623'),
-      JSONB_BUILD_OBJECT('l', '18–24h', 'v', COUNT(i.codigo) FILTER (WHERE public.clasificar_franja(i.turno) = '18–24h'), 'c', '#E03E3E')
+      JSONB_BUILD_OBJECT('l', '00–06h', 'v', COALESCE(a.f0006, 0), 'c', '#003D6B'),
+      JSONB_BUILD_OBJECT('l', '06–12h', 'v', COALESCE(a.f0612, 0), 'c', '#27AE60'),
+      JSONB_BUILD_OBJECT('l', '12–18h', 'v', COALESCE(a.f1218, 0), 'c', '#F5A623'),
+      JSONB_BUILD_OBJECT('l', '18–24h', 'v', COALESCE(a.f1824, 0), 'c', '#E03E3E')
     ) AS franjas,
-
-    -- Tipos Delito (top 5 aggregated into a JSONB object)
-    COALESCE((
-      SELECT JSONB_OBJECT_AGG(type_count.tipo, type_count.count_tipo)
-      FROM (
-        SELECT i_sub.tipo, COUNT(i_sub.codigo) AS count_tipo
-        FROM public.incidencias AS i_sub
-        WHERE i_sub.sector = ja.sector
-          AND (p_fecha_inicio IS NULL OR i_sub.fecha_apertura >= p_fecha_inicio)
-          AND (p_fecha_fin IS NULL OR i_sub.fecha_apertura <= p_fecha_fin)
-          AND (p_turno_filter IS NULL OR
-            (p_turno_filter = 'manana' AND (LOWER(i_sub.turno) LIKE '%mañana%' OR LOWER(i_sub.turno) LIKE '%m%')) OR
-            (p_turno_filter = 'tarde' AND (LOWER(i_sub.turno) LIKE '%tarde%' OR LOWER(i_sub.turno) LIKE '%t%')) OR
-            (p_turno_filter = 'noche' AND (LOWER(i_sub.turno) LIKE '%noche%' OR LOWER(i_sub.turno) LIKE '%n%')) OR
-            (LOWER(i_sub.turno) LIKE '%' || LOWER(p_turno_filter) || '%'))
-        GROUP BY i_sub.tipo
-        ORDER BY count_tipo DESC
-        LIMIT 5
-      ) AS type_count
-    ), '{}'::JSONB) AS tiposDelito,
-
-    COUNT(i.codigo) FILTER (WHERE LOWER(i.tipo) LIKE '%robo frustrado%') AS robosFrustrados,
-    COUNT(i.codigo) FILTER (WHERE LOWER(i.tipo) LIKE '%operativo%') AS operativosCount,
-    COUNT(i.codigo) FILTER (WHERE LOWER(i.tipo) LIKE '%coordinacion%') AS coordVecinales,
-    COUNT(i.codigo) FILTER (WHERE LOWER(i.tipo) LIKE '%captura%') AS capturas,
-    COUNT(i.codigo) FILTER (WHERE LOWER(i.tipo) LIKE '%patrullaje%') AS patrullajeCount
-  FROM
-    public.incidencias AS i
-  JOIN
-    public.jefes_area AS ja ON ja.sector = UPPER(i.sector)
-  WHERE
-    (p_fecha_inicio IS NULL OR i.fecha_apertura >= p_fecha_inicio) AND
-    (p_fecha_fin IS NULL OR i.fecha_apertura <= p_fecha_fin) AND
-    (p_turno_filter IS NULL OR
-      (p_turno_filter = 'manana' AND (LOWER(i.turno) LIKE '%mañana%' OR LOWER(i.turno) LIKE '%m%')) OR
-      (p_turno_filter = 'tarde' AND (LOWER(i.turno) LIKE '%tarde%' OR LOWER(i.turno) LIKE '%t%')) OR
-      (p_turno_filter = 'noche' AND (LOWER(i.turno) LIKE '%noche%' OR LOWER(i.turno) LIKE '%n%')) OR
-      (LOWER(i.turno) LIKE '%' || LOWER(p_turno_filter) || '%'))
-  GROUP BY
-    ja.sector, ja.nombre
-  ORDER BY
-    ja.sector;
+    COALESCE(t.tipos, '{}'::JSONB) AS tiposDelito,
+    COALESCE(a.robos_frustrados, 0) AS robosFrustrados,
+    COALESCE(a.operativos, 0) AS operativosCount,
+    COALESCE(a.coord_vecinales, 0) AS coordVecinales,
+    COALESCE(a.capturas, 0) AS capturas,
+    COALESCE(a.patrullaje, 0) AS patrullajeCount
+  FROM public.jefes_area ja
+  LEFT JOIN agg a ON a.sector = ja.sector
+  LEFT JOIN comis c ON c.sector = ja.sector
+  LEFT JOIN top5 t ON t.sector = ja.sector
+  ORDER BY ja.sector;
 END;
 $$;

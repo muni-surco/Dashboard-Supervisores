@@ -378,7 +378,7 @@ function finishLoad(sectoresData, supRows, turnoFilter, fStart, fEnd){
     sector: s.sector_display,
     initials: s.initials,
     incTotal: s.incTotal,
-    tasaResp: parseFloat(s.tasaResp),
+    tasaResp: Math.round(parseFloat(s.tasaResp)*10)/10,
     comisarias: s.comisarias || [],
     franjas: s.franjas,
     tiposDelito: s.tiposDelito || {},
