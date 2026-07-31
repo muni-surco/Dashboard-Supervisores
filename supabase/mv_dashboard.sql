@@ -31,7 +31,7 @@ GROUP BY 1, 2, 3;
 
 CREATE INDEX idx_diaria_sector_fecha ON public.incidencias_diaria (sector, fecha);
 
--- MV 2: Tipos de delito por (sector, fecha, franja, tipo) para top-5
+-- MV 2: Tipos de delito por (sector, fecha, franja, Detalle_Delito) para top-5
 CREATE MATERIALIZED VIEW public.incidencias_tipos_diaria AS
 SELECT
   CASE UPPER(i.sector) WHEN '9A' THEN '9' WHEN '9B' THEN '9' ELSE UPPER(i.sector) END AS sector,
@@ -42,10 +42,9 @@ SELECT
     WHEN LOWER(i.turno) LIKE '%noche%' OR LOWER(i.turno) LIKE '%n%' THEN '1824'
     ELSE '0006'
   END AS franja,
-  i.tipo,
+  COALESCE(NULLIF(BTRIM(i."Detalle_Delito"), ''), 'Sin detalle') AS detalle,
   COUNT(*) AS cnt
 FROM public.incidencias i
-WHERE i.tipo IS NOT NULL
 GROUP BY 1, 2, 3, 4;
 
 CREATE INDEX idx_tipos_sector_fecha ON public.incidencias_tipos_diaria (sector, fecha);

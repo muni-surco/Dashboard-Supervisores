@@ -77,7 +77,7 @@ BEGIN
   t AS (
     SELECT
       d.sector,
-      d.tipo,
+      d.detalle AS tipo,
       SUM(d.cnt) AS cnt
     FROM public.incidencias_tipos_diaria d
     WHERE
@@ -90,7 +90,7 @@ BEGIN
           WHEN 'noche' THEN '1824'
           ELSE NULL
         END))
-    GROUP BY d.sector, d.tipo
+    GROUP BY d.sector, d.detalle
   ),
   ranked AS (
     SELECT sector, tipo, cnt,
@@ -113,10 +113,9 @@ BEGIN
     COALESCE(a.tasa_resp, 0) AS tasaResp,
     COALESCE(c.comisarias, '{}'::TEXT[]) AS comisarias,
     JSONB_BUILD_ARRAY(
-      JSONB_BUILD_OBJECT('l', '00–06h', 'v', COALESCE(a.f0006, 0), 'c', '#003D6B'),
-      JSONB_BUILD_OBJECT('l', '06–12h', 'v', COALESCE(a.f0612, 0), 'c', '#27AE60'),
-      JSONB_BUILD_OBJECT('l', '12–18h', 'v', COALESCE(a.f1218, 0), 'c', '#F5A623'),
-      JSONB_BUILD_OBJECT('l', '18–24h', 'v', COALESCE(a.f1824, 0), 'c', '#E03E3E')
+      JSONB_BUILD_OBJECT('l', 'Mañana', 'v', COALESCE(a.f0612, 0), 'c', '#27AE60'),
+      JSONB_BUILD_OBJECT('l', 'Tarde', 'v', COALESCE(a.f1218, 0), 'c', '#F5A623'),
+      JSONB_BUILD_OBJECT('l', 'Noche', 'v', COALESCE(a.f1824, 0), 'c', '#E03E3E')
     ) AS franjas,
     COALESCE(t.tipos, '{}'::JSONB) AS tiposDelito,
     COALESCE(a.robos_frustrados, 0) AS robosFrustrados,

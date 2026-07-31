@@ -33,27 +33,15 @@
     </div>
   </div>
 
-  <div class="sb-sub">Evaluación</div>
+  <div class="sb-sub">Módulos</div>
 
-  <div class="nav-item active" onclick="showPanel('resumen',this)">
+  <div class="nav-item active" onclick="showPanel('dashboard',this)">
     <i data-lucide="layout-dashboard" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Resumen General
-  </div>
-  <div class="nav-item" onclick="showPanel('seguridad',this)">
-    <i data-lucide="shield" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Seguridad Ciudadana
-  </div>
-  <div class="nav-item" onclick="showPanel('operaciones',this)">
-    <i data-lucide="clock" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Desempeño Operativo
+    Dashboard
   </div>
   <div class="nav-item" onclick="showPanel('personal',this)">
     <i data-lucide="users" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
     Gestión de Personal
-  </div>
-  <div class="nav-item" onclick="showPanel('coordinacion',this)">
-    <i data-lucide="handshake" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Coordinación Vecinal
   </div>
 </aside>
 
@@ -82,63 +70,45 @@
       <span>al</span>
       <input type="date" id="fechaFin" class="tb-date" onchange="onFechaChange()">
     </div>
+    <button type="button" class="tb-btn" onclick="clearFilters()">
+      <i data-lucide="filter-x" style="width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none"></i>
+      Limpiar filtros
+    </button>
     <div class="badge-period" id="badgePeriod">Abril 2025</div>
   </div>
 
   <!-- CONTENT -->
   <div class="content">
 
-    <!-- ━━━━ RESUMEN ━━━━ -->
-    <div class="section-panel active" id="panel-resumen">
+    <!-- ━━━━ DASHBOARD CONSOLIDADO ━━━━ -->
+    <div class="section-panel active" id="panel-dashboard">
       <div id="sel-info-box"></div>
       <div id="sup-info-box"></div>
       <div class="kpi-row" id="kpi-row"></div>
-      <div class="grid-2">
+
+      <div class="grid-2 mb14">
         <div class="card">
           <div class="card-title">Delitos por Tipo</div>
-          <div class="chart-wrap" style="height:200px;">
+          <div class="chart-wrap" style="height:260px;">
             <canvas id="chartDelitos"></canvas>
           </div>
         </div>
         <div class="card">
-          <div class="card-title">Asistencia del Personal</div>
-          <div id="asistencia-prog" class="prog-wrap"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ━━━━ SEGURIDAD ━━━━ -->
-    <div class="section-panel" id="panel-seguridad">
-      <div class="section-header">
-        <h2>Seguridad Ciudadana</h2>
-        <p>Incidencias delictivas, robos frustrados y nivel de inseguridad</p>
-      </div>
-      <div class="grid-2 mb14">
-        <div class="mm"><div class="ml">Incidencias Delictivas</div><div class="mv" id="s-incidentes">—</div><div class="ms">este mes</div></div>
-        <div class="mm"><div class="ml">Robos frustrados</div><div class="mv" id="s-frustrados">—</div><div class="ms">este mes</div></div>
-        <div class="mm"><div class="ml">Tasa de respuesta</div><div class="mv" id="s-respuesta">—</div><div class="ms">minutos prom.</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Delitos por Franja Horaria</div>
+          <div class="card-title">Delitos por Turno</div>
           <div id="franja-chart"></div>
         </div>
-        <div class="card">
-          <div class="card-title">Tipos de Delito</div>
-          <div class="chart-wrap" style="height:240px;"><canvas id="chartTiposDelito"></canvas></div>
-        </div>
       </div>
-    </div>
 
-    <!-- ━━━━ OPERACIONES ━━━━ -->
-    <div class="section-panel" id="panel-operaciones">
-      <div class="section-header">
-        <h2>Desempeño Operativo</h2>
-        <p>Operativos realizados y capturas efectuadas</p>
-      </div>
-      <div class="grid-2 mb14">
-        <div class="mm"><div class="ml">Operativos realizados</div><div class="mv" id="o-operativos">—</div><div class="ms">este mes</div></div>
-        <div class="mm"><div class="ml">Capturas efectuadas</div><div class="mv" id="o-capturas">—</div><div class="ms">retenciones documentadas</div></div>
+      <div class="grid-2">
+        <div class="mm">
+          <div class="ml">Tasa de respuesta</div>
+          <div class="mv" id="s-respuesta">—</div>
+          <div class="ms">minutos promedio</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Comisarías Involucradas</div>
+          <div id="comisarias-tags"></div>
+        </div>
       </div>
     </div>
 
@@ -146,10 +116,9 @@
     <div class="section-panel" id="panel-personal">
       <div class="section-header">
         <h2>Gestión del Personal</h2>
-        <p>Asistencia, disciplina, rendimiento por supervisor y rotación</p>
+        <p>Faltas y asistencias — se ampliará con más datos</p>
       </div>
-      <div id="sup-info-box"></div>
-      <div class="grid-2 mb14">
+      <div class="grid-4 mb14">
         <div class="mm"><div class="ml">Asistencia general</div><div class="mv" id="p-asist">—</div><div class="ms">% mensual</div></div>
         <div class="mm"><div class="ml">Índice de tardanzas</div><div class="mv" id="p-tard">—</div><div class="ms">% por turno</div></div>
         <div class="mm"><div class="ml">Incidencias discipl.</div><div class="mv" id="p-disc">—</div><div class="ms">llamadas / faltas</div></div>
@@ -170,21 +139,6 @@
         <div style="overflow-x:auto;">
           <table class="tbl" id="tbl-rendimiento"></table>
         </div>
-      </div>
-    </div>
-
-    <!-- ━━━━ COORDINACIÓN ━━━━ -->
-    <div class="section-panel" id="panel-coordinacion">
-      <div class="section-header">
-        <h2>Coordinación Vecinal y Patrullaje</h2>
-        <p>Coordinaciones con la comunidad, comisarías y patrullaje integrado</p>
-      </div>
-      <div class="grid-2 mb14">
-        <div class="mm"><div class="ml">Coordinaciones Vecinales</div><div class="mv" id="c-coord">—</div><div class="ms">reuniones / mes</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Comisarías Involucradas</div>
-        <div id="comisarias-tags"></div>
       </div>
     </div>
 

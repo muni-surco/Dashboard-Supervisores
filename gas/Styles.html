@@ -160,6 +160,22 @@ body {
   letter-spacing: .3px;
 }
 
+.tb-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--csl);
+  border: 1px solid var(--csd);
+  color: var(--csd);
+  border-radius: var(--rmd);
+  padding: 7px 12px;
+  font-size: var(--tsm);
+  font-family: var(--font);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+}
+.tb-btn:hover { background: var(--csd); color: #fff; }
+
 /* ── CONTENT ── */
 .content { padding: var(--s5); flex: 1; }
 .section-panel { display: none; }
