@@ -77,7 +77,7 @@ BEGIN
   t AS (
     SELECT
       d.sector,
-      d.detalle AS tipo,
+      CASE WHEN d.subtipo = '' THEN d.tipo ELSE d.tipo || ' - ' || d.subtipo END AS tipo,
       SUM(d.cnt) AS cnt
     FROM public.incidencias_tipos_diaria d
     WHERE
@@ -90,18 +90,18 @@ BEGIN
           WHEN 'noche' THEN '1824'
           ELSE NULL
         END))
-    GROUP BY d.sector, d.detalle
+    GROUP BY d.sector, d.tipo, d.subtipo
   ),
   ranked AS (
     SELECT sector, tipo, cnt,
       ROW_NUMBER() OVER (PARTITION BY sector ORDER BY cnt DESC) AS rn
     FROM t
   ),
-  top5 AS (
+  top10 AS (
     SELECT sector,
       JSONB_OBJECT_AGG(tipo, cnt) AS tipos
     FROM ranked
-    WHERE rn <= 5
+    WHERE rn <= 10
     GROUP BY sector
   )
   SELECT
@@ -126,7 +126,7 @@ BEGIN
   FROM public.jefes_area ja
   LEFT JOIN agg a ON a.sector = ja.sector
   LEFT JOIN comis c ON c.sector = ja.sector
-  LEFT JOIN top5 t ON t.sector = ja.sector
+  LEFT JOIN top10 t ON t.sector = ja.sector
   ORDER BY ja.sector;
 END;
 $$;
