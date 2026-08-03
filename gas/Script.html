@@ -12,6 +12,9 @@ const DS = {
 
 let SECTORES = [];
 let CACHED_SUPERVISORS = [];
+let MAPA_PUNTOS = [];
+let mapInstance = null;
+let markerLayer = null;
 
 function kpiVal(d,k){ return k.val?k.val(d):d[k.key]; }
 
@@ -160,6 +163,7 @@ function updateDash(){
   renderSupInfo(sup);
   renderKPIs(s);
   renderDashboard(s);
+  renderMap(s);
   renderPersonal(s,sup);
 }
 
@@ -242,6 +246,26 @@ function renderDashboard(s){
     options:{...chartDefaults(),plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:function(ctx){return formatNum(ctx.parsed);}}}}}
   });
 
+  destroyChart('subclas');
+  const subData=s?s.subclas:(()=>{
+    const agg={};
+    SECTORES.forEach(function(x){
+      Object.keys(x.subclas).forEach(function(k){agg[k]=(agg[k]||0)+x.subclas[k];});
+    });
+    return agg;
+  })();
+  const subEntries=Object.keys(subData).map(k=>[k,subData[k]])
+    .sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  charts['subclas']=new Chart(document.getElementById('chartSubclas'),{
+    type:'bar',
+    data:{labels:subEntries.map(function(e,i){return (i+1)+'. '+e[0]+' — '+formatNum(e[1]);}),
+      datasets:[{data:subEntries.map(function(e){return e[1];}),
+        backgroundColor:DS.primary,borderRadius:6}]},
+    options:{...chartDefaults(),indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return formatNum(ctx.parsed.x);}}}},
+      scales:{x:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:11}},grid:{display:false}}}}
+  });
+
   const franData=s?d.franjas:SECTORES[0].franjas.map((f,i)=>({...f,v:Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))}));
   document.getElementById('franja-chart').innerHTML=franData.map(f=>{
     const maxVal=Math.max(...franData.map(fd=>fd.v))||1;
@@ -253,6 +277,38 @@ function renderDashboard(s){
 
   const comis=s?d.comisarias:[...new Set(SECTORES.flatMap(x=>x.comisarias))];
   document.getElementById('comisarias-tags').innerHTML=comis.map(c=>'<span class="coord-tag">' + c + '</span>').join('');
+}
+
+function hashColor(key,palette){
+  var h=0;
+  for(var i=0;i<String(key).length;i++){ h=(h*31+String(key).charCodeAt(i))>>>0; }
+  return palette[h%palette.length];
+}
+
+function renderMap(s){
+  const el=document.getElementById('mapa-ubicaciones');
+  if(!el)return;
+  if(!window.L){ el.innerHTML='<div class="ml" style="padding:12px;">Cargando mapa…</div>'; return; }
+  const pts=s?MAPA_PUNTOS.filter(p=>p.sector===s.id):MAPA_PUNTOS;
+  if(!mapInstance){
+    mapInstance=L.map(el,{scrollWheelZoom:false}).setView([-12.1389,-77.0227],13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(mapInstance);
+    markerLayer=L.layerGroup().addTo(mapInstance);
+  }
+  markerLayer.clearLayers();
+  if(!pts.length){
+    mapInstance.setView([-12.1389,-77.0227],13);
+    return;
+  }
+  const colorMap={};
+  pts.forEach(function(p){ if(!colorMap[p.tipo])colorMap[p.tipo]=hashColor(p.tipo,SECTOR_COLORS); });
+  pts.forEach(function(p){
+    const color=colorMap[p.tipo];
+    L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:'<div class="punto-delito" style="border-color:'+color+'">🚨</div>',iconSize:[26,26],iconAnchor:[13,13],tooltipAnchor:[0,-14]})})
+      .bindTooltip(p.tipo,{direction:'top'})
+      .addTo(markerLayer);
+  });
+  mapInstance.fitBounds(L.latLngBounds(pts.map(p=>[p.lat,p.lng])),{padding:[20,20]});
 }
 
 function renderPersonal(s,sup){
@@ -303,6 +359,7 @@ function showPanel(id,el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   el.classList.add('active');
+  if(id==='dashboard'&&mapInstance)mapInstance.invalidateSize();
 }
 
 function buildSupervisores(sectores, supRows){
@@ -345,7 +402,7 @@ function buildSupervisores(sectores, supRows){
   });
 }
 
-function finishLoad(sectoresData, supRows, turnoFilter, fStart, fEnd){
+function finishLoad(sectoresData, supRows, turnoFilter, fStart, fEnd, ubicaciones){
   SECTORES=sectoresData.map(s => ({
     id: s.id,
     nombre: s.nombre,
@@ -356,6 +413,7 @@ function finishLoad(sectoresData, supRows, turnoFilter, fStart, fEnd){
     comisarias: s.comisarias || [],
     franjas: s.franjas,
     tiposDelito: s.tiposDelito || {},
+    subclas: s.subclas || {},
     frustrados: s.robosFrustrados,
     robosFrustrados: s.robosFrustrados,
     operativosCount: s.operativosCount,
@@ -368,6 +426,7 @@ function finishLoad(sectoresData, supRows, turnoFilter, fStart, fEnd){
 
   buildSupervisores(SECTORES,supRows||[]);
   computeThresholds();
+  MAPA_PUNTOS = ubicaciones || [];
   document.getElementById('loading-overlay').style.display='none';
   updateDash();
   lucide.createIcons();
@@ -388,8 +447,17 @@ function loadData(turnoFilter){
     return res.data;
   });
 
-  Promise.all([pDashboardData]).then(function(results){
+  var pUbicaciones = supabaseClient.rpc('get_delitos_ubicaciones', {
+    p_fecha_inicio: fStart || null,
+    p_fecha_fin: fEnd || null,
+    p_turno_filter: turnoFilter || null
+  }).then(function(res){
+    return res.error ? [] : (res.data || []);
+  });
+
+  Promise.all([pDashboardData, pUbicaciones]).then(function(results){
     var sectoresData=results[0];
+    var ubicaciones=results[1];
 
     google.script.run
       .withSuccessHandler(function(supData){
@@ -399,12 +467,12 @@ function loadData(turnoFilter){
           console.warn('Supervisores:',supData?.error||'sin datos');
           CACHED_SUPERVISORS=[];
         }
-        finishLoad(sectoresData,CACHED_SUPERVISORS,turnoFilter,fStart,fEnd);
+        finishLoad(sectoresData,CACHED_SUPERVISORS,turnoFilter,fStart,fEnd,ubicaciones);
       })
       .withFailureHandler(function(err){
         console.warn('Error GAS supervisores:',err);
         CACHED_SUPERVISORS=[];
-        finishLoad(sectoresData,[],turnoFilter,fStart,fEnd);
+        finishLoad(sectoresData,[],turnoFilter,fStart,fEnd,ubicaciones);
       })
       .getSupervisoresData(fStart,fEnd);
 

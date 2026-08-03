@@ -1,5 +1,6 @@
--- Requiere ejecutar primero mv_dashboard.sql (MV incidencias_diaria, incidencias_tipos_diaria)
--- DROP FUNCTION si cambia la firma. Luego: NOTIFY pgrst, 'reload schema';
+-- Requiere ejecutar primero mv_dashboard.sql (MV incidencias_diaria, incidencias_tipos_diaria, incidencias_subclas_diaria)
+-- La firma cambió (nueva columna "subclas") → requiere DROP FUNCTION. Luego: NOTIFY pgrst, 'reload schema';
+DROP FUNCTION IF EXISTS public.get_dashboard_sectors(date,date,text);
 CREATE OR REPLACE FUNCTION public.get_dashboard_sectors(
   p_fecha_inicio DATE DEFAULT NULL,
   p_fecha_fin DATE DEFAULT NULL,
@@ -15,6 +16,7 @@ RETURNS TABLE (
   "comisarias" TEXT[],
   "franjas" JSONB,
   "tiposDelito" JSONB,
+  "subclas" JSONB,
   "robosFrustrados" BIGINT,
   "operativosCount" BIGINT,
   "coordVecinales" BIGINT,
@@ -103,6 +105,36 @@ BEGIN
     FROM ranked
     WHERE rn <= 10
     GROUP BY sector
+  ),
+  ts AS (
+    SELECT
+      d.sector,
+      d.tipo,
+      SUM(d.cnt) AS cnt
+    FROM public.incidencias_subclas_diaria d
+    WHERE
+      (p_fecha_inicio IS NULL OR d.fecha >= p_fecha_inicio) AND
+      (p_fecha_fin IS NULL OR d.fecha <= p_fecha_fin) AND
+      (p_turno_filter IS NULL OR p_turno_filter = '' OR d.franja = (
+        CASE p_turno_filter
+          WHEN 'manana' THEN '0612'
+          WHEN 'tarde' THEN '1218'
+          WHEN 'noche' THEN '1824'
+          ELSE NULL
+        END))
+    GROUP BY d.sector, d.tipo
+  ),
+  ranked_sub AS (
+    SELECT ts.sector, ts.tipo, ts.cnt,
+      ROW_NUMBER() OVER (PARTITION BY ts.sector ORDER BY ts.cnt DESC) AS rn
+    FROM ts
+  ),
+  top10_sub AS (
+    SELECT ranked_sub.sector,
+      JSONB_OBJECT_AGG(ranked_sub.tipo, ranked_sub.cnt) AS subclas
+    FROM ranked_sub
+    WHERE ranked_sub.rn <= 10
+    GROUP BY ranked_sub.sector
   )
   SELECT
     ja.sector AS id,
@@ -118,6 +150,7 @@ BEGIN
       JSONB_BUILD_OBJECT('l', 'Noche', 'v', COALESCE(a.f1824, 0), 'c', '#E03E3E')
     ) AS franjas,
     COALESCE(t.tipos, '{}'::JSONB) AS tiposDelito,
+    COALESCE(t2.subclas, '{}'::JSONB) AS subclas,
     COALESCE(a.robos_frustrados, 0) AS robosFrustrados,
     COALESCE(a.operativos, 0) AS operativosCount,
     COALESCE(a.coord_vecinales, 0) AS coordVecinales,
@@ -127,6 +160,7 @@ BEGIN
   LEFT JOIN agg a ON a.sector = ja.sector
   LEFT JOIN comis c ON c.sector = ja.sector
   LEFT JOIN top10 t ON t.sector = ja.sector
+  LEFT JOIN top10_sub t2 ON t2.sector = ja.sector
   ORDER BY ja.sector;
 END;
 $$;

@@ -50,6 +50,31 @@ GROUP BY 1, 2, 3, 4, 5;
 
 CREATE INDEX idx_tipos_sector_fecha ON public.incidencias_tipos_diaria (sector, fecha);
 
+-- MV 3: Desglose para el gráfico "Tipo de Delitos"
+-- Solo registros con sub_clasificacion = 'Delitos'; agrupa por tipo + subtipo
+DROP MATERIALIZED VIEW IF EXISTS public.incidencias_subclas_diaria;
+
+CREATE MATERIALIZED VIEW public.incidencias_subclas_diaria AS
+SELECT
+  CASE UPPER(i.sector) WHEN '9A' THEN '9' WHEN '9B' THEN '9' ELSE UPPER(i.sector) END AS sector,
+  i.fecha_apertura AS fecha,
+  CASE
+    WHEN LOWER(i.turno) LIKE '%mañana%' OR LOWER(i.turno) LIKE '%m%' THEN '0612'
+    WHEN LOWER(i.turno) LIKE '%tarde%' OR LOWER(i.turno) LIKE '%t%' THEN '1218'
+    WHEN LOWER(i.turno) LIKE '%noche%' OR LOWER(i.turno) LIKE '%n%' THEN '1824'
+    ELSE '0006'
+  END AS franja,
+  CASE
+    WHEN BTRIM(i.subtipo) = '' THEN COALESCE(NULLIF(BTRIM(i.tipo), ''), 'Sin tipo')
+    ELSE COALESCE(NULLIF(BTRIM(i.tipo), ''), 'Sin tipo') || ' - ' || BTRIM(i.subtipo)
+  END AS tipo,
+  COUNT(*) AS cnt
+FROM public.incidencias i
+WHERE LOWER(BTRIM(i.sub_clasificacion)) = 'delitos'
+GROUP BY 1, 2, 3, 4;
+
+CREATE INDEX idx_subclas_sector_fecha ON public.incidencias_subclas_diaria (sector, fecha);
+
 -- Función de refresco: SELECT public.refresh_dashboard_mvs();
 CREATE OR REPLACE FUNCTION public.refresh_dashboard_mvs()
 RETURNS void
@@ -58,5 +83,6 @@ AS $$
 BEGIN
   REFRESH MATERIALIZED VIEW public.incidencias_diaria;
   REFRESH MATERIALIZED VIEW public.incidencias_tipos_diaria;
+  REFRESH MATERIALIZED VIEW public.incidencias_subclas_diaria;
 END;
 $$;

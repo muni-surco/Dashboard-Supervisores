@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <?!= include('Styles'); ?>
@@ -88,7 +90,7 @@
 
       <div class="grid-2 mb14" style="grid-template-columns:3fr 2fr;">
         <div class="card">
-          <div class="card-title">Delitos por Tipo</div>
+          <div class="card-title">Incidencias</div>
           <div class="chart-wrap" style="height:260px;">
             <canvas id="chartDelitos"></canvas>
           </div>
@@ -96,6 +98,19 @@
         <div class="card">
           <div class="card-title">Delitos por Turno</div>
           <div id="franja-chart"></div>
+        </div>
+      </div>
+
+      <div class="grid-2 mb14">
+        <div class="card">
+          <div class="card-title">Tipo de Delitos</div>
+          <div class="chart-wrap" style="height:300px;">
+            <canvas id="chartSubclas"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mapa de Ubicaciones — Tipo de Delitos</div>
+          <div id="mapa-ubicaciones" class="mapa" style="height:300px;"></div>
         </div>
       </div>
 
