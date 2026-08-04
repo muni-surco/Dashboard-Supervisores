@@ -14,13 +14,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <?!= include('Styles'); ?>
 </head>
-<body>
+<body class="sb-collapsed">
 
 <!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loading-overlay">
   <div class="spinner"></div>
   <div class="loading-text">Cargando Dashboard C4...</div>
-  <div class="loading-sub">Cargando datos reales desde Supabase y Google Sheets</div>
+  <div class="loading-sub">Cargando datos</div>
 </div>
 
 <!-- SIDEBAR -->
@@ -33,17 +33,20 @@
         <p>Seguridad Ciudadana</p>
       </div>
     </div>
+    <button type="button" id="btn-toggle-sb" class="sb-toggle" onclick="toggleSidebar()" title="Plegar menú">
+      <i data-lucide="chevrons-right" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    </button>
   </div>
 
   <div class="sb-sub">Módulos</div>
 
   <div class="nav-item active" onclick="showPanel('dashboard',this)">
     <i data-lucide="layout-dashboard" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Dashboard
+    <span class="nav-label">Dashboard</span>
   </div>
   <div class="nav-item" onclick="showPanel('personal',this)">
     <i data-lucide="users" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    Gestión de Personal
+    <span class="nav-label">Gestión de Personal</span>
   </div>
 </aside>
 

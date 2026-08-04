@@ -72,7 +72,19 @@ body {
 .sb-head {
   padding: var(--s4) var(--s3) var(--s3);
   border-bottom: 1px solid rgba(255,255,255,.08);
+  position: relative;
 }
+.sb-toggle {
+  position: absolute; top: var(--s3); right: var(--s2);
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  border: none; cursor: pointer;
+  color: rgba(255,255,255,.6);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.sb-toggle:hover { background: rgba(255,255,255,.18); color: #fff; }
 .sb-logo { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s1); }
 .sb-escudo {
   width: 38px; height: 38px;
@@ -110,6 +122,18 @@ body {
 
 /* ── MAIN ── */
 .main { margin-left: var(--sb); flex: 1; display: flex; flex-direction: column; }
+
+/* ── SIDEBAR PLEGABLE ── */
+.sb { transition: width .2s ease; overflow-x: hidden; }
+.main { transition: margin-left .2s ease; }
+body.sb-collapsed { --sb: 64px; }
+body.sb-collapsed .sb-name,
+body.sb-collapsed .sb-sub { display: none; }
+body.sb-collapsed .sb-logo { justify-content: center; }
+body.sb-collapsed .sb-head { padding: var(--s3) var(--s1) var(--s2); }
+body.sb-collapsed .sb-toggle { position: static; margin: 10px auto 0; }
+body.sb-collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; border-left-width: 0; }
+body.sb-collapsed .nav-label { display: none; }
 
 /* ── TOPBAR ── */
 .topbar {

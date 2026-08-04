@@ -15,6 +15,8 @@ let CACHED_SUPERVISORS = [];
 let MAPA_PUNTOS = [];
 let mapInstance = null;
 let markerLayer = null;
+let TIPO_SELECCIONADO = null;
+let SUBCLAS_ENTRIES = [];
 
 function kpiVal(d,k){ return k.val?k.val(d):d[k.key]; }
 
@@ -256,12 +258,15 @@ function renderDashboard(s){
   })();
   const subEntries=Object.keys(subData).map(k=>[k,subData[k]])
     .sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  SUBCLAS_ENTRIES=subEntries;
+  if(TIPO_SELECCIONADO&&subEntries.findIndex(e=>e[0]===TIPO_SELECCIONADO)===-1)TIPO_SELECCIONADO=null;
+  const selIdx=TIPO_SELECCIONADO?subEntries.findIndex(e=>e[0]===TIPO_SELECCIONADO):-1;
   charts['subclas']=new Chart(document.getElementById('chartSubclas'),{
     type:'bar',
     data:{labels:subEntries.map(function(e,i){return (i+1)+'. '+e[0]+' — '+formatNum(e[1]);}),
       datasets:[{data:subEntries.map(function(e){return e[1];}),
-        backgroundColor:DS.primary,borderRadius:6}]},
-    options:{...chartDefaults(),indexAxis:'y',
+        backgroundColor:subEntries.map(function(e,i){return i===selIdx?DS.accent:DS.primary;}),borderRadius:6}]},
+    options:{...chartDefaults(),indexAxis:'y',onClick:onSubclasClick,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return formatNum(ctx.parsed.x);}}}},
       scales:{x:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.05)'}},y:{ticks:{font:{size:11}},grid:{display:false}}}}
   });
@@ -285,11 +290,49 @@ function hashColor(key,palette){
   return palette[h%palette.length];
 }
 
+function tipoIcono(t){
+  const s=String(t||'').toUpperCase();
+  if(s.indexOf('PERSONA')!==-1)return 'user';
+  if(s.indexOf('VEHIC')!==-1||s.indexOf('AUTOPART')!==-1)return 'car';
+  if(s.indexOf('ESTABLECIMIENTO')!==-1||s.indexOf('COMERCIO')!==-1||s.indexOf('LOCAL')!==-1)return 'store';
+  if(s.indexOf('ESTAFA')!==-1)return 'badge-dollar';
+  return 'siren';
+}
+
+const ICONO_SVG = {};
+function iconoSvg(name,size){
+  if(ICONO_SVG[name])return ICONO_SVG[name];
+  const tmp=document.createElement('div');
+  tmp.style.cssText='position:absolute;left:-9999px;width:0;height:0;overflow:hidden;';
+  tmp.innerHTML='<i data-lucide="'+name+'" style="width:'+size+'px;height:'+size+'px"></i>';
+  document.body.appendChild(tmp);
+  lucide.createIcons();
+  const svg=tmp.querySelector('svg');
+  if(svg){ svg.setAttribute('width',size); svg.setAttribute('height',size); }
+  ICONO_SVG[name]=tmp.innerHTML;
+  document.body.removeChild(tmp);
+  return ICONO_SVG[name];
+}
+
+function onSubclasClick(evt, item){
+  if(!item||!item.length)return;
+  const idx=item[0].index;
+  const tipo=SUBCLAS_ENTRIES[idx][0];
+  TIPO_SELECCIONADO = (TIPO_SELECCIONADO===tipo)?null:tipo;
+  const ch=charts['subclas'];
+  if(ch){
+    const selIdx=TIPO_SELECCIONADO?SUBCLAS_ENTRIES.findIndex(e=>e[0]===TIPO_SELECCIONADO):-1;
+    ch.data.datasets[0].backgroundColor=SUBCLAS_ENTRIES.map(function(e,i){return i===selIdx?DS.accent:DS.primary;});
+    ch.update();
+  }
+  renderMap(getSectorData());
+}
+
 function renderMap(s){
   const el=document.getElementById('mapa-ubicaciones');
   if(!el)return;
   if(!window.L){ el.innerHTML='<div class="ml" style="padding:12px;">Cargando mapa…</div>'; return; }
-  const pts=s?MAPA_PUNTOS.filter(p=>p.sector===s.id):MAPA_PUNTOS;
+  const pts=MAPA_PUNTOS.filter(p=>(!s||p.sector===s.id)&&(!TIPO_SELECCIONADO||p.tipo===TIPO_SELECCIONADO));
   if(!mapInstance){
     mapInstance=L.map(el,{scrollWheelZoom:false}).setView([-12.1389,-77.0227],13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(mapInstance);
@@ -304,7 +347,7 @@ function renderMap(s){
   pts.forEach(function(p){ if(!colorMap[p.tipo])colorMap[p.tipo]=hashColor(p.tipo,SECTOR_COLORS); });
   pts.forEach(function(p){
     const color=colorMap[p.tipo];
-    L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:'<div class="punto-delito" style="border-color:'+color+'">🚨</div>',iconSize:[26,26],iconAnchor:[13,13],tooltipAnchor:[0,-14]})})
+    L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:'<div class="punto-delito" style="border-color:'+color+';color:'+color+'">'+iconoSvg(tipoIcono(p.tipo),14)+'</div>',iconSize:[26,26],iconAnchor:[13,13],tooltipAnchor:[0,-14]})})
       .bindTooltip(p.tipo,{direction:'top'})
       .addTo(markerLayer);
   });
@@ -360,6 +403,14 @@ function showPanel(id,el){
   document.getElementById('panel-'+id).classList.add('active');
   el.classList.add('active');
   if(id==='dashboard'&&mapInstance)mapInstance.invalidateSize();
+}
+
+function toggleSidebar(){
+  document.body.classList.toggle('sb-collapsed');
+  const icon=document.querySelector('#btn-toggle-sb i');
+  if(icon)icon.setAttribute('data-lucide',document.body.classList.contains('sb-collapsed')?'chevrons-right':'chevrons-left');
+  lucide.createIcons();
+  if(mapInstance)mapInstance.invalidateSize();
 }
 
 function buildSupervisores(sectores, supRows){
