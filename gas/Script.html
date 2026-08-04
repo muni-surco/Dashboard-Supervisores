@@ -272,16 +272,22 @@ function renderDashboard(s){
   });
 
   const franData=s?d.franjas:SECTORES[0].franjas.map((f,i)=>({...f,v:Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))}));
-  document.getElementById('franja-chart').innerHTML=franData.map(f=>{
-    const maxVal=Math.max(...franData.map(fd=>fd.v))||1;
-    const w=Math.round((f.v/maxVal)*90)+10;
-    return '<div class="franja-row"><span class="franja-label">' + f.l + '</span>' +
-      '<div class="franja-bar" style="width:' + w + '%;background:' + f.c + ';min-width:32px;">' + formatNum(f.v) + '</div>' +
-      '<span style="font-size:11px;color:var(--g5);margin-left:6px;">' + formatNum(f.v) + ' casos</span></div>';
-  }).join('');
+  destroyChart('turnoDelitos');
+  charts['turnoDelitos']=new Chart(document.getElementById('chartTurnoDelitos'),{
+    type:'bar',
+    data:{labels:franData.map(f=>f.l),
+      datasets:[{data:franData.map(f=>f.v),
+        backgroundColor:franData.map(f=>f.c),borderRadius:6}]},
+    options:{...chartDefaults(),
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return formatNum(ctx.parsed.y)+' casos';}}}},
+      scales:{y:{beginAtZero:true,ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{font:{size:11}},grid:{display:false}}}}
+  });
 
   const comis=s?d.comisarias:[...new Set(SECTORES.flatMap(x=>x.comisarias))];
   document.getElementById('comisarias-tags').innerHTML=comis.map(c=>'<span class="coord-tag">' + c + '</span>').join('');
+
+  const patr=s?d.patrullajeCount:Math.round(SECTORES.reduce((a,x)=>a+(x.patrullajeCount||0),0));
+  document.getElementById('s-patrullaje').textContent=formatNum(patr)+' casos';
 }
 
 function hashColor(key,palette){
@@ -407,9 +413,6 @@ function showPanel(id,el){
 
 function toggleSidebar(){
   document.body.classList.toggle('sb-collapsed');
-  const icon=document.querySelector('#btn-toggle-sb i');
-  if(icon)icon.setAttribute('data-lucide',document.body.classList.contains('sb-collapsed')?'chevrons-right':'chevrons-left');
-  lucide.createIcons();
   if(mapInstance)mapInstance.invalidateSize();
 }
 

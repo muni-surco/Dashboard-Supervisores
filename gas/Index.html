@@ -34,7 +34,7 @@
       </div>
     </div>
     <button type="button" id="btn-toggle-sb" class="sb-toggle" onclick="toggleSidebar()" title="Plegar menú">
-      <i data-lucide="chevrons-right" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+      <i data-lucide="chevrons-left" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
     </button>
   </div>
 
@@ -56,30 +56,31 @@
   <div class="topbar">
     <div class="topbar-title">
       <h1>Dashboard de Evaluación · Jefes de Área</h1>
-      <p>Municipalidad de Santiago de Surco — División C4</p>
     </div>
-    <select id="selJefe" class="tb-select" onchange="updateDash()">
-      <option value="0">Todos los Sectores</option>
-    </select>
-    <select id="selSup" class="tb-select tb-sup" onchange="onSupChange()">
-      <option value="0">Todos los Supervisores</option>
-    </select>
-    <select id="selTurno" class="tb-select tb-turno" onchange="onTurnoChange()">
-      <option value="">Todos los Turnos</option>
-      <option value="manana">Mañana (6:30–14:30)</option>
-      <option value="tarde">Tarde (14:30–22:30)</option>
-      <option value="noche">Noche (22:30–6:30)</option>
-    </select>
-    <div class="date-range">
-      <input type="date" id="fechaInicio" class="tb-date" onchange="onFechaChange()">
-      <span>al</span>
-      <input type="date" id="fechaFin" class="tb-date" onchange="onFechaChange()">
+    <div class="topbar-filters">
+      <select id="selJefe" class="tb-select" onchange="updateDash()">
+        <option value="0">Todos los Sectores</option>
+      </select>
+      <select id="selSup" class="tb-select tb-sup" onchange="onSupChange()">
+        <option value="0">Todos los Supervisores</option>
+      </select>
+      <select id="selTurno" class="tb-select tb-turno" onchange="onTurnoChange()">
+        <option value="">Todos los Turnos</option>
+        <option value="manana">Mañana (6:30–14:30)</option>
+        <option value="tarde">Tarde (14:30–22:30)</option>
+        <option value="noche">Noche (22:30–6:30)</option>
+      </select>
+      <div class="date-range">
+        <input type="date" id="fechaInicio" class="tb-date" onchange="onFechaChange()">
+        <span>al</span>
+        <input type="date" id="fechaFin" class="tb-date" onchange="onFechaChange()">
+      </div>
+      <button type="button" class="tb-btn" onclick="clearFilters()">
+        <i data-lucide="filter-x" style="width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none"></i>
+        Limpiar filtros
+      </button>
+      <div class="badge-period" id="badgePeriod">2026</div>
     </div>
-    <button type="button" class="tb-btn" onclick="clearFilters()">
-      <i data-lucide="filter-x" style="width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none"></i>
-      Limpiar filtros
-    </button>
-    <div class="badge-period" id="badgePeriod">Abril 2025</div>
   </div>
 
   <!-- CONTENT -->
@@ -89,8 +90,11 @@
     <div class="section-panel active" id="panel-dashboard">
       <div id="sel-info-box"></div>
       <div id="sup-info-box"></div>
+
+      <div class="panel-sec">Indicadores</div>
       <div class="kpi-row" id="kpi-row"></div>
 
+      <div class="panel-sec">Análisis de Incidencias</div>
       <div class="grid-2 mb14" style="grid-template-columns:3fr 2fr;">
         <div class="card">
           <div class="card-title">Incidencias</div>
@@ -100,7 +104,9 @@
         </div>
         <div class="card">
           <div class="card-title">Delitos por Turno</div>
-          <div id="franja-chart"></div>
+          <div class="chart-wrap" style="height:260px;">
+            <canvas id="chartTurnoDelitos"></canvas>
+          </div>
         </div>
       </div>
 
@@ -117,15 +123,25 @@
         </div>
       </div>
 
-      <div class="grid-2">
-        <div class="mm">
-          <div class="ml">Tasa de respuesta</div>
-          <div class="mv" id="s-respuesta">—</div>
-          <div class="ms">minutos promedio</div>
+      <div class="panel-sec">Operatividad</div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="mm">
+            <div class="ml">Tasa de respuesta</div>
+            <div class="mv" id="s-respuesta">—</div>
+            <div class="ms">minutos promedio</div>
+          </div>
         </div>
         <div class="card">
           <div class="card-title">Comisarías Involucradas</div>
           <div id="comisarias-tags"></div>
+        </div>
+        <div class="card">
+          <div class="mm">
+            <div class="ml">Patrullaje</div>
+            <div class="mv" id="s-patrullaje">—</div>
+            <div class="ms">casos registrados</div>
+          </div>
         </div>
       </div>
     </div>
@@ -161,7 +177,7 @@
     </div>
 
   </div><!-- /content -->
-  <div class="footer">Dashboard C4 · Municipalidad de Santiago de Surco · Versión 1.0 · Abril 2025</div>
+  <div class="footer">Dashboard C4 · Municipalidad de Santiago de Surco · Versión 1.0 · 2026</div>
 </div><!-- /main -->
 
 <?!= include('Script'); ?>
