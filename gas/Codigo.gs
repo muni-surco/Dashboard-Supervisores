@@ -2,7 +2,8 @@ const SUPABASE_URL = 'https://iotxurynamixapftjwze.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvdHh1cnluYW1peGFwZnRqd3plIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNTc1MDYsImV4cCI6MjA5NzgzMzUwNn0.-SDfDO5vrebHnc7B2E77tbnl5nKnpM2ub2pBoSQGPOQ';
 
 function doGet(e) {
-  return HtmlService.createTemplateFromFile('Index')
+  var template = (e && e.parameter && e.parameter.ver === 'apex') ? 'Index2' : 'Index';
+  return HtmlService.createTemplateFromFile(template)
       .evaluate()
       .setTitle('Dashboard C4 · Evaluación Jefes de Área · MSS')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)

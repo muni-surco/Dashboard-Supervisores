@@ -1,4 +1,4 @@
-﻿<script>
+<script>
 const SUPABASE_URL = 'https://iotxurynamixapftjwze.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvdHh1cnluYW1peGFwZnRqd3plIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNTc1MDYsImV4cCI6MjA5NzgzMzUwNn0.-SDfDO5vrebHnc7B2E77tbnl5nKnpM2ub2pBoSQGPOQ';
 
@@ -61,10 +61,17 @@ const KPI_DEFS = [
 const SECTOR_COLORS = [DS.primary,DS.success,DS.accent,DS.danger,'#9C27B0','#00BCD4','#FF9800','#795548','#607D8B','#E91E63','#3F51B5'];
 
 const charts = {};
-function destroyChart(id){ if(charts[id]){ charts[id].dispose(); delete charts[id]; } }
-function getChart(id, el){ if(!charts[id]) charts[id]=echarts.init(el); return charts[id]; }
-function resizeCharts(){ Object.keys(charts).forEach(function(k){ if(charts[k]) charts[k].resize(); }); }
-window.addEventListener('resize', resizeCharts);
+const CHART_OPTS = {};
+function renderChart(id, opts){
+  if(!opts)return;
+  const el=document.getElementById(id);
+  if(!el)return;
+  if(charts[id]){ charts[id].destroy(); delete charts[id]; }
+  CHART_OPTS[id]=opts;
+  charts[id]=new ApexCharts(el,opts);
+  charts[id].render();
+}
+function resizeCharts(){ Object.keys(CHART_OPTS).forEach(function(k){ renderChart(k,CHART_OPTS[k]); }); }
 
 function getSectorData(){
   const v=document.getElementById('selJefe').value;
@@ -127,7 +134,7 @@ function formatNum(n){
 }
 
 const PALETA=[DS.primary,DS.success,DS.warning,DS.danger,'#9C27B0','#00BCD4','#FF9800','#795548','#607D8B','#E91E63'];
-const ECH_FONT="'Chivo','Segoe UI',sans-serif";
+const APEX_FONT="'Chivo','Segoe UI',sans-serif";
 
 function onSupChange(){
   var sv=document.getElementById('selSup').value;
@@ -227,7 +234,6 @@ function renderDashboard(s){
   document.getElementById('s-respuesta').textContent=
     s?d.tasaResp?d.tasaResp+' min':'—':avg('tasaResp')?avg('tasaResp').toFixed(1)+' min':'—';
 
-  destroyChart('delitos');
   const delData=s?s.tiposDelito:(()=>{
     const agg={};
     SECTORES.forEach(function(x){
@@ -238,19 +244,18 @@ function renderDashboard(s){
   const entries=Object.keys(delData).map(k=>[k,delData[k]])
     .sort(function(a,b){return b[1]-a[1];}).slice(0,10);
   const delLabels=entries.map(function(e,i){return (i+1)+'. '+e[0]+' — '+formatNum(e[1]);});
-  const instDel=getChart('delitos',document.getElementById('chartDelitos'));
-  instDel.clear();
-  instDel.setOption({
-    textStyle:{fontFamily:ECH_FONT,color:DS.g7},
-    tooltip:{trigger:'item',valueFormatter:function(v){return formatNum(v);}},
-    legend:{orient:'vertical',right:0,top:'middle',icon:'circle',itemWidth:10,itemHeight:10,textStyle:{fontSize:11,color:DS.g7}},
-    series:[{type:'pie',radius:['42%','68%'],center:['42%','50%'],
-      avoidLabelOverlap:true,label:{show:false},
-      itemStyle:{borderColor:'#fff',borderWidth:2,borderRadius:4},
-      data:entries.map(function(e,i){return {name:delLabels[i],value:e[1],itemStyle:{color:PALETA[i]}};})}]
+  renderChart('chartDelitos',{
+    chart:{type:'donut',fontFamily:APEX_FONT,foreColor:DS.g7},
+    series:entries.map(function(e){return e[1];}),
+    labels:delLabels,
+    colors:PALETA,
+    stroke:{width:2,colors:['#fff']},
+    legend:{position:'right',horizontalAlign:'center',fontSize:'11px',markers:{size:6,shape:'circle'}},
+    plotOptions:{pie:{donut:{size:'62%',labels:{show:false}}}},
+    dataLabels:{enabled:false},
+    tooltip:{y:{formatter:function(v){return formatNum(v);}}}
   });
 
-  destroyChart('subclas');
   const subData=s?s.subclas:(()=>{
     const agg={};
     SECTORES.forEach(function(x){
@@ -264,16 +269,15 @@ function renderDashboard(s){
   applySubclas();
 
   const franData=s?d.franjas:SECTORES[0].franjas.map((f,i)=>({...f,v:Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))}));
-  const instTurno=getChart('turnoDelitos',document.getElementById('chartTurnoDelitos'));
-  instTurno.clear();
-  instTurno.setOption({
-    textStyle:{fontFamily:ECH_FONT,color:DS.g7},
-    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},valueFormatter:function(v){return formatNum(v)+' casos';}},
-    grid:{left:8,right:16,top:8,bottom:8,containLabel:true},
-    xAxis:{type:'category',data:franData.map(f=>f.l),axisTick:{show:false},axisLine:{lineStyle:{color:'rgba(0,0,0,.1)'}},axisLabel:{fontSize:11}},
-    yAxis:{type:'value',splitLine:{lineStyle:{color:'rgba(0,0,0,.05)'}},axisLabel:{fontSize:11}},
-    series:[{type:'bar',barMaxWidth:42,itemStyle:{borderRadius:[6,6,0,0]},
-      data:franData.map(function(f){return {value:f.v,itemStyle:{color:f.c}};})}]
+  renderChart('chartTurnoDelitos',{
+    chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
+    series:[{name:'Casos',data:franData.map(function(f){return f.v;})}],
+    xaxis:{categories:franData.map(f=>f.l),labels:{style:{fontSize:'11px'}}},
+    colors:franData.map(f=>f.c),
+    plotOptions:{bar:{columnWidth:'45%',borderRadius:6,distributed:true}},
+    dataLabels:{enabled:false},
+    grid:{borderColor:'rgba(0,0,0,.05)'},
+    tooltip:{y:{formatter:function(v){return formatNum(v)+' casos';}}}
   });
 
   const comis=s?d.comisarias:[...new Set(SECTORES.flatMap(x=>x.comisarias))];
@@ -314,32 +318,25 @@ function iconoSvg(name,size){
 }
 
 function applySubclas(){
-  const inst=getChart('subclas',document.getElementById('chartSubclas'));
   const entries=SUBCLAS_ENTRIES;
   const selIdx=TIPO_SELECCIONADO?entries.findIndex(e=>e[0]===TIPO_SELECCIONADO):-1;
-  inst.off('click');
-  inst.clear();
-  inst.setOption({
-    textStyle:{fontFamily:ECH_FONT,color:DS.g7},
-    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},valueFormatter:function(v){return formatNum(v);}},
-    grid:{left:8,right:20,top:8,bottom:8,containLabel:true},
-    xAxis:{type:'value',splitLine:{lineStyle:{color:'rgba(0,0,0,.05)'}},axisLabel:{fontSize:11}},
-    yAxis:{type:'category',inverse:true,
-      data:entries.map(function(e,i){return (i+1)+'. '+e[0];}),
-      axisTick:{show:false},axisLine:{show:false},
-      axisLabel:{fontSize:11,width:160,overflow:'truncate'}},
-    series:[{type:'bar',barMaxWidth:18,
-      label:{show:true,position:'right',formatter:function(p){return formatNum(p.value);},fontSize:11,color:DS.g7},
-      itemStyle:{borderRadius:[0,6,6,0]},
-      data:entries.map(function(e,i){return {value:e[1],itemStyle:{color:i===selIdx?DS.accent:DS.primary}};})}]
+  renderChart('chartSubclas',{
+    chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7,
+      events:{dataPointSelection:function(evt,ctx,cfg){onSubclasClick(cfg.dataPointIndex);}}},
+    series:[{name:'Casos',data:entries.map(function(e){return e[1];})}],
+    xaxis:{categories:entries.map(function(e,i){return (i+1)+'. '+e[0];}),labels:{style:{fontSize:'11px'}}},
+    colors:entries.map(function(e,i){return i===selIdx?DS.accent:DS.primary;}),
+    plotOptions:{bar:{horizontal:true,barHeight:'60%',borderRadius:4,distributed:true,dataLabels:{position:'bottom'}}},
+    dataLabels:{enabled:true,textAnchor:'start',offsetX:8,formatter:function(v){return formatNum(v);},style:{fontSize:'11px',colors:[DS.g7]}},
+    yaxis:{reversed:true,labels:{style:{fontSize:'11px'}}},
+    grid:{borderColor:'rgba(0,0,0,.05)'},
+    tooltip:{y:{formatter:function(v){return formatNum(v);}}}
   });
-  inst.on('click',onSubclasClick);
 }
 
-function onSubclasClick(params){
-  if(!params||params.dataIndex===undefined)return;
-  const idx=params.dataIndex;
-  const tipo=SUBCLAS_ENTRIES[idx][0];
+function onSubclasClick(dataPointIndex){
+  if(dataPointIndex===undefined||dataPointIndex<0)return;
+  const tipo=SUBCLAS_ENTRIES[dataPointIndex][0];
   TIPO_SELECCIONADO = (TIPO_SELECCIONADO===tipo)?null:tipo;
   applySubclas();
   renderMap(getSectorData());
@@ -391,18 +388,16 @@ function renderPersonal(s,sup){
     const match=supsRaw.filter(p=>p.n.includes(m));
     return match.length?Math.round(match.reduce((a,p)=>a+p.ast,0)/match.length):0;
   };
-  const instTurnos=getChart('turnos',document.getElementById('chartTurnos'));
-  instTurnos.clear();
-  instTurnos.setOption({
-    textStyle:{fontFamily:ECH_FONT,color:DS.g7},
-    tooltip:{trigger:'axis',valueFormatter:function(v){return v+'%';}},
-    grid:{left:8,right:16,top:16,bottom:8,containLabel:true},
-    xAxis:{type:'category',data:['Turno Mañana','Turno Tarde','Turno Noche'],axisTick:{show:false},axisLine:{lineStyle:{color:'rgba(0,0,0,.1)'}},axisLabel:{fontSize:11}},
-    yAxis:{type:'value',min:70,max:100,splitLine:{lineStyle:{color:'rgba(0,0,0,.05)'}},axisLabel:{fontSize:11}},
-    series:[{type:'bar',barMaxWidth:42,itemStyle:{borderRadius:[6,6,0,0]},
-      data:[{value:turnoAvg('(M)'),itemStyle:{color:DS.primary}},
-            {value:turnoAvg('(T)'),itemStyle:{color:DS.primary+'BB'}},
-            {value:turnoAvg('(N)'),itemStyle:{color:DS.primary+'88'}}]}]
+  renderChart('chartTurnos',{
+    chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
+    series:[{name:'Asistencia %',data:[turnoAvg('(M)'),turnoAvg('(T)'),turnoAvg('(N)')]}],
+    xaxis:{categories:['Turno Mañana','Turno Tarde','Turno Noche'],labels:{style:{fontSize:'11px'}}},
+    yaxis:{min:70,max:100,labels:{style:{fontSize:'11px'}}},
+    colors:[DS.primary,DS.primary+'BB',DS.primary+'88'],
+    plotOptions:{bar:{columnWidth:'45%',borderRadius:6,distributed:true}},
+    dataLabels:{enabled:false},
+    grid:{borderColor:'rgba(0,0,0,.05)'},
+    tooltip:{y:{formatter:function(v){return v+'%';}}}
   });
   const rendRaw=s?d.rendimiento:SECTORES.flatMap(x=>x.rendimiento.map(r=>({...r,sup:x.sector.replace('Sector ','')+' '+r.sup,sec:x.sector.replace('Sector ','')})));
   const allRend=sup?rendRaw.filter(r=>r.sup.includes(sup.rend?.sup)):rendRaw;
