@@ -28,7 +28,7 @@
   /* Type */
   --font: 'Chivo', 'Segoe UI', system-ui, sans-serif;
   --txs: 11px;  --tsm: 13px;  --tbase: 15px;
-  --tmd: 17px;  --tlg: 20px;  --txl: 24px;
+  --tmd: 17px;  --tlg: 20px;  --txl: 24px; --t2: 30px;
   /* Spacing */
   --s1:4px; --s2:8px; --s3:12px; --s4:16px;
   --s5:20px; --s6:24px; --s8:32px; --s10:40px;
@@ -218,25 +218,35 @@ body.sb-collapsed .nav-label { display: none; }
   gap: var(--s3);
   margin-bottom: var(--s4);
 }
-.kpi-card {
+/* ── STAT CARD (KPI) ── */
+.sc2 {
   background: var(--wh);
-  border-radius: var(--rlg);
-  padding: var(--s4) var(--s4);
   border: 1px solid var(--g3);
-  position: relative;
-  overflow: hidden;
+  border-radius: var(--rlg);
+  padding: var(--s5);
   box-shadow: var(--shsm);
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
   transition: box-shadow .2s, transform .2s;
 }
-.kpi-card:hover { box-shadow: var(--shmd); transform: translateY(-1px); }
-.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-.kpi-card.verde::before   { background: var(--cok); }
-.kpi-card.amarillo::before{ background: var(--cw); }
-.kpi-card.rojo::before    { background: var(--cd); }
-
-.kpi-lbl { font-size: var(--txs); color: var(--g5); text-transform: uppercase; letter-spacing: .6px; margin-bottom: var(--s1); font-weight: 700; }
-.kpi-val { font-size: 24px; font-weight: 900; color: var(--g9); line-height: 1; }
-.kpi-tgt { font-size: var(--txs); color: var(--g5); margin-top: 3px; }
+.sc2:hover { box-shadow: var(--shmd); transform: translateY(-1px); }
+.si {
+  width: 48px; height: 48px;
+  border-radius: var(--rmd);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.si.t { background: var(--cpl); }
+.si.n { background: var(--csl); }
+.si.r { background: #FDE8E8; }
+.si.a { background: #FEF3CD; }
+.sv { font-size: var(--t2); font-weight: 700; color: var(--g9); line-height: 1; }
+.sl { font-size: var(--tsm); color: var(--g5); margin-top: 2px; }
+.str { font-size: var(--txs); margin-top: 4px; font-weight: 600; }
+.str.up { color: var(--cok); }
+.str.warn { color: var(--cw); }
+.str.dn { color: var(--cd); }
 .kpi-pill {
   display: inline-flex; align-items: center; gap: var(--s1);
   padding: 3px 8px;
@@ -297,7 +307,8 @@ body.sb-collapsed .nav-label { display: none; }
 }
 .mapa { height: 360px; border-radius: var(--rmd); overflow: hidden; position: relative; z-index: 0; }
 .mapa .leaflet-container { font-family: inherit; }
-.punto-delito { width:26px;height:26px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.35);border:2px solid; }
+.punto-delito { position:relative;width:24px;height:34px;color:var(--pd-c);filter:drop-shadow(0 2px 4px rgba(0,0,0,.35)); }
+.punto-delito .pin-icon { position:absolute;top:3px;left:0;right:0;height:20px;display:flex;align-items:center;justify-content:center;color:var(--pd-c); }
 
 /* ── METRIC MINI ── */
 .mm {
@@ -365,7 +376,94 @@ body.sb-collapsed .nav-label { display: none; }
   margin: 3px; font-weight: 600;
 }
 
+/* ── CHIPS (REUTILIZADOS EN MODAL) ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: var(--rmd);
+  border: 1px solid var(--g3);
+  background: var(--wh);
+  font-family: var(--font);
+  font-size: var(--tsm);
+  color: var(--g7);
+  cursor: pointer;
+  transition: all .15s;
+  justify-content: flex-start;
+}
+.chip:hover { border-color: var(--cp); color: var(--cp); }
+.chip .chip-sec { font-weight: 700; }
+.chip .chip-jefe { color: var(--g5); }
+.chip:hover .chip-jefe { color: var(--cp); }
+.chip.active {
+  background: var(--cp);
+  border-color: var(--cp);
+  color: #fff;
+}
+.chip.active .chip-sec { color: #fff; }
+.chip.active .chip-jefe { color: rgba(255,255,255,.85); }
+
+/* ── MODAL SECTOR ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100;
+  display: none; align-items: center; justify-content: center;
+}
+.modal-card {
+  background: var(--wh); width: 600px; max-width: 90vw;
+  border-radius: var(--rlg); padding: var(--s5);
+  max-height: 80vh; overflow-y: auto;
+}
+.modal-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: var(--s4);
+}
+.modal-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--s2);
+}
+.tb-selector {
+  background: var(--wh) !important;
+  color: var(--g7) !important;
+  border: 1px solid var(--g3) !important;
+}
+.tb-selector:hover { border-color: var(--cp) !important; color: var(--cp) !important; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: var(--rfull);
+  border: 1px solid var(--g3);
+  background: var(--wh);
+  font-family: var(--font);
+  font-size: var(--tsm);
+  color: var(--g7);
+  cursor: pointer;
+  transition: all .15s;
+}
+.chip:hover { border-color: var(--cp); color: var(--cp); }
+.chip .chip-sec { font-weight: 700; }
+.chip .chip-jefe { color: var(--g5); }
+.chip:hover .chip-jefe { color: var(--cp); }
+.chip.active {
+  background: var(--cp);
+  border-color: var(--cp);
+  color: #fff;
+  box-shadow: var(--shsm);
+}
+.chip.active .chip-sec { color: #fff; }
+.chip.active .chip-jefe { color: rgba(255,255,255,.85); }
+
 /* ── SEL INFO BANNER ── */
+.info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+}
+.info-row > div { display: flex; }
+.info-row .sel-info { margin-bottom: 0; width: 100%; flex: 1; }
 .sel-info {
   background: linear-gradient(135deg, var(--cp) 0%, var(--cpd) 100%);
   border-radius: var(--rlg);
@@ -383,6 +481,19 @@ body.sb-collapsed .nav-label { display: none; }
   color: var(--cpd); flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0,201,167,.4);
 }
+.sel-badge {
+  display: inline-block;
+  background: rgba(255,255,255,.18);
+  color: #fff;
+  font-size: var(--txs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  padding: 2px 9px;
+  border-radius: var(--rfull);
+  margin-bottom: 5px;
+}
+.sel-badge-sup { background: #fff; color: var(--csd); }
 .sel-data h3  { color: #fff; font-size: var(--tbase); font-weight: 700; }
 .sel-data p   { color: rgba(255,255,255,.6); font-size: var(--tsm); margin-top: 2px; }
 .sel-score { margin-left: auto; text-align: right; }
