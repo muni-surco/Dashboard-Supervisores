@@ -62,14 +62,24 @@ const SECTOR_COLORS = [DS.primary,DS.success,DS.accent,DS.danger,'#9C27B0','#00B
 
 const charts = {};
 const CHART_OPTS = {};
+function chartHeight(el){
+  var h = el.offsetHeight || el.clientHeight;
+  if(!h && el.parentElement){ h = el.parentElement.offsetHeight || el.parentElement.clientHeight; }
+  return h || 260;
+}
 function renderChart(id, opts){
   if(!opts)return;
   const el=document.getElementById(id);
   if(!el)return;
-  if(charts[id]){ charts[id].destroy(); delete charts[id]; }
-  CHART_OPTS[id]=opts;
-  charts[id]=new ApexCharts(el,opts);
-  charts[id].render();
+  try{
+    if(charts[id]){ charts[id].destroy(); delete charts[id]; }
+    const fullOpts = Object.assign({}, opts, {
+      chart: Object.assign({ width:'100%', height: chartHeight(el) }, opts.chart || {})
+    });
+    CHART_OPTS[id]=fullOpts;
+    charts[id]=new ApexCharts(el,fullOpts);
+    charts[id].render();
+  }catch(e){ console.error('Error ApexCharts ['+id+']:', e); }
 }
 function resizeCharts(){ Object.keys(CHART_OPTS).forEach(function(k){ renderChart(k,CHART_OPTS[k]); }); }
 
@@ -251,7 +261,7 @@ function renderDashboard(s){
     colors:PALETA,
     stroke:{width:2,colors:['#fff']},
     legend:{position:'right',horizontalAlign:'center',fontSize:'11px',markers:{size:6,shape:'circle'}},
-    plotOptions:{pie:{donut:{size:'62%',labels:{show:false}}}},
+    plotOptions:{pie:{customScale:0.78,donut:{size:'62%',labels:{show:false}}}},
     dataLabels:{enabled:false},
     tooltip:{y:{formatter:function(v){return formatNum(v);}}}
   });
@@ -271,10 +281,11 @@ function renderDashboard(s){
   const franData=s?d.franjas:SECTORES[0].franjas.map((f,i)=>({...f,v:Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))}));
   renderChart('chartTurnoDelitos',{
     chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
-    series:[{name:'Casos',data:franData.map(function(f){return f.v;})}],
-    xaxis:{categories:franData.map(f=>f.l),labels:{style:{fontSize:'11px'}}},
-    colors:franData.map(f=>f.c),
-    plotOptions:{bar:{columnWidth:'45%',borderRadius:6,distributed:true}},
+    series:[{name:'Casos',data:franData.map(function(f){
+      return {x:f.l, y:f.v, fillColor:f.c};
+    })}],
+    legend:{show:false},
+    plotOptions:{bar:{columnWidth:'45%',borderRadius:6}},
     dataLabels:{enabled:false},
     grid:{borderColor:'rgba(0,0,0,.05)'},
     tooltip:{y:{formatter:function(v){return formatNum(v)+' casos';}}}
@@ -323,10 +334,12 @@ function applySubclas(){
   renderChart('chartSubclas',{
     chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7,
       events:{dataPointSelection:function(evt,ctx,cfg){onSubclasClick(cfg.dataPointIndex);}}},
-    series:[{name:'Casos',data:entries.map(function(e){return e[1];})}],
-    xaxis:{categories:entries.map(function(e,i){return (i+1)+'. '+e[0];}),labels:{style:{fontSize:'11px'}}},
-    colors:entries.map(function(e,i){return i===selIdx?DS.accent:DS.primary;}),
-    plotOptions:{bar:{horizontal:true,barHeight:'60%',borderRadius:4,distributed:true,dataLabels:{position:'bottom'}}},
+    series:[{name:'Casos',data:entries.map(function(e,i){
+      return {x:(i+1)+'. '+e[0], y:e[1], fillColor:(i===selIdx?DS.accent:DS.primary)};
+    })}],
+    xaxis:{labels:{show:false},axisBorder:{show:false},axisTicks:{show:false}},
+    legend:{show:false},
+    plotOptions:{bar:{horizontal:true,barHeight:'60%',borderRadius:4,dataLabels:{position:'bottom'}}},
     dataLabels:{enabled:true,textAnchor:'start',offsetX:8,formatter:function(v){return formatNum(v);},style:{fontSize:'11px',colors:[DS.g7]}},
     yaxis:{reversed:true,labels:{style:{fontSize:'11px'}}},
     grid:{borderColor:'rgba(0,0,0,.05)'},
@@ -390,11 +403,14 @@ function renderPersonal(s,sup){
   };
   renderChart('chartTurnos',{
     chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
-    series:[{name:'Asistencia %',data:[turnoAvg('(M)'),turnoAvg('(T)'),turnoAvg('(N)')]}],
-    xaxis:{categories:['Turno Mañana','Turno Tarde','Turno Noche'],labels:{style:{fontSize:'11px'}}},
+    series:[{name:'Asistencia %',data:[
+      {x:'Turno Mañana',y:turnoAvg('(M)'),fillColor:DS.primary},
+      {x:'Turno Tarde',y:turnoAvg('(T)'),fillColor:DS.primary+'BB'},
+      {x:'Turno Noche',y:turnoAvg('(N)'),fillColor:DS.primary+'88'}
+    ]}],
+    legend:{show:false},
     yaxis:{min:70,max:100,labels:{style:{fontSize:'11px'}}},
-    colors:[DS.primary,DS.primary+'BB',DS.primary+'88'],
-    plotOptions:{bar:{columnWidth:'45%',borderRadius:6,distributed:true}},
+    plotOptions:{bar:{columnWidth:'45%',borderRadius:6}},
     dataLabels:{enabled:false},
     grid:{borderColor:'rgba(0,0,0,.05)'},
     tooltip:{y:{formatter:function(v){return v+'%';}}}
