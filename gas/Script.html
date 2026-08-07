@@ -20,6 +20,11 @@ let SUBCLAS_ENTRIES = [];
 let TURNO_FILTER = null;
 let CURRENT_SECTOR_ID = '0';
 
+const TURNO_MAP={manana:'M',tarde:'T',noche:'N'};
+const LETTER_MAP={M:'manana',T:'tarde',N:'noche'};
+function turnoLetter(v){ return TURNO_MAP[v]||null; }
+function letterFromName(n){ var m=n.match(/\((\w)\)/); return m?m[1].toUpperCase():null; }
+
 function kpiVal(d,k){ return k.val?k.val(d):d[k.key]; }
 
 function computeThresholds(){
@@ -69,7 +74,7 @@ function resizeCharts(){ Object.keys(charts).forEach(function(k){ if(charts[k]) 
 window.addEventListener('resize', resizeCharts);
 
 function getSectorData(){
-  const v=document.getElementById('selJefe').value;
+  const v=CURRENT_SECTOR_ID;
   return v==='0'?null:(SECTORES.find(s=>s.id===v)||null);
 }
 function getSupData(sector){
@@ -78,24 +83,21 @@ function getSupData(sector){
   return {sup:sector.supervisores.find(p=>baseName(p.n)===v),rend:sector.rendimiento.find(r=>baseName(r.sup)===v)};
 }
 
-function getSectorData(){
-  const v=CURRENT_SECTOR_ID;
-  return v==='0'?null:(SECTORES.find(s=>s.id===v)||null);
-}
-
 function renderSectorModal(){
   const row=document.getElementById('modal-sector-grid');
   if(!row)return;
   const cur=CURRENT_SECTOR_ID;
-  let html='<button type="button" class="chip' + (cur==='0'?' active':'') + '" onclick="selectSector(\'0\')">' +
-    '<span class="chip-sec">Todos los Sectores</span></button>';
+  const byId=function(id){ return SECTORES.find(x=>x.id===id); };
+  let html='<button type="button" class="chip chip-all' + (cur==='0'?' active':'') + '" onclick="selectSector(\'0\')">Todos los Sectores</button>';
   html += SECTORES.map(function(s){
     const act=s.id===cur?' active':'';
     return '<button type="button" class="chip' + act + '" onclick="selectSector(\'' + s.id + '\')">' +
-      '<span class="chip-sec">' + s.sector + '</span><span class="chip-jefe">' + s.nombre + '</span></button>';
+      '<span class="chip-sec">' + s.id + '</span>' +
+      '<span class="chip-nombre">' + s.nombre + '</span></button>';
   }).join('');
   row.innerHTML=html;
-  document.getElementById('label-sector').textContent = cur==='0' ? 'Todos los Sectores' : (SECTORES.find(s=>s.id===cur)?.sector + ' · ' + SECTORES.find(s=>s.id===cur)?.nombre);
+  const sel=byId(cur);
+  document.getElementById('label-sector').textContent = cur==='0' ? 'Todos los Sectores' : (sel?sel.id:'Todos los Sectores');
 }
 function openSectorModal(){ document.getElementById('modal-sector').style.display='flex'; }
 function closeSectorModal(){ document.getElementById('modal-sector').style.display='none'; }
@@ -155,7 +157,7 @@ function onSupChange(){
     SECTORES.forEach(function(sec){
       sec.supervisores.forEach(function(p){
         if(baseName(p.n)===sv){
-          document.getElementById('selJefe').value=sec.id;
+          CURRENT_SECTOR_ID=sec.id;
           var lt=letterFromName(p.n);
           if(lt)TURNO_FILTER=LETTER_MAP[lt]||null;
         }
@@ -262,7 +264,7 @@ function renderDashboard(s){
     textStyle:{fontFamily:ECH_FONT,color:DS.g7},
     tooltip:{trigger:'item',valueFormatter:function(v){return formatNum(v);}},
     legend:{orient:'vertical',right:'2%',top:'middle',icon:'circle',itemWidth:10,itemHeight:10,itemGap:10,textStyle:{fontSize:11,color:DS.g7}},
-    series:[{type:'pie',radius:['48%','90%'],center:['34%','50%'],
+    series:[{type:'pie',radius:['48%','90%'],center:['28%','50%'],
       avoidLabelOverlap:true,label:{show:false},
       itemStyle:{borderColor:'#fff',borderWidth:2,borderRadius:4},
       data:entries.map(function(e,i){return {name:delLabels[i],value:e[1],itemStyle:{color:PALETA[i]}};})}]
@@ -290,7 +292,7 @@ function renderDashboard(s){
     grid:{left:8,right:16,top:8,bottom:8,containLabel:true},
     xAxis:{type:'category',data:franData.map(f=>f.l),axisTick:{show:false},axisLine:{lineStyle:{color:'rgba(0,0,0,.1)'}},axisLabel:{fontSize:11}},
     yAxis:{type:'value',splitLine:{lineStyle:{color:'rgba(0,0,0,.05)'}},axisLabel:{fontSize:11}},
-    series:[{type:'bar',barMaxWidth:42,itemStyle:{borderRadius:[6,6,0,0]},
+    series:[{type:'bar',barMaxWidth:90,itemStyle:{borderRadius:[6,6,0,0]},
       data:franData.map(function(f){return {value:f.v,itemStyle:{color:f.c}};})}]
   });
 
@@ -577,7 +579,7 @@ function onFechaChange(){
 }
 
 function clearFilters(){
-  document.getElementById('selJefe').value='0';
+  CURRENT_SECTOR_ID='0';
   document.getElementById('selSup').value='0';
   TURNO_FILTER=null;
   setDefaultDates();

@@ -18,6 +18,7 @@ let markerLayer = null;
 let TIPO_SELECCIONADO = null;
 let SUBCLAS_ENTRIES = [];
 let TURNO_FILTER = null;
+let CURRENT_SECTOR_ID = '0';
 
 const TURNO_MAP={manana:'M',tarde:'T',noche:'N'};
 const LETTER_MAP={M:'manana',T:'tarde',N:'noche'};
@@ -90,7 +91,7 @@ function renderChart(id, opts){
 function resizeCharts(){ Object.keys(CHART_OPTS).forEach(function(k){ renderChart(k,CHART_OPTS[k]); }); }
 
 function getSectorData(){
-  const v=document.getElementById('selJefe').value;
+  const v=CURRENT_SECTOR_ID;
   return v==='0'?null:(SECTORES.find(s=>s.id===v)||null);
 }
 function getSupData(sector){
@@ -98,37 +99,35 @@ function getSupData(sector){
   if(v==='0'||!sector)return null;
   return {sup:sector.supervisores.find(p=>baseName(p.n)===v),rend:sector.rendimiento.find(r=>baseName(r.sup)===v)};
 }
-function populateJefes(){
-  const sel=document.getElementById('selJefe');
-  const current=sel.value;
-  sel.innerHTML='<option value="0">Todos los Sectores</option>'+
-    SECTORES.map(s=>'<option value="' + s.id + '">' + s.sector + ' — ' + s.nombre + '</option>').join('');
-  if([...sel.options].some(o=>o.value===current))sel.value=current;
-}
 
-function selectChip(id){
-  document.getElementById('selJefe').value=id;
-  onJefeChange();
-}
-
-function renderChips(){
-  const row=document.getElementById('chip-row');
+function renderSectorModal(){
+  const row=document.getElementById('modal-sector-grid');
   if(!row)return;
-  const cur=document.getElementById('selJefe').value;
-  let html='<button type="button" class="chip' + (cur==='0'?' active':'') + '" onclick="selectChip(\'0\')">' +
-    '<span class="chip-sec">Todos los Sectores</span></button>';
+  const cur=CURRENT_SECTOR_ID;
+  const byId=function(id){ return SECTORES.find(x=>x.id===id); };
+  let html='<button type="button" class="chip chip-all' + (cur==='0'?' active':'') + '" onclick="selectSector(\'0\')">Todos los Sectores</button>';
   html += SECTORES.map(function(s){
     const act=s.id===cur?' active':'';
-    return '<button type="button" class="chip' + act + '" onclick="selectChip(\'' + s.id + '\')">' +
-      '<span class="chip-sec">' + s.sector + '</span><span class="chip-jefe">' + s.nombre + '</span></button>';
+    return '<button type="button" class="chip' + act + '" onclick="selectSector(\'' + s.id + '\')">' +
+      '<span class="chip-sec">' + s.id + '</span>' +
+      '<span class="chip-nombre">' + s.nombre + '</span></button>';
   }).join('');
   row.innerHTML=html;
+  const sel=byId(cur);
+  document.getElementById('label-sector').textContent = cur==='0' ? 'Todos los Sectores' : (sel?sel.id:'Todos los Sectores');
+}
+function openSectorModal(){ document.getElementById('modal-sector').style.display='flex'; }
+function closeSectorModal(){ document.getElementById('modal-sector').style.display='none'; }
+function selectSector(id){
+  CURRENT_SECTOR_ID=id;
+  closeSectorModal();
+  onJefeChange();
 }
 
 function populateSupervisores(){
   const sel=document.getElementById('selSup');
   const sv=sel.value;
-  const sid=document.getElementById('selJefe').value;
+  const sid=CURRENT_SECTOR_ID;
   var raw=SECTORES.flatMap(x=>x.supervisores);
   var seen={};
   var lista=raw.filter(function(p){
@@ -175,7 +174,7 @@ function onSupChange(){
     SECTORES.forEach(function(sec){
       sec.supervisores.forEach(function(p){
         if(baseName(p.n)===sv){
-          document.getElementById('selJefe').value=sec.id;
+          CURRENT_SECTOR_ID=sec.id;
           var lt=letterFromName(p.n);
           if(lt)TURNO_FILTER=LETTER_MAP[lt]||null;
         }
@@ -187,8 +186,7 @@ function onSupChange(){
 
 function updateDash(){
   if(SECTORES.length===0)return;
-  populateJefes();
-  renderChips();
+  renderSectorModal();
   populateSupervisores();
   const s=getSectorData();
   const sup=getSupData(s);
@@ -307,7 +305,7 @@ function renderDashboard(s){
       return {x:f.l, y:f.v, fillColor:f.c};
     })}],
     legend:{show:false},
-    plotOptions:{bar:{columnWidth:'45%',borderRadius:6}},
+    plotOptions:{bar:{columnWidth:'70%',borderRadius:6}},
     dataLabels:{enabled:false},
     grid:{borderColor:'rgba(0,0,0,.05)'},
     tooltip:{y:{formatter:function(v){return formatNum(v)+' casos';}}}
@@ -592,7 +590,7 @@ function onFechaChange(){
 }
 
 function clearFilters(){
-  document.getElementById('selJefe').value='0';
+  CURRENT_SECTOR_ID='0';
   document.getElementById('selSup').value='0';
   TURNO_FILTER=null;
   setDefaultDates();

@@ -57,11 +57,11 @@
     <div class="topbar-title">
       <h1>Dashboard de Evaluación · Jefes de Área</h1>
     </div>
-    <div class="chip-row" id="chip-row"></div>
     <div class="topbar-filters">
-      <select id="selJefe" class="tb-select" style="display:none" onchange="onJefeChange()">
-        <option value="0">Todos los Sectores</option>
-      </select>
+      <button type="button" class="tb-btn tb-selector" id="btn-sector-selector" onclick="openSectorModal()">
+        <i data-lucide="building" style="width:16px;height:16px;"></i>
+        <span id="label-sector">Todos los Sectores</span>
+      </button>
       <select id="selSup" class="tb-select tb-sup" onchange="onSupChange()">
         <option value="0">Todos los Supervisores</option>
       </select>

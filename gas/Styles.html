@@ -376,12 +376,12 @@ body.sb-collapsed .nav-label { display: none; }
   margin: 3px; font-weight: 600;
 }
 
-/* ── CHIPS (REUTILIZADOS EN MODAL) ── */
+/* ── CHIPS (MODAL SECTOR) ── */
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 8px 10px;
   border-radius: var(--rmd);
   border: 1px solid var(--g3);
   background: var(--wh);
@@ -390,19 +390,24 @@ body.sb-collapsed .nav-label { display: none; }
   color: var(--g7);
   cursor: pointer;
   transition: all .15s;
-  justify-content: flex-start;
+  text-align: left;
 }
-.chip:hover { border-color: var(--cp); color: var(--cp); }
-.chip .chip-sec { font-weight: 700; }
-.chip .chip-jefe { color: var(--g5); }
-.chip:hover .chip-jefe { color: var(--cp); }
-.chip.active {
+.chip:hover { border-color: var(--cp); }
+.chip.active { border-color: var(--cp); background: var(--cpl); }
+.chip .chip-sec {
+  flex-shrink: 0;
   background: var(--cp);
-  border-color: var(--cp);
   color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 2px 9px;
+  border-radius: var(--rmd);
 }
-.chip.active .chip-sec { color: #fff; }
-.chip.active .chip-jefe { color: rgba(255,255,255,.85); }
+.chip .chip-nombre { font-size: 12px; color: var(--g7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip.active .chip-nombre { color: var(--cp); }
+.chip-all { justify-content: center; font-weight: 600; color: var(--cp); }
+.chip-all.active { background: var(--cp); color: #fff; }
+.chip-all.active .chip-nombre { color: #fff; }
 
 /* ── MODAL SECTOR ── */
 .modal-overlay {
@@ -428,32 +433,6 @@ body.sb-collapsed .nav-label { display: none; }
   border: 1px solid var(--g3) !important;
 }
 .tb-selector:hover { border-color: var(--cp) !important; color: var(--cp) !important; }
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 13px;
-  border-radius: var(--rfull);
-  border: 1px solid var(--g3);
-  background: var(--wh);
-  font-family: var(--font);
-  font-size: var(--tsm);
-  color: var(--g7);
-  cursor: pointer;
-  transition: all .15s;
-}
-.chip:hover { border-color: var(--cp); color: var(--cp); }
-.chip .chip-sec { font-weight: 700; }
-.chip .chip-jefe { color: var(--g5); }
-.chip:hover .chip-jefe { color: var(--cp); }
-.chip.active {
-  background: var(--cp);
-  border-color: var(--cp);
-  color: #fff;
-  box-shadow: var(--shsm);
-}
-.chip.active .chip-sec { color: #fff; }
-.chip.active .chip-jefe { color: rgba(255,255,255,.85); }
 
 /* ── SEL INFO BANNER ── */
 .info-row {
