@@ -147,8 +147,8 @@ body.sb-collapsed .nav-label { display: none; }
   position: sticky; top: 0; z-index: 50;
   box-shadow: var(--shsm);
 }
-.topbar-title { flex: none; }
-.topbar-title h1 { font-size: var(--tbase); font-weight: 700; color: var(--cp); }
+.topbar-title { flex: none; margin-bottom: 10px; }
+.topbar-title h1 { font-size: var(--tmd); font-weight: 700; color: var(--cp); }
 .topbar-title p  { font-size: var(--txs); color: var(--g5); margin-top: 2px; }
 .topbar-filters { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
 
@@ -180,11 +180,13 @@ body.sb-collapsed .nav-label { display: none; }
 .badge-period {
   background: var(--cp);
   color: #fff;
-  padding: 5px var(--s3);
+  padding: 6px var(--s4);
   border-radius: var(--rfull);
-  font-size: var(--txs);
+  font-size: var(--tbase);
   font-weight: 700;
   letter-spacing: .3px;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .tb-btn {
@@ -272,7 +274,7 @@ body.sb-collapsed .nav-label { display: none; }
   box-shadow: var(--shsm);
 }
 .card-title {
-  font-size: var(--tsm); font-weight: 700;
+  font-size: var(--tmd); font-weight: 700;
   color: var(--cp);
   margin-bottom: var(--s4);
   display: flex; align-items: center; justify-content: space-between;
@@ -296,7 +298,7 @@ body.sb-collapsed .nav-label { display: none; }
 .panel-sec {
   font-size: var(--tsm); font-weight: 700; color: var(--cp);
   text-transform: uppercase; letter-spacing: .5px;
-  margin: var(--s5) 0 var(--s2);
+  margin: var(--s6) 0 var(--s3);
   display: flex; align-items: center; gap: var(--s2);
 }
 .panel-sec::after { content: ''; flex: 1; height: 1px; background: var(--g3); }
@@ -304,6 +306,7 @@ body.sb-collapsed .nav-label { display: none; }
 /* ── RESPONSIVE ── */
 @media (max-width: 900px){
   .kpi-row, .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr !important; }
+  .sup-card-group { grid-template-columns: 1fr !important; }
 }
 .mapa { height: 360px; border-radius: var(--rmd); overflow: hidden; position: relative; z-index: 0; }
 .mapa .leaflet-container { font-family: inherit; }
@@ -436,13 +439,19 @@ body.sb-collapsed .nav-label { display: none; }
 
 /* ── SEL INFO BANNER ── */
 .info-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s3);
   margin-bottom: var(--s4);
 }
-.info-row > div { display: flex; }
-.info-row .sel-info { margin-bottom: 0; width: 100%; flex: 1; }
+.jefe-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  background: var(--wh);
+  border: 1px solid var(--g3);
+  border-radius: var(--rlg);
+  padding: var(--s3);
+  box-shadow: var(--shsm);
+}
+.info-row .sel-info { margin-bottom: 0; }
 .sel-info {
   background: linear-gradient(135deg, var(--cp) 0%, var(--cpd) 100%);
   border-radius: var(--rlg);
@@ -478,6 +487,27 @@ body.sb-collapsed .nav-label { display: none; }
 .sel-score { margin-left: auto; text-align: right; }
 .sel-score .score-n { font-size: 30px; font-weight: 900; color: var(--cs); line-height: 1; }
 .sel-score .score-l { font-size: var(--txs); color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .5px; }
+
+/* ── CARDS SUPERVISOR ── */
+.sup-card-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); width: 100%; }
+.sup-card {
+  display: flex; flex-direction: column; gap: 3px;
+  align-items: flex-start;
+  padding: var(--s3) var(--s3);
+  border-radius: var(--rmd);
+  border: 1px solid var(--g3);
+  background: var(--wh);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all .15s;
+  text-align: left;
+}
+.sup-card:hover { border-color: var(--cs); box-shadow: var(--shsm); }
+.sup-card.active { border-color: var(--csd); background: var(--csl); box-shadow: var(--shsm); }
+.sup-card-name { font-size: var(--tsm); color: var(--g7); font-weight: 700; line-height: 1.2; }
+.sup-card-meta { font-size: var(--txs); color: var(--g5); font-weight: 600; }
+.sup-card.active .sup-card-name { color: var(--cp); }
+.sup-card.active .sup-card-meta { color: var(--cpd); }
 
 /* ── STARS ── */
 .stars { color: var(--ca); font-size: 13px; letter-spacing: 2px; }

@@ -200,7 +200,9 @@ function updateDash(){
       d1.toLocaleDateString('es-ES',opt) + ' — ' + d2.toLocaleDateString('es-ES',opt) + ' ' + d2.getFullYear();
   }
   renderSelInfo(s);
-  renderSupInfo(sup);
+  renderSupCards(s);
+  const jc=document.getElementById('jefe-card');
+  if(jc) jc.style.display = s ? '' : 'none';
   renderKPIs(s);
   renderDashboard(s);
   renderMap(s);
@@ -216,15 +218,28 @@ function renderSelInfo(s){
   '</div>';
 }
 
-function renderSupInfo(sup){
+function renderSupCards(s){
   const box=document.getElementById('sup-info-box');
-  if(!sup){box.innerHTML='';return;}
-  const turno=sup.sup?.n.includes('(M)')?'Mañana':sup.sup?.n.includes('(T)')?'Tarde':sup.sup?.n.includes('(N)')?'Noche':'—';
-  box.innerHTML = '<div class="sel-info" style="background:linear-gradient(135deg,var(--csd),var(--cs));padding:var(--s3) var(--s4);">' +
-    '<div class="sel-avatar" style="background:var(--cp);color:#fff;width:38px;height:38px;font-size:13px;">' + (sup.sup?.n.match(/^(\w)/)?.[1]||'S') + '</div>' +
-    '<div class="sel-data"><span class="sel-badge sel-badge-sup">Supervisor</span><h3 style="font-size:var(--tsm);">' + (sup.sup?.n||'—') + '</h3>' +
-      '<p style="font-size:var(--txs);">Turno ' + turno + '</p></div>' +
-  '</div>';
+  if(!s||!s.supervisores||s.supervisores.length===0||CURRENT_SECTOR_ID==='0'){box.innerHTML='';return;}
+  const cur=document.getElementById('selSup').value;
+  const cards=s.supervisores.map(function(p){
+    const turno=p.n.includes('(M)')?'Mañana':p.n.includes('(T)')?'Tarde':p.n.includes('(N)')?'Noche':'—';
+    const act=baseName(p.n)===cur?' active':'';
+    const nm=baseName(p.n).replace(/"/g,'&quot;');
+    return '<button type="button" class="sup-card' + act + '" onclick="selectSupCard(\'' + nm + '\')">' +
+      '<span class="sup-card-name">' + baseName(p.n) + '</span>' +
+      '<span class="sup-card-meta">Supervisor · Turno ' + turno + '</span>' +
+    '</button>';
+  }).join('');
+  box.innerHTML='<div class="sup-card-group">' + cards + '</div>';
+}
+
+function selectSupCard(nm){
+  const sel=document.getElementById('selSup');
+  if([...sel.options].some(o=>o.value===nm)){
+    sel.value=nm;
+    onSupChange();
+  }
 }
 
 function renderKPIs(s){
