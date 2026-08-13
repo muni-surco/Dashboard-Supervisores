@@ -33,9 +33,6 @@
         <p>Seguridad Ciudadana</p>
       </div>
     </div>
-    <button type="button" id="btn-toggle-sb" class="sb-toggle" onclick="toggleSidebar()" title="Plegar menú">
-      <i data-lucide="chevrons-left" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
-    </button>
   </div>
 
   <div class="sb-sub">Módulos</div>
@@ -44,9 +41,13 @@
     <i data-lucide="layout-dashboard" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
     <span class="nav-label">Dashboard</span>
   </div>
-  <div class="nav-item" onclick="showPanel('personal',this)">
+  <div class="nav-item hidden" onclick="showPanel('personal',this)">
     <i data-lucide="users" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
     <span class="nav-label">Gestión de Personal</span>
+  </div>
+  <div class="nav-item" onclick="showPanel('comparativa',this)">
+    <i data-lucide="scale" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    <span class="nav-label">Comparativa</span>
   </div>
 </aside>
 
@@ -171,6 +172,60 @@
         <div class="card-title">Evaluación de Rendimiento por Supervisor</div>
         <div style="overflow-x:auto;">
           <table class="tbl" id="tbl-rendimiento"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ━━━━ COMPARATIVA ━━━━ -->
+    <div class="section-panel" id="panel-comparativa">
+      <div class="section-header">
+        <h2>Comparativa</h2>
+        <p>Análisis comparado entre todos los sectores y supervisores</p>
+      </div>
+      <div class="tabs">
+        <button type="button" class="tab-btn active" onclick="switchCompTab('sectores',this)">Sectores</button>
+        <button type="button" class="tab-btn" onclick="switchCompTab('supervisores',this)">Supervisores</button>
+      </div>
+
+      <div class="comp-tab active" id="comp-sectores">
+        <div class="grid-2 mb14">
+          <div class="card">
+            <div class="card-title">Tipo de Delitos</div>
+            <div class="chart-wrap" style="height:320px;"><div id="chartCompKpis" style="width:100%;height:100%"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Tiempo de Respuesta Promedio</div>
+            <div class="chart-wrap" style="height:280px;"><div id="chartCompResp" style="width:100%;height:100%"></div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom: var(--s3);">
+          <div class="card-title">Tipos de Delito por Sector</div>
+          <div class="chart-wrap" style="height:320px;"><div id="chartCompTipos" style="width:100%;height:100%"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Tabla Comparativa — Sectores</div>
+          <div style="overflow-x:auto;">
+            <table class="tbl" id="tbl-comp-sectores"></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="comp-tab" id="comp-supervisores">
+        <div class="grid-2 mb14">
+          <div class="card">
+            <div class="card-title">Puntaje de Rendimiento por Supervisor</div>
+            <div class="chart-wrap" style="height:300px;"><div id="chartCompSups" style="width:100%;height:100%"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Asistencia por Supervisor</div>
+            <div class="chart-wrap" style="height:300px;"><div id="chartCompAst" style="width:100%;height:100%"></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Tabla Comparativa — Supervisores</div>
+          <div style="overflow-x:auto;">
+            <table class="tbl" id="tbl-comp-supervisores"></table>
+          </div>
         </div>
       </div>
     </div>

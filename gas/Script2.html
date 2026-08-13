@@ -88,7 +88,7 @@ function renderChart(id, opts){
     charts[id].render();
   }catch(e){ console.error('Error ApexCharts ['+id+']:', e); }
 }
-function resizeCharts(){ Object.keys(CHART_OPTS).forEach(function(k){ renderChart(k,CHART_OPTS[k]); }); }
+function resizeCharts(){ Object.keys(charts).forEach(function(k){ if(charts[k]) charts[k].resize(); }); }
 
 function getSectorData(){
   const v=CURRENT_SECTOR_ID;
@@ -207,6 +207,7 @@ function updateDash(){
   renderDashboard(s);
   renderMap(s);
   renderPersonal(s,sup);
+  renderComparativa();
 }
 
 function renderSelInfo(s){
@@ -467,18 +468,195 @@ function renderPersonal(s,sup){
   }).join('') + '</tbody>';
 }
 
+/* ── COMPARATIVA ── */
+function sectoresSorted(){ return SECTORES.slice().sort(function(a,b){ return String(a.id).localeCompare(String(b.id)); }); }
+
+function respStatus(v){
+  if(!(v>0))return 'rojo';
+  var vals=SECTORES.map(function(s){ return s.tasaResp; }).filter(function(x){ return x>0; }).sort(function(a,b){ return a-b; });
+  if(!vals.length)return 'rojo';
+  var lo=vals[Math.floor(vals.length/3)];
+  var hi=vals[Math.floor(2*vals.length/3)];
+  if(v<=lo)return 'verde';
+  if(v<=hi)return 'amarillo';
+  return 'rojo';
+}
+function respStatusColor(v){
+  var st=respStatus(v);
+  return st==='verde'?DS.success:st==='amarillo'?DS.warning:DS.danger;
+}
+
+function grupoSubclas(k){ var p=String(k||'').split(' - ')[0]; return p||String(k); }
+function valSubclas(s,g){ var v=0; Object.keys(s.subclas||{}).forEach(function(k){ if(grupoSubclas(k)===g)v+=s.subclas[k]; }); return v; }
+function sectorTopDelito(s){
+  var agg={};
+  Object.keys(s.subclas||{}).forEach(function(k){ var g=grupoSubclas(k); agg[g]=(agg[g]||0)+s.subclas[k]; });
+  var keys=Object.keys(agg);
+  if(!keys.length)return null;
+  var best=keys[0],max=agg[best];
+  keys.forEach(function(k){ if(agg[k]>max){ max=agg[k]; best=k; } });
+  return {name:best,val:max};
+}
+function topSubclasGlobal(n){
+  var agg={};
+  SECTORES.forEach(function(s){
+    Object.keys(s.subclas||{}).forEach(function(k){ var g=grupoSubclas(k); agg[g]=(agg[g]||0)+s.subclas[k]; });
+  });
+  return Object.keys(agg).map(function(k){ return [k,agg[k]]; }).sort(function(a,b){ return b[1]-a[1]; }).slice(0,n);
+}
+function kpiStatus(k,sec){
+  try{ return k.thr(sec); }catch(e){ return 'rojo'; }
+}
+
+function renderCompSectores(){
+  if(!SECTORES.length)return;
+  var secs=sectoresSorted();
+  var kpiDefs=[KPI_DEFS[0],KPI_DEFS[1],KPI_DEFS[2],KPI_DEFS[3],KPI_DEFS[4]];
+  var tipos=topSubclasGlobal(10);
+
+  renderChart('chartCompKpis',{
+    chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
+    series:tipos.map(function(t){ return {name:t[0],data:secs.map(function(s){ return valSubclas(s,t[0]); })}; }),
+    colors:SECTOR_COLORS,
+    plotOptions:{bar:{columnWidth:'60%',borderRadius:2}},
+    dataLabels:{enabled:false},
+    legend:{position:'bottom',fontSize:'11px'},
+    xaxis:{categories:secs.map(function(s){ return s.id; }),labels:{fontSize:11}},
+    yaxis:{labels:{fontSize:11}},
+    tooltip:{y:{formatter:function(v){ return formatNum(v); }}}
+  });
+
+  renderChart('chartCompResp',{
+    chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
+    series:[{name:'Tiempo de respuesta',data:secs.map(function(s){ return {x:s.id,y:s.tasaResp||0,fillColor:respStatusColor(s.tasaResp)}; })}],
+    dataLabels:{enabled:true,formatter:function(v){ return v>0?v:'—'; },style:{fontSize:'10px'}},
+    xaxis:{categories:secs.map(function(s){ return s.id; }),labels:{fontSize:11}},
+    yaxis:{labels:{fontSize:11}},
+    tooltip:{y:{formatter:function(v){ return v>0?v+' min':'—'; }}}
+  });
+
+  var maxT=0;
+  tipos.forEach(function(t){ secs.forEach(function(s){ var v=valSubclas(s,t[0]); if(v>maxT)maxT=v; }); });
+  var gradColors=['#EBF3FD','#A9CFF0','#5F9ED0','#1E6FAE','#005ea5'];
+  var ranges=gradColors.map(function(c,i){
+    return {from:Math.round(maxT*i/5),to:Math.round(maxT*(i+1)/5),color:c};
+  });
+  renderChart('chartCompTipos',{
+    chart:{type:'heatmap',fontFamily:APEX_FONT,foreColor:DS.g7},
+    series:tipos.map(function(t){ return {name:t[0],data:secs.map(function(s){ return {x:s.id,y:valSubclas(s,t[0])}; })}; }),
+    dataLabels:{enabled:true,style:{fontSize:'10px'}},
+    plotOptions:{heatmap:{radius:2,colorScale:{ranges:ranges}}},
+    xaxis:{categories:secs.map(function(s){ return s.id; }),labels:{fontSize:11}},
+    yaxis:{labels:{fontSize:10}},
+    tooltip:{y:{formatter:function(v){ return formatNum(v); }}}
+  });
+
+  var maxTop=0;
+  secs.forEach(function(x){ var t=sectorTopDelito(x); if(t&&t.val>maxTop)maxTop=t.val; });
+  var thead='<thead><tr><th>#</th><th>Sector</th><th>Jefe de Área</th>'+
+    '<th class="num">Incidencias</th><th class="num">Robos Frustr.</th><th class="num">Operativos</th>'+
+    '<th class="num">Coord. Vec.</th><th class="num">Capturas</th><th class="num">T. Respuesta</th><th>Top Delito</th></tr></thead>';
+  var tbody='<tbody>'+secs.map(function(s,idx){
+    var st=kpiDefs.map(function(k){ return kpiStatus(k,s); });
+    var top=sectorTopDelito(s);
+    var topCell=top?('<div class="mini-row"><span class="mini-lbl" title="'+top.name+'">'+top.name+'</span>'+
+      '<div class="mini-track"><div class="mini-fill" style="width:'+Math.round(top.val/maxTop*100)+'%"></div></div>'+
+      '<span class="mini-val">'+formatNum(top.val)+'</span></div>'):'—';
+    return '<tr><td>'+(idx+1)+'</td><td><strong>'+s.id+'</strong></td><td>'+s.nombre+'</td>'+
+      '<td class="num st-'+st[0]+'">'+formatNum(s.incTotal)+'</td>'+
+      '<td class="num st-'+st[1]+'">'+formatNum(s.robosFrustrados)+'</td>'+
+      '<td class="num st-'+st[2]+'">'+formatNum(s.operativosCount)+'</td>'+
+      '<td class="num st-'+st[3]+'">'+formatNum(s.coordVecinales)+'</td>'+
+      '<td class="num st-'+st[4]+'">'+formatNum(s.capturas)+'</td>'+
+      '<td class="num st-'+respStatus(s.tasaResp)+'">'+(s.tasaResp>0?s.tasaResp.toFixed(1)+' min':'—')+'</td>'+
+      '<td>'+topCell+'</td></tr>';
+  }).join('')+'</tbody>';
+  document.getElementById('tbl-comp-sectores').innerHTML=thead+tbody;
+}
+
+function supervisorRows(){
+  var rows=[];
+  SECTORES.forEach(function(s){
+    (s.rendimiento||[]).forEach(function(r){
+      var astEntry=(s.supervisores||[]).find(function(p){ return baseName(p.n)===baseName(r.sup); });
+      rows.push({sup:baseName(r.sup),sec:s.id,turno:letterFromName(r.sup),ast:astEntry?astEntry.ast:null,
+        rutas:r.rutas,reportes:r.reportes,actitud:r.actitud,total:r.total});
+    });
+  });
+  rows.sort(function(a,b){ return b.total-a.total; });
+  return rows;
+}
+function turnoLabel(t){ return t==='M'?'Mañana':t==='T'?'Tarde':t==='N'?'Noche':'—'; }
+function rendCls(v){ return v>=90?'verde':v>=75?'amarillo':'rojo'; }
+function astCls(v){ return v>=95?'verde':v>=85?'amarillo':'rojo'; }
+
+function renderCompSupervisores(){
+  var rows=supervisorRows();
+  if(!rows.length)return;
+
+  renderChart('chartCompSups',{
+    chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
+    series:[{name:'Puntaje total',data:rows.map(function(r){ var st=rendCls(r.total); return {x:r.sup,y:r.total,fillColor:st==='verde'?DS.success:st==='amarillo'?DS.warning:DS.danger}; })}],
+    dataLabels:{enabled:true,formatter:function(v){ return v; },style:{fontSize:'10px'}},
+    plotOptions:{bar:{columnWidth:'60%',borderRadius:2}},
+    xaxis:{labels:{fontSize:10,rotate:-30}},
+    yaxis:{min:50,max:100,labels:{fontSize:11}},
+    tooltip:{y:{formatter:function(v){ return v; }}}
+  });
+
+  renderChart('chartCompAst',{
+    chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
+    series:[{name:'Asistencia %',data:rows.map(function(r){ var st=astCls(r.ast); return {x:r.sup,y:r.ast||0,fillColor:st==='verde'?DS.success:st==='amarillo'?DS.warning:DS.danger}; })}],
+    dataLabels:{enabled:true,formatter:function(v){ return v; },style:{fontSize:'10px'}},
+    plotOptions:{bar:{columnWidth:'60%',borderRadius:2}},
+    xaxis:{labels:{fontSize:10,rotate:-30}},
+    yaxis:{min:50,max:100,labels:{fontSize:11}},
+    tooltip:{y:{formatter:function(v){ return v+'%'; }}}
+  });
+
+  var thead='<thead><tr><th>Supervisor</th><th>Sector</th><th>Turno</th>'+
+    '<th class="num">Asistencia</th><th class="num">Rutas %</th><th class="num">Reportes %</th><th class="num">Actitud</th>'+
+    '<th class="num">Puntaje</th><th>Semáforo</th></tr></thead>';
+  var tbody='<tbody>'+rows.map(function(r){
+    var rc=rendCls(r.total),ac=astCls(r.ast);
+    return '<tr><td><strong>'+r.sup+'</strong></td><td>'+r.sec+'</td><td>'+turnoLabel(r.turno)+'</td>'+
+      '<td class="num st-'+ac+'">'+(r.ast!=null?r.ast+'%':'—')+'</td>'+
+      '<td class="num">'+r.rutas+'</td><td class="num">'+r.reportes+'</td><td class="num">'+r.actitud+'</td>'+
+      '<td class="num st-'+rc+'"><strong>'+r.total+'</strong></td>'+
+      '<td><span class="status-badge '+rc+'"><span class="dot '+rc+'"></span>'+statusLabel(rc)[1]+'</span></td></tr>';
+  }).join('')+'</tbody>';
+  document.getElementById('tbl-comp-supervisores').innerHTML=thead+tbody;
+}
+
+function switchCompTab(tab, el){
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  document.querySelectorAll('.comp-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('comp-'+tab).classList.add('active');
+  renderComparativa();
+  setTimeout(resizeCharts,50);
+}
+function renderComparativa(){
+  var panel=document.getElementById('panel-comparativa');
+  if(!panel||!panel.classList.contains('active'))return;
+  var secciones=document.getElementById('comp-sectores');
+  if(secciones&&secciones.classList.contains('active')){
+    renderCompSectores();
+  }else{
+    renderCompSupervisores();
+  }
+}
+
 function showPanel(id,el){
   document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   el.classList.add('active');
+  var esComp = id==='comparativa';
+  document.getElementById('btn-sector-selector').classList.toggle('hidden', esComp);
+  document.getElementById('selSup').classList.toggle('hidden', esComp);
   if(id==='dashboard'&&mapInstance)mapInstance.invalidateSize();
-  setTimeout(resizeCharts,50);
-}
-
-function toggleSidebar(){
-  document.body.classList.toggle('sb-collapsed');
-  if(mapInstance)mapInstance.invalidateSize();
+  if(id==='comparativa')renderComparativa();
   setTimeout(resizeCharts,50);
 }
 

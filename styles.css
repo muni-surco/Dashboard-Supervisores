@@ -358,3 +358,19 @@ body {
 .status-badge.verde   { background: var(--cokl); color: #1a7a45; }
 .status-badge.amarillo{ background: var(--cwl);  color: #9C6800; }
 .status-badge.rojo    { background: var(--cdl);  color: #b52020; }
+
+/* ── COMPARATIVA ── */
+.tabs { display: flex; gap: 8px; margin-bottom: var(--s3); border-bottom: 1px solid var(--g3); padding-bottom: 10px; }
+.tab-btn { background: transparent; border: none; color: var(--g5); font: inherit; font-size: var(--txs); padding: 8px 16px; cursor: pointer; border-radius: var(--rmd) var(--rmd) 0 0; border-bottom: 2px solid transparent; transition: color .15s; }
+.tab-btn.active { color: var(--cp); border-bottom-color: var(--cp); font-weight: 700; }
+.comp-tab { display: none; }
+.comp-tab.active { display: block; }
+.mini-row { display: flex; align-items: center; gap: 8px; min-width: 150px; }
+.mini-lbl { font-size: 11px; color: var(--g7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+.mini-track { flex: 1; height: 6px; background: var(--g3); border-radius: 99px; overflow: hidden; }
+.mini-fill { height: 100%; background: var(--cp); border-radius: 99px; }
+.mini-val { font-size: 11px; color: var(--g7); font-weight: 600; min-width: 34px; text-align: right; }
+.tbl th.num, .tbl td.num { text-align: right; }
+.st-verde { color: var(--cok); font-weight: 600; }
+.st-amarillo { color: var(--cw); font-weight: 600; }
+.st-rojo { color: var(--cd); font-weight: 600; }

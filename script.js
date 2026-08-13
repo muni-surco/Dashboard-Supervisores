@@ -228,6 +228,7 @@ function updateDash(){
   renderResumen(s);
   renderSeguridad(s);
   renderPersonal(s,sup);
+  renderComparativa();
   renderRanking();
 }
 
@@ -394,11 +395,184 @@ function renderCoordinacion(s){
   document.getElementById('comisarias-tags').innerHTML=comis.map(c=>`<span class="coord-tag">${c}</span>`).join('');
 }
 
+/* ── COMPARATIVA ── */
+function fmtNum(v){ return (v===null||v===undefined)?'—':v.toLocaleString('en-US'); }
+function sectoresSorted(){ return SECTORES.slice().sort(function(a,b){ return String(a.id).localeCompare(String(b.id)); }); }
+
+function respStatus(v){
+  if(!(v>0))return 'rojo';
+  var vals=SECTORES.map(function(s){ return s.tasaResp; }).filter(function(x){ return x>0; }).sort(function(a,b){ return a-b; });
+  if(!vals.length)return 'rojo';
+  var lo=vals[Math.floor(vals.length/3)];
+  var hi=vals[Math.floor(2*vals.length/3)];
+  if(v<=lo)return 'verde';
+  if(v<=hi)return 'amarillo';
+  return 'rojo';
+}
+function respStatusColor(v){
+  var st=respStatus(v);
+  return st==='verde'?DS.success:st==='amarillo'?DS.warning:DS.danger;
+}
+
+function grupoTipo(k){ var p=String(k||'').split(' - ')[0]; return p||String(k); }
+function valTipoDelito(s,g){ var v=0; Object.keys(s.tiposDelito||{}).forEach(function(k){ if(grupoTipo(k)===g)v+=s.tiposDelito[k]; }); return v; }
+function sectorTopDelito(s){
+  var agg={};
+  Object.keys(s.tiposDelito||{}).forEach(function(k){ var g=grupoTipo(k); agg[g]=(agg[g]||0)+s.tiposDelito[k]; });
+  var keys=Object.keys(agg);
+  if(!keys.length)return null;
+  var best=keys[0],max=agg[best];
+  keys.forEach(function(k){ if(agg[k]>max){ max=agg[k]; best=k; } });
+  return {name:best,val:max};
+}
+function topDelitosGlobal(n){
+  var agg={};
+  SECTORES.forEach(function(s){
+    Object.keys(s.tiposDelito||{}).forEach(function(k){ var g=grupoTipo(k); agg[g]=(agg[g]||0)+s.tiposDelito[k]; });
+  });
+  return Object.keys(agg).map(function(k){ return [k,agg[k]]; }).sort(function(a,b){ return b[1]-a[1]; }).slice(0,n);
+}
+function kpiStatus(k,sec){
+  try{ return k.thr(sec); }catch(e){ return 'rojo'; }
+}
+
+function renderCompSectores(){
+  if(!SECTORES.length)return;
+  var secs=sectoresSorted();
+  var kpiDefs=KPI_DEFS.slice(0,5);
+  var tipos=topDelitosGlobal(10);
+
+  destroyChart('compKpis');
+  charts['compKpis']=new Chart(document.getElementById('chartCompKpis'),{
+    type:'bar',
+    data:{labels:secs.map(function(s){ return s.id; }),
+      datasets:tipos.map(function(t,i){ return {label:t[0],data:secs.map(function(s){ return valTipoDelito(s,t[0]); }),backgroundColor:SECTOR_COLORS[i%SECTOR_COLORS.length],borderRadius:4}; }),},
+    options:{...chartDefaults(),plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+      scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+  });
+
+  destroyChart('compResp');
+  charts['compResp']=new Chart(document.getElementById('chartCompResp'),{
+    type:'bar',
+    data:{labels:secs.map(function(s){ return s.id; }),
+      datasets:[{label:'Tiempo de respuesta (min)',data:secs.map(function(s){ return s.tasaResp||0; }),
+        backgroundColor:secs.map(function(s){ return respStatusColor(s.tasaResp); }),borderRadius:4}]},
+    options:{...chartDefaults(),
+      scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+  });
+
+  destroyChart('compTipos');
+  charts['compTipos']=new Chart(document.getElementById('chartCompTipos'),{
+    type:'bar',
+    data:{labels:secs.map(function(s){ return s.id; }),
+      datasets:tipos.map(function(t,i){ return {label:t[0],data:secs.map(function(s){ return valTipoDelito(s,t[0]); }),backgroundColor:SECTOR_COLORS[i%SECTOR_COLORS.length],borderRadius:3}; }),},
+    options:{...chartDefaults(),plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,font:{size:10}}}},
+      scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+  });
+
+  var maxTop=0;
+  secs.forEach(function(x){ var t=sectorTopDelito(x); if(t&&t.val>maxTop)maxTop=t.val; });
+  var thead='<thead><tr><th>#</th><th>Sector</th><th>Jefe de Área</th>'+
+    '<th class="num">Incidencias</th><th class="num">Robos Frustr.</th><th class="num">Operativos</th>'+
+    '<th class="num">Coord. Vec.</th><th class="num">Capturas</th><th class="num">T. Respuesta</th><th>Top Delito</th></tr></thead>';
+  var tbody='<tbody>'+secs.map(function(s,idx){
+    var st=kpiDefs.map(function(k){ return kpiStatus(k,s); });
+    var top=sectorTopDelito(s);
+    var topCell=top?('<div class="mini-row"><span class="mini-lbl" title="'+top.name+'">'+top.name+'</span>'+
+      '<div class="mini-track"><div class="mini-fill" style="width:'+Math.round(top.val/maxTop*100)+'%"></div></div>'+
+      '<span class="mini-val">'+fmtNum(top.val)+'</span></div>'):'—';
+    return '<tr><td>'+(idx+1)+'</td><td><strong>'+s.id+'</strong></td><td>'+s.nombre+'</td>'+
+      '<td class="num st-'+st[0]+'">'+fmtNum(s.incTotal)+'</td>'+
+      '<td class="num st-'+st[1]+'">'+fmtNum(s.robosFrustrados)+'</td>'+
+      '<td class="num st-'+st[2]+'">'+fmtNum(s.operativosCount)+'</td>'+
+      '<td class="num st-'+st[3]+'">'+fmtNum(s.coordVecinales)+'</td>'+
+      '<td class="num st-'+st[4]+'">'+fmtNum(s.capturas)+'</td>'+
+      '<td class="num st-'+respStatus(s.tasaResp)+'">'+(s.tasaResp>0?s.tasaResp.toFixed(1)+' min':'—')+'</td>'+
+      '<td>'+topCell+'</td></tr>';
+  }).join('')+'</tbody>';
+  document.getElementById('tbl-comp-sectores').innerHTML=thead+tbody;
+}
+
+function supervisorRows(){
+  var rows=[];
+  SECTORES.forEach(function(s){
+    (s.rendimiento||[]).forEach(function(r){
+      var astEntry=(s.supervisores||[]).find(function(p){ return baseName(p.n)===baseName(r.sup); });
+      rows.push({sup:baseName(r.sup),sec:s.id,turno:letterFromName(r.sup),ast:astEntry?astEntry.ast:null,
+        rutas:r.rutas,reportes:r.reportes,actitud:r.actitud,total:r.total});
+    });
+  });
+  rows.sort(function(a,b){ return b.total-a.total; });
+  return rows;
+}
+function turnoLabel(t){ return t==='M'?'Mañana':t==='T'?'Tarde':t==='N'?'Noche':'—'; }
+function rendCls(v){ return v>=90?'verde':v>=75?'amarillo':'rojo'; }
+function astCls(v){ return v>=95?'verde':v>=85?'amarillo':'rojo'; }
+
+function renderCompSupervisores(){
+  var rows=supervisorRows();
+  if(!rows.length)return;
+
+  destroyChart('compSups');
+  charts['compSups']=new Chart(document.getElementById('chartCompSups'),{
+    type:'bar',
+    data:{labels:rows.map(function(r){ return r.sup; }),
+      datasets:[{label:'Puntaje total',data:rows.map(function(r){ return r.total; }),
+        backgroundColor:rows.map(function(r){ var st=rendCls(r.total); return st==='verde'?DS.success:st==='amarillo'?DS.warning:DS.danger; }),borderRadius:4}]},
+    options:{...chartDefaults(),
+      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45,minRotation:0}},
+        y:{min:50,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+  });
+
+  destroyChart('compAst');
+  charts['compAst']=new Chart(document.getElementById('chartCompAst'),{
+    type:'bar',
+    data:{labels:rows.map(function(r){ return r.sup; }),
+      datasets:[{label:'Asistencia %',data:rows.map(function(r){ return r.ast||0; }),
+        backgroundColor:rows.map(function(r){ var st=astCls(r.ast); return st==='verde'?DS.success:st==='amarillo'?DS.warning:DS.danger; }),borderRadius:4}]},
+    options:{...chartDefaults(),
+      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45,minRotation:0}},
+        y:{min:50,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+  });
+
+  var thead='<thead><tr><th>Supervisor</th><th>Sector</th><th>Turno</th>'+
+    '<th class="num">Asistencia</th><th class="num">Rutas %</th><th class="num">Reportes %</th><th class="num">Actitud</th>'+
+    '<th class="num">Puntaje</th><th>Semáforo</th></tr></thead>';
+  var tbody='<tbody>'+rows.map(function(r){
+    var rc=rendCls(r.total),ac=astCls(r.ast);
+    return '<tr><td><strong>'+r.sup+'</strong></td><td>'+r.sec+'</td><td>'+turnoLabel(r.turno)+'</td>'+
+      '<td class="num st-'+ac+'">'+(r.ast!=null?r.ast+'%':'—')+'</td>'+
+      '<td class="num">'+r.rutas+'</td><td class="num">'+r.reportes+'</td><td class="num">'+r.actitud+'</td>'+
+      '<td class="num st-'+rc+'"><strong>'+r.total+'</strong></td>'+
+      '<td><span class="status-badge '+rc+'"><span class="dot '+rc+'"></span>'+statusLabel(rc)[1]+'</span></td></tr>';
+  }).join('')+'</tbody>';
+  document.getElementById('tbl-comp-supervisores').innerHTML=thead+tbody;
+}
+
+function switchCompTab(tab, el){
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  document.querySelectorAll('.comp-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('comp-'+tab).classList.add('active');
+  renderComparativa();
+}
+function renderComparativa(){
+  var panel=document.getElementById('panel-comparativa');
+  if(!panel||!panel.classList.contains('active'))return;
+  var secciones=document.getElementById('comp-sectores');
+  if(secciones&&secciones.classList.contains('active')){
+    renderCompSectores();
+  }else{
+    renderCompSupervisores();
+  }
+}
+
 function showPanel(id,el){
   document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   el.classList.add('active');
+  if(id==='comparativa')renderComparativa();
 }
 
 function normalizarSector(raw){
