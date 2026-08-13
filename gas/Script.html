@@ -197,7 +197,8 @@ function renderSelInfo(s){
   if(!s){box.innerHTML='';return;}
   box.innerHTML = '<div class="sel-info">' +
     '<div class="sel-avatar">' + s.initials + '</div>' +
-    '<div class="sel-data"><span class="sel-badge">Jefe de Área</span><h3>' + s.nombre + '</h3><p>' + s.sector + '</p></div>' +
+    '<div class="sel-data"><span class="sel-badge">Jefe de Área</span><h3>' + s.nombre + '</h3></div>' +
+    '<div class="sel-sector"><span class="sel-sector-label">Sector</span><span class="sel-sector-num">' + s.id + '</span></div>' +
   '</div>';
 }
 
@@ -210,8 +211,9 @@ function renderSupCards(s){
     const act=baseName(p.n)===cur?' active':'';
     const nm=baseName(p.n).replace(/"/g,'&quot;');
     return '<button type="button" class="sup-card' + act + '" onclick="selectSupCard(\'' + nm + '\')">' +
+      '<span class="sup-badge">Supervisor</span>' +
       '<span class="sup-card-name">' + baseName(p.n) + '</span>' +
-      '<span class="sup-card-meta">Supervisor · Turno ' + turno + '</span>' +
+      '<span class="sup-card-meta">Turno ' + turno + '</span>' +
     '</button>';
   }).join('');
   box.innerHTML='<div class="sup-card-group">' + cards + '</div>';
