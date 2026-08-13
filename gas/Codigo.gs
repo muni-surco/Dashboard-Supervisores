@@ -87,6 +87,44 @@ function getSupervisoresData() {
   }
 }
 
+function getSupervisoresDetalle() {
+  const SUP_SPREADSHEET_ID = "1aGLYGiowhtvIzioo5zZF3rl-fnP6kBUg0ecYXrJr1-g";
+  try {
+    var supSs = SpreadsheetApp.openById(SUP_SPREADSHEET_ID);
+    var supSheet = supSs.getSheetByName("2026");
+    if (!supSheet) return [];
+    var allRows = supSheet.getDataRange().getValues();
+    if (allRows.length <= 1) return [];
+    var headers = allRows[0].map(function(h) { return String(h).trim().toUpperCase(); });
+    var sSector = headers.indexOf("SECTOR");
+    var sTurno = headers.indexOf("TURNO");
+    var sSupervisor = headers.indexOf("SUPERVISOR");
+    var sPartes = headers.indexOf("CANTPARTES");
+    if (sSector < 0 || sSupervisor < 0) return [];
+    var agg = {};
+    for (var si = 1; si < allRows.length; si++) {
+      var sr = allRows[si];
+      var sector = String(sr[sSector]).toLowerCase().replace("sector","").trim().toUpperCase();
+      var turno = sTurno >= 0 ? String(sr[sTurno]).trim().toUpperCase() : "";
+      var supName = sSupervisor >= 0 ? String(sr[sSupervisor]).trim() : "";
+      var partes = sPartes >= 0 ? (parseInt(sr[sPartes]) || 0) : 0;
+      if (!sector || !supName) continue;
+      var letter = turno.indexOf("M") !== -1 ? "M" : turno.indexOf("T") !== -1 ? "T" : turno.indexOf("N") !== -1 ? "N" : null;
+      if (!letter) continue;
+      var key = sector + "|" + letter + "|" + supName;
+      agg[key] = (agg[key] || 0) + partes;
+    }
+    var out = [];
+    Object.keys(agg).forEach(function(key) {
+      var parts = key.split("|");
+      out.push({ sector: parts[0], turno: parts[1], supervisor: parts[2], partes: agg[key] });
+    });
+    return out;
+  } catch (error) {
+    return [];
+  }
+}
+
 function getAllData() {
   try {
     var jefes = getJefes();

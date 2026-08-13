@@ -74,6 +74,17 @@ function buildSupervisoresFromSheet(rows){
   return map;
 }
 
+function sheetMapToTurnos(map){
+  const out=[];
+  Object.keys(map||{}).forEach(function(key){
+    const d=map[key];
+    Object.keys(d.supervisores||{}).forEach(function(nm){
+      out.push({sector:normalizeSecId(d.sector),turno:d.turno,supervisor:nm,partes:d.supervisores[nm]});
+    });
+  });
+  return out;
+}
+
 function sheetMapToSupervisorRows(map){
   const supervisores = [];
   Object.keys(map || {}).forEach(function(key){
@@ -109,10 +120,12 @@ let SECTORES = [];
 let CACHED_INCIDENCIAS = [];
 let CACHED_JEFES = {};
 let CACHED_SUPERVISORS = [];
+let CACHED_TURNOS = [];
+let CACHED_FRANJAS_FULL = {};
 
 function kpiVal(d,k){ return k.val?k.val(d):d[k.key]; }
 const KPI_DEFS = [
-  {key:'incDelictivas',label:'Incidencias Delictivas',unit:'',meta:'—',
+  {key:'incDelictivas',label:'Incidencias Atendidas',unit:'',meta:'—',
    val:d=>d.incDelictivas,thr:d=>d.incDelictivas<=25?'verde':d.incDelictivas<=35?'amarillo':'rojo'},
   {key:'robosFrustrados',label:'Robos Frustrados',unit:'',meta:'—',
    val:d=>d.robosFrustrados,thr:d=>d.robosFrustrados>=6?'verde':d.robosFrustrados>=4?'amarillo':'rojo'},
@@ -272,12 +285,22 @@ function renderKPIs(s){
     const v=SECTORES.map(x=>k.thr(x));
     return v.some(x=>x==='rojo')?'rojo':v.some(x=>x==='amarillo')?'amarillo':'verde';
   };
+  var curSup = document.getElementById('selSup') ? document.getElementById('selSup').value : '0';
+  var supRow = null;
+  if(curSup && curSup !== '0' && s){
+    var sRows = supervisorRows();
+    supRow = sRows.find(function(r){ return r.sup === curSup && r.sec === s.id; });
+    if(!supRow) supRow = sRows.find(function(r){ return r.sup === curSup; });
+  }
   row.innerHTML=KPI_DEFS.map(k=>{
-    const v=s?kpiVal(s,k):aggK(k);
+    var v=s?kpiVal(s,k):aggK(k);
+    if(k.key === 'incDelictivas' && supRow){
+      v = supRow.inc;
+    }
     const st=avgSt(k),[cls,lbl]=statusLabel(st);
     return `<div class="kpi-card ${cls}">
       <div class="kpi-lbl">${k.label}</div>
-      <div class="kpi-val">${v}${k.unit}</div>
+      <div class="kpi-val">${fmtNum?fmtNum(v):v}${k.unit}</div>
       <div class="kpi-tgt">${k.meta}</div>
       <div class="kpi-pill ${cls}"><span class="dot ${cls}"></span>${lbl}</div>
     </div>`;
@@ -312,10 +335,29 @@ function renderSeguridad(s){
   const d=s||{};
   const sum=k=>SECTORES.reduce((a,x)=>a+(x[k]||0),0);
   const avg=k=>Math.round(SECTORES.reduce((a,x)=>a+(x[k]||0),0)/SECTORES.length*10)/10;
-  document.getElementById('s-incidentes').textContent=s?d.incTotal:sum('incTotal');
-  document.getElementById('s-frustrados').textContent=s?d.frustrados:sum('frustrados');
+  var curSup = document.getElementById('selSup') ? document.getElementById('selSup').value : '0';
+  var sr = null;
+  if(curSup && curSup !== '0' && s){
+    var sRows = supervisorRows();
+    sr = sRows.find(function(r){ return r.sup === curSup && r.sec === s.id; });
+    if(!sr) sr = sRows.find(function(r){ return r.sup === curSup; });
+  }
+  var supInc = sr ? sr.inc : null;
+  document.getElementById('s-incidentes').textContent=supInc!==null?fmtNum(supInc):(s?fmtNum(d.incTotal):fmtNum(sum('incTotal')));
+  document.getElementById('s-frustrados').textContent=s?fmtNum(d.frustrados):fmtNum(sum('frustrados'));
   document.getElementById('s-respuesta').textContent=s?d.tasaResp?d.tasaResp+' min':'—':avg('tasaResp')?avg('tasaResp').toFixed(1)+' min':'—';
-  const franData=s?d.franjas:SECTORES[0].franjas.map((f,i)=>({...f,v:Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))}));
+  let franData=s?JSON.parse(JSON.stringify(d.franjas)):SECTORES[0].franjas.map((f,i)=>({...f,v:Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))}));
+  if(sr && sr.turnos && sr.turnos.length > 0){
+    franData = franData.map(function(f){
+      var letter = f.l.indexOf('06–12') !== -1 || f.l.indexOf('Mañana') !== -1 ? 'M' :
+                   f.l.indexOf('12–18') !== -1 || f.l.indexOf('Tarde') !== -1 ? 'T' :
+                   f.l.indexOf('18–24') !== -1 || f.l.indexOf('Noche') !== -1 ? 'N' : null;
+      if(letter && sr.turnos.indexOf(letter) === -1){
+        return Object.assign({}, f, { v: 0 });
+      }
+      return f;
+    });
+  }
   document.getElementById('franja-chart').innerHTML=franData.map(f=>{
     const maxVal=Math.max(...franData.map(fd=>fd.v))||1;
     const w=Math.round((f.v/maxVal)*90)+10;
@@ -493,58 +535,134 @@ function renderCompSectores(){
   document.getElementById('tbl-comp-sectores').innerHTML=thead+tbody;
 }
 
+function turnosSupervisor(secId, name){
+  var total=0;
+  (CACHED_TURNOS||[]).forEach(function(t){
+    if(t.sector===secId&&t.supervisor===name)total+=t.partes;
+  });
+  return total;
+}
+function franjasTurnosFull(incidencias, fStart, fEnd){
+  var fr={};
+  incidencias.forEach(function(row){
+    var secId=normalizarSector(row.sector);
+    if(!fr[secId])fr[secId]={M:0,T:0,N:0,O:0};
+    if(fStart||fEnd){
+      var fd=row.fecha_apertura?new Date(row.fecha_apertura):null;
+      if(fd&&!isNaN(fd)){
+        if(fStart&&fd<new Date(fStart+'T00:00:00'))return;
+        if(fEnd&&fd>new Date(fEnd+'T23:59:59'))return;
+      }
+    }
+    var f=clasificarFranja(row.turno);
+    if(f==='06–12h')fr[secId].M++;
+    else if(f==='12–18h')fr[secId].T++;
+    else if(f==='18–24h')fr[secId].N++;
+    else fr[secId].O++;
+  });
+  return fr;
+}
+function franjaIncFull(s, lt){
+  var full=CACHED_FRANJAS_FULL&&CACHED_FRANJAS_FULL[s.id];
+  if(full&&lt)return full[lt]||0;
+  return franjaInc(s, lt);
+}
 function supervisorRows(){
-  var rows=[];
+  var map={};
   SECTORES.forEach(function(s){
     (s.rendimiento||[]).forEach(function(r){
       var astEntry=(s.supervisores||[]).find(function(p){ return baseName(p.n)===baseName(r.sup); });
-      rows.push({sup:baseName(r.sup),sec:s.id,turno:letterFromName(r.sup),ast:astEntry?astEntry.ast:null,
-        rutas:r.rutas,reportes:r.reportes,actitud:r.actitud,total:r.total});
+      var nm=baseName(r.sup);
+      var key=s.id+'|'+nm;
+      var partes=turnosSupervisor(s.id,nm);
+      if(!map[key])map[key]={sup:nm,sec:s.id,turnos:[],turno:'—',inc:0,partes:partes,ratio:0,ast:astEntry?astEntry.ast:null,
+        rutas:r.rutas,reportes:r.reportes,actitud:r.actitud,total:r.total};
+      var lt=letterFromName(r.sup);
+      if(lt&&map[key].turnos.indexOf(lt)===-1){map[key].turnos.push(lt);map[key].inc+=franjaIncFull(s,lt);}
+      if(partes>map[key].partes)map[key].partes=partes;
     });
   });
-  rows.sort(function(a,b){ return b.total-a.total; });
+  var rows=[];
+  Object.keys(map).forEach(function(k){ var r=map[k]; r.turno=r.turnos.map(turnoLabel).join('/')||'—'; r.ratio=r.partes>0?Math.round(r.inc/r.partes):0; rows.push(r); });
+  rows.sort(function(a,b){ return String(a.sec).localeCompare(String(b.sec)) || String(a.sup).localeCompare(String(b.sup)); });
   return rows;
 }
 function turnoLabel(t){ return t==='M'?'Mañana':t==='T'?'Tarde':t==='N'?'Noche':'—'; }
+function franjaInc(s, turno){
+  if(!s||!s.franjas||!s.franjas.length||!turno)return 0;
+  var L=turno==='M'?'Mañana':turno==='T'?'Tarde':turno==='N'?'Noche':null;
+  var f=L?s.franjas.find(function(x){ return x.l===L; }):null;
+  if(f)return f.v;
+  var R=turno==='M'?'06–12h':turno==='T'?'12–18h':turno==='N'?'18–24h':null;
+  f=R?s.franjas.find(function(x){ return x.l===R; }):null;
+  return f?f.v:0;
+}
 function rendCls(v){ return v>=90?'verde':v>=75?'amarillo':'rojo'; }
 function astCls(v){ return v>=95?'verde':v>=85?'amarillo':'rojo'; }
 
 function renderCompSupervisores(){
   var rows=supervisorRows();
   if(!rows.length)return;
+  var kpiDefs=KPI_DEFS.slice(0,5);
+  var tipos=topDelitosGlobal(10);
+  function totDelitos(s){ var v=0; tipos.forEach(function(t){ v+=s?valTipoDelito(s,t[0]):0; }); return v; }
+  var delitosRows=rows.slice().sort(function(a,b){
+    var as=SECTORES.find(function(x){ return x.id===a.sec; });
+    var bs=SECTORES.find(function(x){ return x.id===b.sec; });
+    return totDelitos(bs)-totDelitos(as);
+  });
+  var incRows=rows.slice().sort(function(a,b){ return b.inc-a.inc; });
 
   destroyChart('compSups');
   charts['compSups']=new Chart(document.getElementById('chartCompSups'),{
     type:'bar',
-    data:{labels:rows.map(function(r){ return r.sup; }),
-      datasets:[{label:'Puntaje total',data:rows.map(function(r){ return r.total; }),
-        backgroundColor:rows.map(function(r){ var st=rendCls(r.total); return st==='verde'?DS.success:st==='amarillo'?DS.warning:DS.danger; }),borderRadius:4}]},
-    options:{...chartDefaults(),
-      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45,minRotation:0}},
-        y:{min:50,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+    data:{labels:delitosRows.map(function(r){ return r.sup+' ('+r.sec+')'; }),
+      datasets:tipos.map(function(t,i){ return {label:t[0],data:delitosRows.map(function(r){ var s=SECTORES.find(function(x){ return x.id===r.sec; }); return s?valTipoDelito(s,t[0]):0; }),backgroundColor:SECTOR_COLORS[i%SECTOR_COLORS.length],borderRadius:3}; }),},
+    options:{...chartDefaults(),plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10},maxRotation:45,minRotation:0}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
 
   destroyChart('compAst');
   charts['compAst']=new Chart(document.getElementById('chartCompAst'),{
     type:'bar',
-    data:{labels:rows.map(function(r){ return r.sup; }),
-      datasets:[{label:'Asistencia %',data:rows.map(function(r){ return r.ast||0; }),
-        backgroundColor:rows.map(function(r){ var st=astCls(r.ast); return st==='verde'?DS.success:st==='amarillo'?DS.warning:DS.danger; }),borderRadius:4}]},
+    data:{labels:incRows.map(function(r){ return r.sup+' ('+r.sec+')'; }),
+      datasets:[{label:'Incidencias',data:incRows.map(function(r){ return r.inc; }),backgroundColor:DS.primary,borderRadius:4}]},
     options:{...chartDefaults(),
-      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45,minRotation:0}},
-        y:{min:50,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45,minRotation:0}},y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
 
-  var thead='<thead><tr><th>Supervisor</th><th>Sector</th><th>Turno</th>'+
-    '<th class="num">Asistencia</th><th class="num">Rutas %</th><th class="num">Reportes %</th><th class="num">Actitud</th>'+
-    '<th class="num">Puntaje</th><th>Semáforo</th></tr></thead>';
-  var tbody='<tbody>'+rows.map(function(r){
-    var rc=rendCls(r.total),ac=astCls(r.ast);
-    return '<tr><td><strong>'+r.sup+'</strong></td><td>'+r.sec+'</td><td>'+turnoLabel(r.turno)+'</td>'+
-      '<td class="num st-'+ac+'">'+(r.ast!=null?r.ast+'%':'—')+'</td>'+
-      '<td class="num">'+r.rutas+'</td><td class="num">'+r.reportes+'</td><td class="num">'+r.actitud+'</td>'+
-      '<td class="num st-'+rc+'"><strong>'+r.total+'</strong></td>'+
-      '<td><span class="status-badge '+rc+'"><span class="dot '+rc+'"></span>'+statusLabel(rc)[1]+'</span></td></tr>';
+  var scatterRows=rows.filter(function(r){ return r.partes>0; });
+  destroyChart('compTurnos');
+  charts['compTurnos']=new Chart(document.getElementById('chartCompTurnos'),{
+    type:'scatter',
+    data:{datasets:[{label:'Supervisores',data:scatterRows.map(function(r){ return {x:r.partes,y:r.inc,sup:r.sup,sec:r.sec,ratio:r.ratio}; }),backgroundColor:DS.primary,pointRadius:5}]},
+    options:{...chartDefaults(),
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){ var d=c.raw; return d.sup+' ('+d.sec+'): '+d.partes+' turnos · '+fmtNum(d.inc)+' incidencias · '+fmtNum(d.ratio)+' por turno'; }}}},
+      scales:{x:{title:{display:true,text:'Turnos trabajados'},grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:10}}},y:{title:{display:true,text:'Incidencias'},beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
+  });
+
+  var maxTop=0;
+  rows.forEach(function(r){ var s=SECTORES.find(function(x){ return x.id===r.sec; }); var t=s?sectorTopDelito(s):null; if(t&&t.val>maxTop)maxTop=t.val; });
+  var thead='<thead><tr><th>#</th><th>Supervisor</th><th>Sector</th><th>Turno</th>'+
+    '<th class="num">Incidencias</th><th class="num">Turnos</th><th class="num">Inc/Turno</th>'+
+    '<th class="num">Robos Frustr.</th><th class="num">Operativos</th>'+
+    '<th class="num">T. Respuesta</th><th>Top Delito</th></tr></thead>';
+  var tbody='<tbody>'+rows.map(function(r,idx){
+    var s=SECTORES.find(function(x){ return x.id===r.sec; });
+    if(!s)return '';
+    var st=kpiDefs.map(function(k){ return kpiStatus(k,s); });
+    var top=sectorTopDelito(s);
+    var topCell=top?('<div class="mini-row"><span class="mini-lbl" title="'+top.name+'">'+top.name+'</span>'+
+      '<div class="mini-track"><div class="mini-fill" style="width:'+Math.round(top.val/maxTop*100)+'%"></div></div>'+
+      '<span class="mini-val">'+fmtNum(top.val)+'</span></div>'):'—';
+    return '<tr><td>'+(idx+1)+'</td><td><strong>'+r.sup+'</strong></td><td>'+r.sec+'</td><td>'+turnoLabel(r.turno)+'</td>'+
+      '<td class="num st-'+st[0]+'">'+fmtNum(r.inc)+'</td>'+
+      '<td class="num">'+fmtNum(r.partes)+'</td>'+
+      '<td class="num">'+fmtNum(r.ratio)+'</td>'+
+      '<td class="num st-'+st[1]+'">'+fmtNum(s.robosFrustrados)+'</td>'+
+      '<td class="num st-'+st[2]+'">'+fmtNum(s.operativosCount)+'</td>'+
+      '<td class="num st-'+respStatus(s.tasaResp)+'">'+(s.tasaResp>0?s.tasaResp.toFixed(1)+' min':'—')+'</td>'+
+      '<td>'+topCell+'</td></tr>';
   }).join('')+'</tbody>';
   document.getElementById('tbl-comp-supervisores').innerHTML=thead+tbody;
 }
@@ -742,13 +860,18 @@ function loadData(turnoFilter){
   Promise.all([pSupabase,pJefes]).then(async function(results){
     var incidencias=results[0];
     var jefesConfig=results[1];
+    CACHED_FRANJAS_FULL=franjasTurnosFull(incidencias,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
     const rows = await fetchSheetData();
     const supData = buildSupervisoresFromSheet(rows);
     if(supData){
       CACHED_SUPERVISORS = sheetMapToSupervisorRows(supData);
+      CACHED_TURNOS = sheetMapToTurnos(supData);
       applySheetData(supData);
     } else {
       CACHED_SUPERVISORS = [];
+      CACHED_TURNOS = [];
     }
     finishLoad(incidencias,jefesConfig,CACHED_SUPERVISORS,turnoFilter,
       document.getElementById('fechaInicio').value,
@@ -764,6 +887,9 @@ function onTurnoChange(){
   var turno=document.getElementById('selTurno').value;
   // Re-process locally from cached data with new turno filter
   if(CACHED_INCIDENCIAS.length>0&&Object.keys(CACHED_JEFES).length>0){
+    CACHED_FRANJAS_FULL=franjasTurnosFull(CACHED_INCIDENCIAS,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
     SECTORES=processIncidencias(CACHED_INCIDENCIAS,CACHED_JEFES,turno,
       document.getElementById('fechaInicio').value,
       document.getElementById('fechaFin').value);
@@ -778,6 +904,9 @@ function onFechaChange(){
   // Re-process locally from cached data with new date range
   if(CACHED_INCIDENCIAS.length>0&&Object.keys(CACHED_JEFES).length>0){
     var turno=document.getElementById('selTurno').value;
+    CACHED_FRANJAS_FULL=franjasTurnosFull(CACHED_INCIDENCIAS,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
     SECTORES=processIncidencias(CACHED_INCIDENCIAS,CACHED_JEFES,turno,
       document.getElementById('fechaInicio').value,
       document.getElementById('fechaFin').value);

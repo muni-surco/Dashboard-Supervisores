@@ -12,6 +12,7 @@ const DS = {
 
 let SECTORES = [];
 let CACHED_SUPERVISORS = [];
+let CACHED_TURNOS = [];
 let MAPA_PUNTOS = [];
 let mapInstance = null;
 let markerLayer = null;
@@ -53,7 +54,7 @@ function computeThresholds(){
 }
 
 const KPI_DEFS = [
-  {key:'incDelictivas',label:'Incidencias Delictivas',unit:'',meta:'—',icon:'siren',si:'r',icolor:'var(--cd)',
+  {key:'incDelictivas',label:'Incidencias Atendidas',unit:'',meta:'—',icon:'siren',si:'r',icolor:'var(--cd)',
    val:d=>d.incTotal,thr:d=>d.incTotal<=25?'verde':d.incTotal<=35?'amarillo':'rojo'},
   {key:'robosFrustrados',label:'Robos Frustrados',unit:'',meta:'—',icon:'shield-alert',si:'a',icolor:'#B45309',
    val:d=>d.robosFrustrados,thr:d=>d.robosFrustrados>=6?'verde':d.robosFrustrados>=4?'amarillo':'rojo'},
@@ -171,15 +172,18 @@ function onSupChange(){
   var sv=document.getElementById('selSup').value;
   TURNO_FILTER=null;
   if(sv&&sv!=='0'){
+    var letters={};
     SECTORES.forEach(function(sec){
       sec.supervisores.forEach(function(p){
         if(baseName(p.n)===sv){
           CURRENT_SECTOR_ID=sec.id;
           var lt=letterFromName(p.n);
-          if(lt)TURNO_FILTER=LETTER_MAP[lt]||null;
+          if(lt)letters[lt]=true;
         }
       });
     });
+    var keys=Object.keys(letters);
+    if(keys.length===1)TURNO_FILTER=LETTER_MAP[keys[0]]||null;
   }
   loadData();
 }
@@ -258,9 +262,19 @@ function renderKPIs(s){
     const v=SECTORES.map(x=>k.thr(x));
     return v.some(x=>x==='rojo')?'rojo':v.some(x=>x==='amarillo')?'amarillo':'verde';
   };
+  var curSup = document.getElementById('selSup') ? document.getElementById('selSup').value : '0';
+  var supRow = null;
+  if(curSup && curSup !== '0' && s){
+    var sRows = supervisorRows();
+    supRow = sRows.find(function(r){ return r.sup === curSup && r.sec === s.id; });
+    if(!supRow) supRow = sRows.find(function(r){ return r.sup === curSup; });
+  }
   row.innerHTML = KPI_DEFS.map(function(k){
     const total = aggK(k);
-    const v = s ? kpiVal(s,k) : total;
+    var v = s ? kpiVal(s,k) : total;
+    if(k.key === 'incDelictivas' && supRow){
+      v = supRow.inc;
+    }
     const st = avgSt(k);
     const pct = total ? Math.round(v/total*100) : 0;
     const strCls = st==='verde'?'up':st==='amarillo'?'warn':'dn';
@@ -316,7 +330,25 @@ function renderDashboard(s){
   if(TIPO_SELECCIONADO&&SUBCLAS_ENTRIES.findIndex(e=>e[0]===TIPO_SELECCIONADO)===-1)TIPO_SELECCIONADO=null;
   applySubclas();
 
-  const franData=s?d.franjas:SECTORES[0].franjas.map((f,i)=>({...f,v:Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))}));
+  var franData=s?JSON.parse(JSON.stringify(d.franjas)):SECTORES[0].franjas.map((f,i)=>({...f,v:Math.round(SECTORES.reduce((a,x)=>a+x.franjas[i].v,0))}));
+  var curSup = document.getElementById('selSup') ? document.getElementById('selSup').value : '0';
+  var supRow = null;
+  if(curSup && curSup !== '0' && s){
+    var sRows = supervisorRows();
+    supRow = sRows.find(function(r){ return r.sup === curSup && r.sec === s.id; });
+    if(!supRow) supRow = sRows.find(function(r){ return r.sup === curSup; });
+  }
+  if(supRow && supRow.turnos && supRow.turnos.length > 0){
+    franData = franData.map(function(f){
+      var letter = f.l.indexOf('06–12') !== -1 || f.l.indexOf('Mañana') !== -1 ? 'M' :
+                   f.l.indexOf('12–18') !== -1 || f.l.indexOf('Tarde') !== -1 ? 'T' :
+                   f.l.indexOf('18–24') !== -1 || f.l.indexOf('Noche') !== -1 ? 'N' : null;
+      if(letter && supRow.turnos.indexOf(letter) === -1){
+        return Object.assign({}, f, { v: 0 });
+      }
+      return f;
+    });
+  }
   renderChart('chartTurnoDelitos',{
     chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
     series:[{name:'Casos',data:franData.map(function(f){
@@ -574,56 +606,118 @@ function renderCompSectores(){
   document.getElementById('tbl-comp-sectores').innerHTML=thead+tbody;
 }
 
+function turnosSupervisor(secId, name){
+  var total=0;
+  (CACHED_TURNOS||[]).forEach(function(t){
+    if(t.sector===secId&&t.supervisor===name)total+=t.partes;
+  });
+  return total;
+}
 function supervisorRows(){
-  var rows=[];
+  var map={};
   SECTORES.forEach(function(s){
     (s.rendimiento||[]).forEach(function(r){
       var astEntry=(s.supervisores||[]).find(function(p){ return baseName(p.n)===baseName(r.sup); });
-      rows.push({sup:baseName(r.sup),sec:s.id,turno:letterFromName(r.sup),ast:astEntry?astEntry.ast:null,
-        rutas:r.rutas,reportes:r.reportes,actitud:r.actitud,total:r.total});
+      var nm=baseName(r.sup);
+      var key=s.id+'|'+nm;
+      var partes=turnosSupervisor(s.id,nm);
+      if(!map[key])map[key]={sup:nm,sec:s.id,turnos:[],turno:'—',inc:0,partes:partes,ratio:0,ast:astEntry?astEntry.ast:null,
+        rutas:r.rutas,reportes:r.reportes,actitud:r.actitud,total:r.total};
+      var lt=letterFromName(r.sup);
+      if(lt&&map[key].turnos.indexOf(lt)===-1){map[key].turnos.push(lt);map[key].inc+=franjaInc(s,lt);}
+      if(partes>map[key].partes)map[key].partes=partes;
     });
   });
-  rows.sort(function(a,b){ return b.total-a.total; });
+  var rows=[];
+  Object.keys(map).forEach(function(k){ var r=map[k]; r.turno=r.turnos.map(turnoLabel).join('/')||'—'; r.ratio=r.partes>0?Math.round(r.inc/r.partes):0; rows.push(r); });
+  rows.sort(function(a,b){ return String(a.sec).localeCompare(String(b.sec)) || String(a.sup).localeCompare(String(b.sup)); });
   return rows;
 }
 function turnoLabel(t){ return t==='M'?'Mañana':t==='T'?'Tarde':t==='N'?'Noche':'—'; }
+function franjaInc(s, turno){
+  if(!s||!s.franjas||!s.franjas.length||!turno)return 0;
+  var L=turno==='M'?'Mañana':turno==='T'?'Tarde':turno==='N'?'Noche':null;
+  var f=L?s.franjas.find(function(x){ return x.l===L; }):null;
+  if(f)return f.v;
+  var R=turno==='M'?'06–12h':turno==='T'?'12–18h':turno==='N'?'18–24h':null;
+  f=R?s.franjas.find(function(x){ return x.l===R; }):null;
+  return f?f.v:0;
+}
 function rendCls(v){ return v>=90?'verde':v>=75?'amarillo':'rojo'; }
 function astCls(v){ return v>=95?'verde':v>=85?'amarillo':'rojo'; }
 
 function renderCompSupervisores(){
   var rows=supervisorRows();
   if(!rows.length)return;
+  var kpiDefs=[KPI_DEFS[0],KPI_DEFS[1],KPI_DEFS[2],KPI_DEFS[3],KPI_DEFS[4]];
+  var tipos=topSubclasGlobal(10);
+  function totDelitos(s){ var v=0; tipos.forEach(function(t){ v+=s?valSubclas(s,t[0]):0; }); return v; }
+  var delitosRows=rows.slice().sort(function(a,b){
+    var as=SECTORES.find(function(x){ return x.id===a.sec; });
+    var bs=SECTORES.find(function(x){ return x.id===b.sec; });
+    return totDelitos(bs)-totDelitos(as);
+  });
+  var incRows=rows.slice().sort(function(a,b){ return b.inc-a.inc; });
 
   renderChart('chartCompSups',{
-    chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
-    series:[{name:'Puntaje total',data:rows.map(function(r){ var st=rendCls(r.total); return {x:r.sup,y:r.total,fillColor:st==='verde'?DS.success:st==='amarillo'?DS.warning:DS.danger}; })}],
-    dataLabels:{enabled:true,formatter:function(v){ return v; },style:{fontSize:'10px'}},
+    chart:{type:'bar',stacked:true,fontFamily:APEX_FONT,foreColor:DS.g7},
+    series:tipos.map(function(t){ return {name:t[0],data:delitosRows.map(function(r){ var s=SECTORES.find(function(x){ return x.id===r.sec; }); return s?valSubclas(s,t[0]):0; })}; }),
+    colors:SECTOR_COLORS,
     plotOptions:{bar:{columnWidth:'60%',borderRadius:2}},
-    xaxis:{labels:{fontSize:10,rotate:-30}},
-    yaxis:{min:50,max:100,labels:{fontSize:11}},
-    tooltip:{y:{formatter:function(v){ return v; }}}
+    dataLabels:{enabled:false},
+    legend:{position:'bottom',fontSize:'11px'},
+    xaxis:{categories:delitosRows.map(function(r){ return r.sup+' ('+r.sec+')'; }),labels:{fontSize:10,rotate:-45}},
+    yaxis:{labels:{fontSize:11}},
+    tooltip:{y:{formatter:function(v){ return formatNum(v); }}}
   });
 
   renderChart('chartCompAst',{
     chart:{type:'bar',fontFamily:APEX_FONT,foreColor:DS.g7},
-    series:[{name:'Asistencia %',data:rows.map(function(r){ var st=astCls(r.ast); return {x:r.sup,y:r.ast||0,fillColor:st==='verde'?DS.success:st==='amarillo'?DS.warning:DS.danger}; })}],
-    dataLabels:{enabled:true,formatter:function(v){ return v; },style:{fontSize:'10px'}},
+    series:[{name:'Incidencias',data:incRows.map(function(r){ return {x:r.sup+' ('+r.sec+')',y:r.inc,fillColor:DS.primary}; })}],
+    dataLabels:{enabled:true,formatter:function(v){ return formatNum(v); },style:{fontSize:'10px'}},
     plotOptions:{bar:{columnWidth:'60%',borderRadius:2}},
-    xaxis:{labels:{fontSize:10,rotate:-30}},
-    yaxis:{min:50,max:100,labels:{fontSize:11}},
-    tooltip:{y:{formatter:function(v){ return v+'%'; }}}
+    xaxis:{labels:{fontSize:10,rotate:-45}},
+    yaxis:{max:function(max){ return Math.ceil(max*1.15); },labels:{fontSize:11}},
+    yaxis:{labels:{fontSize:11}},
+    tooltip:{y:{formatter:function(v){ return formatNum(v); }}}
   });
 
-  var thead='<thead><tr><th>Supervisor</th><th>Sector</th><th>Turno</th>'+
-    '<th class="num">Asistencia</th><th class="num">Rutas %</th><th class="num">Reportes %</th><th class="num">Actitud</th>'+
-    '<th class="num">Puntaje</th><th>Semáforo</th></tr></thead>';
-  var tbody='<tbody>'+rows.map(function(r){
-    var rc=rendCls(r.total),ac=astCls(r.ast);
-    return '<tr><td><strong>'+r.sup+'</strong></td><td>'+r.sec+'</td><td>'+turnoLabel(r.turno)+'</td>'+
-      '<td class="num st-'+ac+'">'+(r.ast!=null?r.ast+'%':'—')+'</td>'+
-      '<td class="num">'+r.rutas+'</td><td class="num">'+r.reportes+'</td><td class="num">'+r.actitud+'</td>'+
-      '<td class="num st-'+rc+'"><strong>'+r.total+'</strong></td>'+
-      '<td><span class="status-badge '+rc+'"><span class="dot '+rc+'"></span>'+statusLabel(rc)[1]+'</span></td></tr>';
+  var scatterRows=rows.filter(function(r){ return r.partes>0; });
+  renderChart('chartCompTurnos',{
+    chart:{type:'scatter',fontFamily:APEX_FONT,foreColor:DS.g7},
+    series:[{name:'Supervisores',data:scatterRows.map(function(r){ return {x:r.partes,y:r.inc,sup:r.sup,sec:r.sec,ratio:r.ratio}; })}],
+    colors:[DS.primary],
+    dataLabels:{enabled:false},
+    xaxis:{title:{text:'Turnos trabajados'},labels:{fontSize:10}},
+    yaxis:{title:{text:'Incidencias'},labels:{fontSize:10}},
+    tooltip:{custom:function(o){
+      var d=o.series[0].data[o.dataPointIndex];
+      return '<div style="padding:8px;font-size:12px;">'+d.sup+' ('+d.sec+')<br/>Turnos: '+formatNum(d.x)+'<br/>Incidencias: '+formatNum(d.y)+'<br/>Por turno: '+formatNum(d.ratio)+'</div>';
+    }}
+  });
+
+  var maxTop=0;
+  rows.forEach(function(r){ var s=SECTORES.find(function(x){ return x.id===r.sec; }); var t=s?sectorTopDelito(s):null; if(t&&t.val>maxTop)maxTop=t.val; });
+  var thead='<thead><tr><th>#</th><th>Supervisor</th><th>Sector</th><th>Turno</th>'+
+    '<th class="num">Incidencias</th><th class="num">Turnos</th><th class="num">Inc/Turno</th>'+
+    '<th class="num">Robos Frustr.</th><th class="num">Operativos</th>'+
+    '<th class="num">T. Respuesta</th><th>Top Delito</th></tr></thead>';
+  var tbody='<tbody>'+rows.map(function(r,idx){
+    var s=SECTORES.find(function(x){ return x.id===r.sec; });
+    if(!s)return '';
+    var st=kpiDefs.map(function(k){ return kpiStatus(k,s); });
+    var top=sectorTopDelito(s);
+    var topCell=top?('<div class="mini-row"><span class="mini-lbl" title="'+top.name+'">'+top.name+'</span>'+
+      '<div class="mini-track"><div class="mini-fill" style="width:'+Math.round(top.val/maxTop*100)+'%"></div></div>'+
+      '<span class="mini-val">'+formatNum(top.val)+'</span></div>'):'—';
+    return '<tr><td>'+(idx+1)+'</td><td><strong>'+r.sup+'</strong></td><td>'+r.sec+'</td><td>'+turnoLabel(r.turno)+'</td>'+
+      '<td class="num st-'+st[0]+'">'+formatNum(r.inc)+'</td>'+
+      '<td class="num">'+formatNum(r.partes)+'</td>'+
+      '<td class="num">'+formatNum(r.ratio)+'</td>'+
+      '<td class="num st-'+st[1]+'">'+formatNum(s.robosFrustrados)+'</td>'+
+      '<td class="num st-'+st[2]+'">'+formatNum(s.operativosCount)+'</td>'+
+      '<td class="num st-'+respStatus(s.tasaResp)+'">'+(s.tasaResp>0?s.tasaResp.toFixed(1)+' min':'—')+'</td>'+
+      '<td>'+topCell+'</td></tr>';
   }).join('')+'</tbody>';
   document.getElementById('tbl-comp-supervisores').innerHTML=thead+tbody;
 }
@@ -753,9 +847,17 @@ function loadData(){
     return res.error ? [] : (res.data || []);
   });
 
-  Promise.all([pDashboardData, pUbicaciones]).then(function(results){
+  var pTurnos = new Promise(function(resolve){
+    google.script.run
+      .withSuccessHandler(function(d){ resolve(d&&d.error?[]:(d||[])); })
+      .withFailureHandler(function(){ resolve([]); })
+      .getSupervisoresDetalle();
+  });
+
+  Promise.all([pDashboardData, pUbicaciones, pTurnos]).then(function(results){
     var sectoresData=results[0];
     var ubicaciones=results[1];
+    CACHED_TURNOS=results[2]||[];
 
     google.script.run
       .withSuccessHandler(function(supData){

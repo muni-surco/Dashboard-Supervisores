@@ -52,6 +52,18 @@ BEGIN
           ELSE NULL
         END))
   ),
+  fran AS (
+    SELECT
+      d.sector,
+      SUM(d.inc_total) FILTER (WHERE d.franja = '0612') AS f0612,
+      SUM(d.inc_total) FILTER (WHERE d.franja = '1218') AS f1218,
+      SUM(d.inc_total) FILTER (WHERE d.franja = '1824') AS f1824
+    FROM public.incidencias_diaria d
+    WHERE
+      (p_fecha_inicio IS NULL OR d.fecha >= p_fecha_inicio) AND
+      (p_fecha_fin IS NULL OR d.fecha <= p_fecha_fin)
+    GROUP BY d.sector
+  ),
   agg AS (
     SELECT
       d.sector,
@@ -145,9 +157,9 @@ BEGIN
     COALESCE(a.tasa_resp, 0) AS tasaResp,
     COALESCE(c.comisarias, '{}'::TEXT[]) AS comisarias,
     JSONB_BUILD_ARRAY(
-      JSONB_BUILD_OBJECT('l', 'Mañana', 'v', COALESCE(a.f0612, 0), 'c', '#27AE60'),
-      JSONB_BUILD_OBJECT('l', 'Tarde', 'v', COALESCE(a.f1218, 0), 'c', '#F5A623'),
-      JSONB_BUILD_OBJECT('l', 'Noche', 'v', COALESCE(a.f1824, 0), 'c', '#E03E3E')
+      JSONB_BUILD_OBJECT('l', 'Mañana', 'v', COALESCE(f.f0612, 0), 'c', '#27AE60'),
+      JSONB_BUILD_OBJECT('l', 'Tarde', 'v', COALESCE(f.f1218, 0), 'c', '#F5A623'),
+      JSONB_BUILD_OBJECT('l', 'Noche', 'v', COALESCE(f.f1824, 0), 'c', '#E03E3E')
     ) AS franjas,
     COALESCE(t.tipos, '{}'::JSONB) AS tiposDelito,
     COALESCE(t2.subclas, '{}'::JSONB) AS subclas,
@@ -158,6 +170,7 @@ BEGIN
     COALESCE(a.patrullaje, 0) AS patrullajeCount
   FROM public.jefes_area ja
   LEFT JOIN agg a ON a.sector = ja.sector
+  LEFT JOIN fran f ON f.sector = ja.sector
   LEFT JOIN comis c ON c.sector = ja.sector
   LEFT JOIN top10 t ON t.sector = ja.sector
   LEFT JOIN top10_sub t2 ON t2.sector = ja.sector
