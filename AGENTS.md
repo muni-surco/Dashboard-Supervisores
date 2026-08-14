@@ -16,7 +16,6 @@ Hay **dos variantes** del dashboard que se mantienen en paralelo:
 |---|---|---|---|
 | `/` (`index.html`, `script.js`, `styles.css`) | Standalone web | Chart.js 4.4.1 | Hosting estático |
 | `/gas/` (`Index.html`, `Script.html`, `Styles.html`, `Codigo.gs`) | Apps Script | ECharts 5 | Google Apps Script Web App |
-| `/gas/` (`Index2.html`, `Script2.html`) | Apps Script (Apex) | ApexCharts 5 | Google Apps Script Web App |
 
 ### Archivos raíz (variante standalone)
 - `index.html` — estructura del dashboard (4 paneles: resumen, seguridad, supervisores, ranking). Carga Chart.js, lucide y supabase-js desde CDN.
@@ -26,11 +25,10 @@ Hay **dos variantes** del dashboard que se mantienen en paralelo:
 - `update_dashboard.js` — utilidad legacy con datos mock (`SECTORES` hardcodeados). No forma parte del flujo de datos real; no editarlo salvo que se le pida explícitamente.
 
 ### Archivos GAS (`gas/`)
-- `Codigo.gs` — backend Apps Script. `doGet(e)` elige plantilla: `Index2` si `?ver=apex`, si no `Index`. `include(filename)` inyecta HTML parciales. `getSupervisoresData()` lee la tabla `supervisores` de Supabase y agrega por (sector, turno, supervisor). `getSupervisoresDetalle()` devuelve **todos** los supervisores por (sector, turno) con su `CANTPARTES` (nº de turnos), para la comparativa "Participación de Turnos vs Incidencias".
+- `Codigo.gs` — backend Apps Script. `doGet(e)` sirve siempre la plantilla `Index`. `include(filename)` inyecta HTML parciales. `getSupervisoresData()` lee la tabla `supervisores` de Supabase y agrega por (sector, turno, supervisor). `getSupervisoresDetalle()` devuelve **todos** los supervisores por (sector, turno) con su `CANTPARTES` (nº de turnos), para la comparativa "Participación de Turnos vs Incidencias".
 - `Index.html` — plantilla ECharts (sidebar con Dashboard + Gestión de Personal, selector de sector en modal, mapa Leaflet).
 - `Script.html` — JS de la plantilla ECharts (índice del dashboard GAS).
-- `Index2.html` / `Script2.html` — variante ApexCharts (misma UI, distinto motor).
-- `Styles.html` — CSS compartido por ambas plantillas GAS (inyectado con `<?!= include('Styles'); ?>`).
+- `Styles.html` — CSS compartido por las plantillas GAS (inyectado con `<?!= include('Styles'); ?>`).
 - `Script.html.bak` — backup de la versión Chart.js. Referencia, no editar.
 
 ### SQL de Supabase (`supabase/`)
@@ -42,11 +40,11 @@ Hay **dos variantes** del dashboard que se mantienen en paralelo:
 
 ## Cómo funciona el flujo de datos
 
-- **Variante GAS (la activa/principal)**: `loadData()` en `Script.html`/`Script2.html` llama a los RPC de Supabase (`get_dashboard_sectors` + `get_delitos_ubicaciones`) y luego a `google.script.run.getSupervisoresData()` (lee la tabla `supervisores` de Supabase vía `Codigo.gs`) → `finishLoad()` construye `SECTORES`, llama `computeThresholds()` (umbrales dinámicos por terciles) y `buildSupervisores()`.
+- **Variante GAS (la activa/principal)**: `loadData()` en `Script.html` llama a los RPC de Supabase (`get_dashboard_sectors` + `get_delitos_ubicaciones`) y luego a `google.script.run.getSupervisoresData()` (lee la tabla `supervisores` de Supabase vía `Codigo.gs`) → `finishLoad()` construye `SECTORES`, llama `computeThresholds()` (umbrales dinámicos por terciles) y `buildSupervisores()`.
 - **Variante standalone**: `loadData()` en `script.js` trae `incidencias`, `jefes_area` y `supervisores` por REST (con `limit` alto) y procesa todo en el cliente con `processIncidencias()`.
 
 ### Fuentes de datos (constantes compartidas)
-- `SUPABASE_URL` / `SUPABASE_ANON_KEY`: hardcodeadas en `Codigo.gs`, `script.js`, `Script.html`, `Script2.html`. Son keys **públicas de Supabase** (anon), pero si cambian hay que actualizar **todos** los archivos.
+- `SUPABASE_URL` / `SUPABASE_ANON_KEY`: hardcodeadas en `Codigo.gs`, `script.js`, `Script.html`. Son keys **públicas de Supabase** (anon), pero si cambian hay que actualizar **todos** los archivos.
 - Google Sheets de supervisores: ID `1aGLYGiowhtvIzioo5zZF3rl-fnP6kBUg0ecYXrJr1-g`, hoja `2026`, columnas `SECTOR, TURNO, SUPERVISOR, CANTPARTES`. Es **solo la fuente de migración**: los datos se cargan en la tabla `supervisores` de Supabase y el dashboard lee de ahí.
 - Tabla `supervisores` (Supabase): `sector, turno, supervisor, cant_partes` (una fila por mes/turno/supervisor; `fecha` opcional). Política RLS de lectura anónima en `init.sql`. La normalización de `sector` y la detección M/T/N se hacen al leer (en `Codigo.gs` y `script.js`).
 - Tabla `jefes_area`: `sector` (ej. `1A`, `1B`, `3`) es PK y es el join con `incidencias.sector`.
@@ -55,7 +53,7 @@ Hay **dos variantes** del dashboard que se mantienen en paralelo:
 
 - **Indentación**: 2 espacios (HTML, JS y GAS). No usar tabs.
 - **Finales de línea**: `.gitattributes` normaliza a LF. No forzar CRLF.
-- **Estilo JS**: mezcla de ES5 (`var`, `function`, concatenación con `+`) y ES6 (`const/let`, arrow functions, template literals, `?.`). Seguir el estilo del archivo que se toque — en `Script.html`/`Script2.html` predomina ES5; en `script.js` hay ambos.
+- **Estilo JS**: mezcla de ES5 (`var`, `function`, concatenación con `+`) y ES6 (`const/let`, arrow functions, template literals, `?.`). Seguir el estilo del archivo que se toque — en `Script.html` predomina ES5; en `script.js` hay ambos.
 - **Sin comentarios innecesarios**: solo agregar comentarios cuando aporten contexto.
 - **UI en español**, acentos incluidos. No traducir.
 
@@ -72,12 +70,11 @@ Hay **dos variantes** del dashboard que se mantienen en paralelo:
 - **Turnos de supervisores**: nombres con sufijo `(M)`/`(T)`/`(N)`. `baseName()` y `letterFromName()` extraen el nombre y la letra.
 
 ### Cálculo de supervisores/asistencia
-A partir de los partes de la tabla `supervisores` (por (sector, turno) se toma el supervisor con más partes: `bestName`/`bestPartes`), `partesAvg = round((bestPartes/count)*22)` y `ast = clamp(partesAvg, 60, 100)`. `rendimiento` se deriva: `rutas=ast*0.95`, `reportes=ast*0.90`, `actitud=ast*0.85`, `total` = promedio. Mantener esta fórmula consistente entre `script.js`, `Codigo.gs` y `Script.html`/`Script2.html`.
+A partir de los partes de la tabla `supervisores` (por (sector, turno) se toma el supervisor con más partes: `bestName`/`bestPartes`), `partesAvg = round((bestPartes/count)*22)` y `ast = clamp(partesAvg, 60, 100)`. `rendimiento` se deriva: `rutas=ast*0.95`, `reportes=ast*0.90`, `actitud=ast*0.85`, `total` = promedio. Mantener esta fórmula consistente entre `script.js`, `Codigo.gs` y `Script.html`.
 
 ### Gráficos
 - **Standalone**: Chart.js (`new Chart(...)`, `destroyChart(id)` antes de recrear; `charts` cache).
 - **GAS ECharts**: `echarts.init(el)` vía `getChart(id, el)`, `inst.dispose()` en `destroyChart`, y `resizeCharts()` en `resize`/cambio de panel/sidebar.
-- **GAS ApexCharts**: `renderChart(id, opts)` con `new ApexCharts(el, fullOpts)`.
 - GAS usa `formatNum()` (`toLocaleString('en-US')`) para mostrar números grandes.
 
 ## Comandos
@@ -90,10 +87,10 @@ No hay scripts de build, test ni lint. Lo único ejecutable son los scripts de u
 
 ## Despliegue / mantenimiento
 
-- **GAS**: la carpeta `gas/` es un proyecto de Apps Script (con `appsscript.json` en la raíz). Se sube con `clasp`. `doGet` sirve `Index`/`Index2` y usa `include()` para componer `Styles` + `Script`/`Script2`.
+- **GAS**: la carpeta `gas/` es un proyecto de Apps Script (con `appsscript.json` en la raíz). Se sube con `clasp`. `doGet` sirve `Index` y usa `include()` para componer `Styles` + `Script`.
 - **Supabase**: tras importar nuevos datos a `incidencias`, ejecutar `SELECT public.refresh_dashboard_mvs();` para refrescar las MV. Las MV no se refrescan automáticamente. Al cargar datos en la tabla `supervisores` no hace falta refrescar nada; basta que exista la política RLS de `init.sql`.
 - **Import de supervisores**: exportar la hoja `2026` a CSV y cargarlo en la tabla `supervisores` (columnas `sector, turno, supervisor, cant_partes`; `fecha` queda null). La normalización se hace al leer.
-- **Cuidado**: hay 3 archivos GAS modificados sin commit (`gas/Script.html`, `gas/Script2.html`, `gas/Styles.html`) al momento de escribir este archivo.
+- **Cuidado**: hay 2 archivos GAS modificados sin commit (`gas/Script.html`, `gas/Styles.html`) al momento de escribir este archivo.
 
 ## Gotchas / advertencias
 

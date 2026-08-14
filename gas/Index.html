@@ -36,15 +36,15 @@
   </div>
 
   <div class="nav-item active" onclick="showPanel('dashboard',this)">
-    <i data-lucide="layout-dashboard" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    <i data-lucide="layout-dashboard" style="width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none"></i>
     <span class="nav-label">Dashboard</span>
   </div>
   <div class="nav-item hidden" onclick="showPanel('personal',this)">
-    <i data-lucide="users" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    <i data-lucide="users" style="width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none"></i>
     <span class="nav-label">Gestión de Personal</span>
   </div>
   <div class="nav-item" onclick="showPanel('comparativa',this)">
-    <i data-lucide="scale" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none"></i>
+    <i data-lucide="scale" style="width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none"></i>
     <span class="nav-label">Comparativa</span>
   </div>
 </aside>
@@ -55,6 +55,7 @@
   <div class="topbar">
     <div class="topbar-title">
       <h1>Dashboard de Evaluación · Jefes de Área</h1>
+      <span class="date-source">Fuente de información: <strong>Plataforma SADE</strong></span>
     </div>
     <div class="topbar-filters">
       <button type="button" class="tb-btn tb-selector" id="btn-sector-selector" onclick="openSectorModal()">
@@ -124,8 +125,8 @@
       <div class="panel-sec">Operatividad</div>
       <div class="grid-3">
         <div class="card">
+          <div class="card-title">Tasa de respuesta</div>
           <div class="mm">
-            <div class="ml">Tasa de respuesta</div>
             <div class="mv" id="s-respuesta">—</div>
             <div class="ms">minutos promedio</div>
           </div>
@@ -135,8 +136,8 @@
           <div id="comisarias-tags"></div>
         </div>
         <div class="card">
+          <div class="card-title">Patrullaje</div>
           <div class="mm">
-            <div class="ml">Patrullaje</div>
             <div class="mv" id="s-patrullaje">—</div>
             <div class="ms">casos registrados</div>
           </div>

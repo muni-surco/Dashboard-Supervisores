@@ -141,7 +141,7 @@ body.sb-collapsed:has(.sb:hover) .nav-label { display: inline; }
   position: sticky; top: 0; z-index: 50;
   box-shadow: var(--shsm);
 }
-.topbar-title { flex: none; margin-bottom: 10px; }
+.topbar-title { flex: none; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
 .topbar-title h1 { font-size: var(--tmd); font-weight: 700; color: var(--cp); }
 .topbar-title p  { font-size: var(--txs); color: var(--g5); margin-top: 2px; }
 .topbar-filters { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
@@ -169,6 +169,16 @@ body.sb-collapsed:has(.sb:hover) .nav-label { display: inline; }
   font-size: var(--txs);
   color: var(--g5);
   font-weight: 600;
+}
+
+.date-source {
+  font-size: var(--txs);
+  color: var(--g5);
+  white-space: nowrap;
+}
+.date-source strong {
+  color: var(--cp);
+  font-weight: 700;
 }
 
 .badge-period {
@@ -535,6 +545,17 @@ body.sb-collapsed:has(.sb:hover) .nav-label { display: inline; }
 }
 .sup-card-name { font-size: var(--tsm); color: var(--g7); font-weight: 700; line-height: 1.2; }
 .sup-card-meta { font-size: var(--txs); color: var(--g5); font-weight: 600; }
+.sup-card-sec {
+  align-self: flex-start;
+  background: var(--cp);
+  color: #fff;
+  font-size: var(--txs);
+  font-weight: 700;
+  letter-spacing: .3px;
+  padding: 1px 9px;
+  border-radius: var(--rfull);
+  margin-top: 2px;
+}
 .sup-card.active .sup-card-name { color: var(--cp); }
 .sup-card.active .sup-card-meta { color: var(--cpd); }
 
