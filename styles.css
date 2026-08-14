@@ -271,7 +271,8 @@ body {
 .tbl th:first-child { border-radius: var(--rmd) 0 0 0; }
 .tbl th:last-child  { border-radius: 0 var(--rmd) 0 0; }
 .tbl td { padding: 9px 11px; border-bottom: 1px solid var(--g3); vertical-align: middle; }
-.tbl tr:hover td { background: var(--g1); }
+.tbl tbody tr:nth-child(even) td { background: var(--g1); }
+.tbl tr:hover td { background: var(--g3); }
 .tbl .num { text-align: center; font-weight: 700; }
 
 .rank-n {
