@@ -4,7 +4,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 function doGet(e) {
   return HtmlService.createTemplateFromFile('Index')
       .evaluate()
-      .setTitle('Dashboard C4 · Evaluación Jefes de Área · MSS')
+      .setTitle('Dashboard C4 · Evaluación Jefes y Supervisores · MSS')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard C4 · Evaluación Jefes de Área · MSS</title>
+<title>Dashboard C4 · Evaluación Jefes y Supervisores · MSS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
@@ -62,7 +62,7 @@
   <!-- TOPBAR -->
   <div class="topbar">
     <div class="topbar-title">
-      <h1>Dashboard de Evaluación · Jefes de Área</h1>
+      <h1>Dashboard de Evaluación · Jefes de Sector</h1>
       <p>Municipalidad de Santiago de Surco — División C4</p>
     </div>
     <select id="selJefe" class="tb-select" onchange="updateDash()">
@@ -174,7 +174,7 @@
     <div class="section-panel" id="panel-ranking">
       <div class="section-header">
         <h2>Ranking General por Sector</h2>
-        <p>Comparativo integral de todos los jefes de área — período mensual</p>
+        <p>Comparativo integral de todos los jefes de sector — período mensual</p>
       </div>
       <div class="grid-2">
         <div class="card">
@@ -233,7 +233,7 @@
           <div class="chart-wrap" style="height:320px;"><canvas id="chartCompTipos"></canvas></div>
         </div>
         <div class="card">
-          <div class="card-title">Tabla Comparativa — Sectores</div>
+          <div class="card-title">Tabla Comparativa — Jefes de Sector</div>
           <div style="overflow-x:auto;">
             <table class="tbl" id="tbl-comp-sectores"></table>
           </div>

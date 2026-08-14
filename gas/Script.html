@@ -534,7 +534,7 @@ function renderPersonal(s,sup){
 }
 
 /* ── COMPARATIVA ── */
-function sectoresSorted(){ return SECTORES.slice().sort(function(a,b){ return String(a.id).localeCompare(String(b.id)); }); }
+function sectoresSorted(){ return SECTORES.slice().sort(function(a,b){ return (b.incTotal||0)-(a.incTotal||0) || String(a.id).localeCompare(String(b.id)); }); }
 
 function respStatus(v){
   if(!(v>0))return 'rojo';
@@ -632,7 +632,7 @@ function renderCompSectores(){
   var maxTop=0;
   secs.forEach(function(x){ var t=sectorTopDelito(x); if(t&&t.val>maxTop)maxTop=t.val; });
   var thead='<thead><tr><th>#</th><th>Sector</th><th>Jefe de Área</th>'+
-    '<th class="num">Incidencias</th><th class="num">Robos Frustr.</th><th class="num">Operativos</th>'+
+    '<th class="num">Incidencias</th><th class="num">Delitos</th><th class="num">Robos Frustr.</th><th class="num">Operativos</th>'+
     '<th class="num">Coord. Vec.</th><th class="num">Capturas</th><th class="num">T. Respuesta</th><th>Top Delito</th></tr></thead>';
   var tbody='<tbody>'+secs.map(function(s,idx){
     var st=kpiDefs.map(function(k){ return kpiStatus(k,s); });
@@ -642,6 +642,7 @@ function renderCompSectores(){
       '<span class="mini-val">'+formatNum(top.val)+'</span></div>'):'—';
     return '<tr><td>'+(idx+1)+'</td><td><strong>'+s.id+'</strong></td><td>'+s.nombre+'</td>'+
       '<td class="num st-'+st[0]+'">'+formatNum(s.incTotal)+'</td>'+
+      '<td class="num">'+formatNum(sectorDelitos(s))+'</td>'+
       '<td class="num st-'+st[1]+'">'+formatNum(s.robosFrustrados)+'</td>'+
       '<td class="num st-'+st[2]+'">'+formatNum(s.operativosCount)+'</td>'+
       '<td class="num st-'+st[3]+'">'+formatNum(s.coordVecinales)+'</td>'+
@@ -702,6 +703,12 @@ function franjaDelitos(s, turno){
   var R=turno==='M'?'06–12h':turno==='T'?'12–18h':turno==='N'?'18–24h':null;
   f=R?s.franjasDelitos.find(function(x){ return x.l===R; }):null;
   return f?f.v:0;
+}
+function sectorDelitos(s){
+  if(!s||!s.franjasDelitos)return 0;
+  var v=0;
+  s.franjasDelitos.forEach(function(f){ v+=f.v||0; });
+  return v;
 }
 function franjaDelitoTipo(s, turno, grupo){
   if(!s||!s.subclasFranjas||!turno)return 0;

@@ -449,7 +449,7 @@ function renderCoordinacion(s){
 
 /* ── COMPARATIVA ── */
 function fmtNum(v){ return (v===null||v===undefined)?'—':v.toLocaleString('en-US'); }
-function sectoresSorted(){ return SECTORES.slice().sort(function(a,b){ return String(a.id).localeCompare(String(b.id)); }); }
+function sectoresSorted(){ return SECTORES.slice().sort(function(a,b){ return (b.incTotal||0)-(a.incTotal||0) || String(a.id).localeCompare(String(b.id)); }); }
 
 function respStatus(v){
   if(!(v>0))return 'rojo';
@@ -525,7 +525,7 @@ function renderCompSectores(){
   var maxTop=0;
   secs.forEach(function(x){ var t=sectorTopDelito(x); if(t&&t.val>maxTop)maxTop=t.val; });
   var thead='<thead><tr><th>#</th><th>Sector</th><th>Jefe de Área</th>'+
-    '<th class="num">Incidencias</th><th class="num">Robos Frustr.</th><th class="num">Operativos</th>'+
+    '<th class="num">Incidencias</th><th class="num">Delitos</th><th class="num">Robos Frustr.</th><th class="num">Operativos</th>'+
     '<th class="num">Coord. Vec.</th><th class="num">Capturas</th><th class="num">T. Respuesta</th><th>Top Delito</th></tr></thead>';
   var tbody='<tbody>'+secs.map(function(s,idx){
     var st=kpiDefs.map(function(k){ return kpiStatus(k,s); });
@@ -535,6 +535,7 @@ function renderCompSectores(){
       '<span class="mini-val">'+fmtNum(top.val)+'</span></div>'):'—';
     return '<tr><td>'+(idx+1)+'</td><td><strong>'+s.id+'</strong></td><td>'+s.nombre+'</td>'+
       '<td class="num st-'+st[0]+'">'+fmtNum(s.incTotal)+'</td>'+
+      '<td class="num">'+fmtNum(sectorDelitos(s))+'</td>'+
       '<td class="num st-'+st[1]+'">'+fmtNum(s.robosFrustrados)+'</td>'+
       '<td class="num st-'+st[2]+'">'+fmtNum(s.operativosCount)+'</td>'+
       '<td class="num st-'+st[3]+'">'+fmtNum(s.coordVecinales)+'</td>'+
@@ -592,6 +593,11 @@ function franjasDelitosFull(incidencias, fStart, fEnd){
     else fr[secId].O++;
   });
   return fr;
+}
+function sectorDelitos(s){
+  var full=CACHED_DELITOS_FULL&&CACHED_DELITOS_FULL[s.id];
+  if(!full)return 0;
+  return (full.M||0)+(full.T||0)+(full.N||0)+(full.O||0);
 }
 function franjaDelitosFull(s, lt){
   var full=CACHED_DELITOS_FULL&&CACHED_DELITOS_FULL[s.id];
