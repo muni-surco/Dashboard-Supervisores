@@ -98,7 +98,6 @@ function getSupervisoresDetalle() {
     var sSector = headers.indexOf("SECTOR");
     var sTurno = headers.indexOf("TURNO");
     var sSupervisor = headers.indexOf("SUPERVISOR");
-    var sPartes = headers.indexOf("CANTPARTES");
     if (sSector < 0 || sSupervisor < 0) return [];
     var agg = {};
     for (var si = 1; si < allRows.length; si++) {
@@ -106,12 +105,11 @@ function getSupervisoresDetalle() {
       var sector = String(sr[sSector]).toLowerCase().replace("sector","").trim().toUpperCase();
       var turno = sTurno >= 0 ? String(sr[sTurno]).trim().toUpperCase() : "";
       var supName = sSupervisor >= 0 ? String(sr[sSupervisor]).trim() : "";
-      var partes = sPartes >= 0 ? (parseInt(sr[sPartes]) || 0) : 0;
       if (!sector || !supName) continue;
       var letter = turno.indexOf("M") !== -1 ? "M" : turno.indexOf("T") !== -1 ? "T" : turno.indexOf("N") !== -1 ? "N" : null;
       if (!letter) continue;
       var key = sector + "|" + letter + "|" + supName;
-      agg[key] = (agg[key] || 0) + partes;
+      agg[key] = (agg[key] || 0) + 1;
     }
     var out = [];
     Object.keys(agg).forEach(function(key) {

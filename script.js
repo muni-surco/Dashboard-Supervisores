@@ -201,6 +201,14 @@ function chartDefaults(){return{
   responsive:true,maintainAspectRatio:false,
   plugins:{legend:{display:false}}
 };}
+function legendPos(){ return window.innerWidth<=640 ? 'bottom' : 'right'; }
+window.addEventListener('resize',function(){
+  var c=charts['delitos'];
+  if(c&&c.options.plugins.legend.position!==legendPos()){
+    c.options.plugins.legend.position=legendPos();
+    c.update();
+  }
+});
 
 function onSupChange(){
   var sv=document.getElementById('selSup').value;
@@ -320,7 +328,7 @@ function renderResumen(s){
     data:{labels:Object.keys(delData),datasets:[{data:Object.values(delData),
       backgroundColor:[DS.primary,DS.success,DS.warning,DS.danger,DS.g5],
       borderWidth:2,borderColor:'#fff'}]},
-    options:{...chartDefaults(),plugins:{legend:{display:true,position:'right',labels:{boxWidth:10,font:{size:11}}}}}
+    options:{...chartDefaults(),plugins:{legend:{display:true,position:legendPos(),labels:{boxWidth:10,font:{size:11}}}}}
   });
   const supsData=s?s.supervisores:SECTORES.flatMap(x=>x.supervisores.map(p=>({...p,n:x.sector.replace('Sector ','')+' '+p.n})));
   document.getElementById('asistencia-prog').innerHTML=supsData.sort((a,b)=>b.ast-a.ast).slice(0,6).map(p=>{

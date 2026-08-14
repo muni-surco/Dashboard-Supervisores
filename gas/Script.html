@@ -317,13 +317,25 @@ function renderDashboard(s){
   const instDel=getChart('delitos',document.getElementById('chartDelitos'));
   instDel.clear();
   instDel.setOption({
-    textStyle:{fontFamily:ECH_FONT,color:DS.g7},
-    tooltip:{trigger:'item',valueFormatter:function(v){return formatNum(v);}},
-    legend:{orient:'vertical',right:'2%',top:'middle',icon:'circle',itemWidth:10,itemHeight:10,itemGap:10,textStyle:{fontSize:11,color:DS.g7}},
-    series:[{type:'pie',radius:['48%','90%'],center:['24%','50%'],
-      avoidLabelOverlap:true,label:{show:false},
-      itemStyle:{borderColor:'#fff',borderWidth:2,borderRadius:4},
-      data:entries.map(function(e,i){return {name:delLabels[i],value:e[1],itemStyle:{color:PALETA[i]}};})}]
+    baseOption:{
+      textStyle:{fontFamily:ECH_FONT,color:DS.g7},
+      tooltip:{trigger:'item',valueFormatter:function(v){return formatNum(v);}},
+      legend:{orient:'vertical',right:'2%',top:'middle',icon:'circle',itemWidth:10,itemHeight:10,itemGap:10,textStyle:{fontSize:11,color:DS.g7}},
+      series:[{type:'pie',radius:['48%','90%'],center:['24%','50%'],
+        avoidLabelOverlap:true,label:{show:false},
+        itemStyle:{borderColor:'#fff',borderWidth:2,borderRadius:4},
+        data:entries.map(function(e,i){return {name:delLabels[i],value:e[1],itemStyle:{color:PALETA[i]}};})}]
+    },
+    media:[
+      {query:{maxWidth:520},
+        option:{
+          legend:{orient:'horizontal',bottom:0,left:'center',top:'auto',itemWidth:8,itemHeight:8,itemGap:6,
+            textStyle:{fontSize:10,color:DS.g7},
+            formatter:function(name){ return name.replace(/^\d+\.\s*/,'').replace(/\s*—.*$/,''); }},
+          series:[{radius:['38%','68%'],center:['50%','42%']}]
+        }
+      }
+    ]
   });
 
   destroyChart('subclas');
@@ -876,6 +888,8 @@ function finishLoad(sectoresData, supRows, fStart, fEnd, ubicaciones){
   document.getElementById('loading-overlay').style.display='none';
   updateDash();
   lucide.createIcons();
+  setTimeout(resizeCharts,60);
+  setTimeout(resizeCharts,250);
 }
 
 function callRpc(promiseFactory){

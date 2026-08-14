@@ -308,9 +308,38 @@ body.sb-collapsed:has(.sb:hover) .nav-label { display: inline; }
 .panel-sec::after { content: ''; flex: 1; height: 1px; background: var(--g3); }
 
 /* ── RESPONSIVE ── */
+@media (max-width: 1300px){
+  .kpi-row { grid-template-columns: repeat(4, 1fr); }
+  .sup-card-group { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 1000px){
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .sup-card-group { grid-template-columns: 1fr; }
+}
 @media (max-width: 900px){
   .kpi-row, .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr !important; }
   .sup-card-group { grid-template-columns: 1fr !important; }
+  .topbar-title { flex-wrap: wrap; }
+  .topbar-filters { gap: var(--s2); }
+  .topbar-filters .tb-select { flex: 1 1 auto; min-width: 130px; max-width: 220px; }
+  .date-range { flex: 1 1 auto; }
+  .date-range .tb-date { flex: 1 1 auto; min-width: 0; }
+}
+@media (max-width: 640px){
+  .topbar { padding: var(--s3); }
+  .topbar-title { flex-direction: column; align-items: flex-start; gap: var(--s1); }
+  .topbar-title h1 { font-size: var(--tbase); }
+  .topbar-title .date-source { font-size: var(--txs); white-space: normal; }
+  .topbar-filters { align-items: stretch; flex-direction: column; }
+  .topbar-filters .tb-btn,
+  .topbar-filters .tb-select { width: 100%; justify-content: center; max-width: none; }
+  .date-range { flex-wrap: wrap; width: 100%; }
+  .date-range .tb-date { flex: 1 1 0; min-width: 0; }
+  .badge-period { margin-left: 0; align-self: center; }
+  .content { padding: var(--s3); }
+  .sb, body.sb-collapsed { --sb: 56px; }
+  .main { margin-left: 56px; }
+  .modal-card { padding: var(--s4); }
 }
 .mapa { height: 360px; border-radius: var(--rmd); overflow: hidden; position: relative; z-index: 0; }
 .mapa .leaflet-container { font-family: inherit; }
@@ -438,8 +467,10 @@ body.sb-collapsed:has(.sb:hover) .nav-label { display: inline; }
   background: var(--wh) !important;
   color: var(--g7) !important;
   border: 1px solid var(--g3) !important;
+  max-width: 100%;
 }
 .tb-selector:hover { border-color: var(--cp) !important; color: var(--cp) !important; }
+.tb-selector #label-sector { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ── SEL INFO BANNER ── */
 .info-row {
