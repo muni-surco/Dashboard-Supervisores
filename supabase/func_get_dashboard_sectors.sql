@@ -15,8 +15,10 @@ RETURNS TABLE (
   "tasaResp" NUMERIC,
   "comisarias" TEXT[],
   "franjas" JSONB,
+  "franjasDelitos" JSONB,
   "tiposDelito" JSONB,
   "subclas" JSONB,
+  "subclasFranjas" JSONB,
   "robosFrustrados" BIGINT,
   "operativosCount" BIGINT,
   "coordVecinales" BIGINT,
@@ -59,6 +61,18 @@ BEGIN
       SUM(d.inc_total) FILTER (WHERE d.franja = '1218') AS f1218,
       SUM(d.inc_total) FILTER (WHERE d.franja = '1824') AS f1824
     FROM public.incidencias_diaria d
+    WHERE
+      (p_fecha_inicio IS NULL OR d.fecha >= p_fecha_inicio) AND
+      (p_fecha_fin IS NULL OR d.fecha <= p_fecha_fin)
+    GROUP BY d.sector
+  ),
+  franD AS (
+    SELECT
+      d.sector,
+      SUM(d.cnt) FILTER (WHERE d.franja = '0612') AS d0612,
+      SUM(d.cnt) FILTER (WHERE d.franja = '1218') AS d1218,
+      SUM(d.cnt) FILTER (WHERE d.franja = '1824') AS d1824
+    FROM public.incidencias_subclas_diaria d
     WHERE
       (p_fecha_inicio IS NULL OR d.fecha >= p_fecha_inicio) AND
       (p_fecha_fin IS NULL OR d.fecha <= p_fecha_fin)
@@ -147,6 +161,35 @@ BEGIN
     FROM ranked_sub
     WHERE ranked_sub.rn <= 10
     GROUP BY ranked_sub.sector
+  ),
+  tsf AS (
+    SELECT
+      d.sector,
+      d.franja,
+      d.tipo,
+      SUM(d.cnt) AS cnt
+    FROM public.incidencias_subclas_diaria d
+    WHERE
+      (p_fecha_inicio IS NULL OR d.fecha >= p_fecha_inicio) AND
+      (p_fecha_fin IS NULL OR d.fecha <= p_fecha_fin)
+    GROUP BY d.sector, d.franja, d.tipo
+  ),
+  tsf_agg AS (
+    SELECT
+      sector,
+      JSONB_OBJECT_AGG(
+        CASE franja WHEN '0612' THEN 'Mañana' WHEN '1218' THEN 'Tarde' ELSE 'Noche' END,
+        tipos
+      ) AS subclas_franjas
+    FROM (
+      SELECT
+        t.sector,
+        t.franja,
+        JSONB_OBJECT_AGG(t.tipo, t.cnt) AS tipos
+      FROM tsf t
+      GROUP BY t.sector, t.franja
+    ) x
+    GROUP BY sector
   )
   SELECT
     ja.sector AS id,
@@ -161,8 +204,14 @@ BEGIN
       JSONB_BUILD_OBJECT('l', 'Tarde', 'v', COALESCE(f.f1218, 0), 'c', '#F5A623'),
       JSONB_BUILD_OBJECT('l', 'Noche', 'v', COALESCE(f.f1824, 0), 'c', '#E03E3E')
     ) AS franjas,
+    JSONB_BUILD_ARRAY(
+      JSONB_BUILD_OBJECT('l', 'Mañana', 'v', COALESCE(fd.d0612, 0)),
+      JSONB_BUILD_OBJECT('l', 'Tarde', 'v', COALESCE(fd.d1218, 0)),
+      JSONB_BUILD_OBJECT('l', 'Noche', 'v', COALESCE(fd.d1824, 0))
+    ) AS franjasDelitos,
     COALESCE(t.tipos, '{}'::JSONB) AS tiposDelito,
     COALESCE(t2.subclas, '{}'::JSONB) AS subclas,
+    COALESCE(tsfa.subclas_franjas, '{}'::JSONB) AS subclasFranjas,
     COALESCE(a.robos_frustrados, 0) AS robosFrustrados,
     COALESCE(a.operativos, 0) AS operativosCount,
     COALESCE(a.coord_vecinales, 0) AS coordVecinales,
@@ -171,9 +220,11 @@ BEGIN
   FROM public.jefes_area ja
   LEFT JOIN agg a ON a.sector = ja.sector
   LEFT JOIN fran f ON f.sector = ja.sector
+  LEFT JOIN franD fd ON fd.sector = ja.sector
   LEFT JOIN comis c ON c.sector = ja.sector
   LEFT JOIN top10 t ON t.sector = ja.sector
   LEFT JOIN top10_sub t2 ON t2.sector = ja.sector
+  LEFT JOIN tsf_agg tsfa ON tsfa.sector = ja.sector
   ORDER BY ja.sector;
 END;
 $$;

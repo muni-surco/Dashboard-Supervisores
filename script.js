@@ -122,6 +122,8 @@ let CACHED_JEFES = {};
 let CACHED_SUPERVISORS = [];
 let CACHED_TURNOS = [];
 let CACHED_FRANJAS_FULL = {};
+let CACHED_DELITOS_FULL = {};
+let CACHED_DELITOS_TIPOS_FULL = {};
 
 function kpiVal(d,k){ return k.val?k.val(d):d[k.key]; }
 const KPI_DEFS = [
@@ -570,6 +572,65 @@ function franjasTurnosFull(incidencias, fStart, fEnd){
   });
   return fr;
 }
+function franjasDelitosFull(incidencias, fStart, fEnd){
+  var fr={};
+  incidencias.forEach(function(row){
+    if(String(row.sub_clasificacion||'').toLowerCase().trim()!=='delitos')return;
+    var secId=normalizarSector(row.sector);
+    if(!fr[secId])fr[secId]={M:0,T:0,N:0,O:0};
+    if(fStart||fEnd){
+      var fd=row.fecha_apertura?new Date(row.fecha_apertura):null;
+      if(fd&&!isNaN(fd)){
+        if(fStart&&fd<new Date(fStart+'T00:00:00'))return;
+        if(fEnd&&fd>new Date(fEnd+'T23:59:59'))return;
+      }
+    }
+    var f=clasificarFranja(row.turno);
+    if(f==='06–12h')fr[secId].M++;
+    else if(f==='12–18h')fr[secId].T++;
+    else if(f==='18–24h')fr[secId].N++;
+    else fr[secId].O++;
+  });
+  return fr;
+}
+function franjaDelitosFull(s, lt){
+  var full=CACHED_DELITOS_FULL&&CACHED_DELITOS_FULL[s.id];
+  if(full&&lt)return full[lt]||0;
+  return 0;
+}
+function franjasDelitosTiposFull(incidencias, fStart, fEnd){
+  var fr={};
+  incidencias.forEach(function(row){
+    if(String(row.sub_clasificacion||'').toLowerCase().trim()!=='delitos')return;
+    var secId=normalizarSector(row.sector);
+    var f=clasificarFranja(row.turno);
+    var key=f==='06–12h'?'M':f==='12–18h'?'T':f==='18–24h'?'N':'O';
+    if(!fr[secId])fr[secId]={M:{},T:{},N:{},O:{}};
+    if(fStart||fEnd){
+      var fd=row.fecha_apertura?new Date(row.fecha_apertura):null;
+      if(fd&&!isNaN(fd)){
+        if(fStart&&fd<new Date(fStart+'T00:00:00'))return;
+        if(fEnd&&fd>new Date(fEnd+'T23:59:59'))return;
+      }
+    }
+    var k=row.tipo||'Otros';
+    fr[secId][key][k]=(fr[secId][key][k]||0)+1;
+  });
+  return fr;
+}
+function franjaDelitoTipoFull(s, lt, grupo){
+  var m=CACHED_DELITOS_TIPOS_FULL&&CACHED_DELITOS_TIPOS_FULL[s.id]&&CACHED_DELITOS_TIPOS_FULL[s.id][lt];
+  if(!m)return 0;
+  var v=0;
+  Object.keys(m).forEach(function(k){ if(grupoTipo(k)===grupo)v+=m[k]; });
+  return v;
+}
+function supDelitoTipo(r, grupo){
+  var v=0;
+  var s=SECTORES.find(function(x){ return x.id===r.sec; });
+  (r.turnos||[]).forEach(function(lt){ v+=franjaDelitoTipoFull(s,lt,grupo); });
+  return v;
+}
 function franjaIncFull(s, lt){
   var full=CACHED_FRANJAS_FULL&&CACHED_FRANJAS_FULL[s.id];
   if(full&&lt)return full[lt]||0;
@@ -583,10 +644,10 @@ function supervisorRows(){
       var nm=baseName(r.sup);
       var key=s.id+'|'+nm;
       var partes=turnosSupervisor(s.id,nm);
-      if(!map[key])map[key]={sup:nm,sec:s.id,turnos:[],turno:'—',inc:0,partes:partes,ratio:0,ast:astEntry?astEntry.ast:null,
+      if(!map[key])map[key]={sup:nm,sec:s.id,turnos:[],turno:'—',inc:0,delitos:0,partes:partes,ratio:0,ast:astEntry?astEntry.ast:null,
         rutas:r.rutas,reportes:r.reportes,actitud:r.actitud,total:r.total};
       var lt=letterFromName(r.sup);
-      if(lt&&map[key].turnos.indexOf(lt)===-1){map[key].turnos.push(lt);map[key].inc+=franjaIncFull(s,lt);}
+      if(lt&&map[key].turnos.indexOf(lt)===-1){map[key].turnos.push(lt);map[key].inc+=franjaIncFull(s,lt);map[key].delitos+=franjaDelitosFull(s,lt);}
       if(partes>map[key].partes)map[key].partes=partes;
     });
   });
@@ -613,19 +674,14 @@ function renderCompSupervisores(){
   if(!rows.length)return;
   var kpiDefs=KPI_DEFS.slice(0,5);
   var tipos=topDelitosGlobal(10);
-  function totDelitos(s){ var v=0; tipos.forEach(function(t){ v+=s?valTipoDelito(s,t[0]):0; }); return v; }
-  var delitosRows=rows.slice().sort(function(a,b){
-    var as=SECTORES.find(function(x){ return x.id===a.sec; });
-    var bs=SECTORES.find(function(x){ return x.id===b.sec; });
-    return totDelitos(bs)-totDelitos(as);
-  });
+  var delitosRows=rows.slice().sort(function(a,b){ return (b.delitos||0)-(a.delitos||0); });
   var incRows=rows.slice().sort(function(a,b){ return b.inc-a.inc; });
 
   destroyChart('compSups');
   charts['compSups']=new Chart(document.getElementById('chartCompSups'),{
     type:'bar',
     data:{labels:delitosRows.map(function(r){ return r.sup+' ('+r.sec+')'; }),
-      datasets:tipos.map(function(t,i){ return {label:t[0],data:delitosRows.map(function(r){ var s=SECTORES.find(function(x){ return x.id===r.sec; }); return s?valTipoDelito(s,t[0]):0; }),backgroundColor:SECTOR_COLORS[i%SECTOR_COLORS.length],borderRadius:3}; }),},
+      datasets:tipos.map(function(t,i){ return {label:t[0],data:delitosRows.map(function(r){ return supDelitoTipo(r,t[0]); }),backgroundColor:SECTOR_COLORS[i%SECTOR_COLORS.length],borderRadius:3}; }),},
     options:{...chartDefaults(),plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
       scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10},maxRotation:45,minRotation:0}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}
   });
@@ -652,7 +708,7 @@ function renderCompSupervisores(){
   var maxTop=0;
   rows.forEach(function(r){ var s=SECTORES.find(function(x){ return x.id===r.sec; }); var t=s?sectorTopDelito(s):null; if(t&&t.val>maxTop)maxTop=t.val; });
   var thead='<thead><tr><th>#</th><th>Supervisor</th><th>Sector</th><th>Turno</th>'+
-    '<th class="num">Incidencias</th><th class="num">Turnos</th><th class="num">Inc/Turno</th>'+
+    '<th class="num">Incidencias</th><th class="num">Turnos</th><th class="num">Delitos</th>'+
     '<th class="num">Robos Frustr.</th><th class="num">Operativos</th>'+
     '<th class="num">T. Respuesta</th><th>Top Delito</th></tr></thead>';
   var tbody='<tbody>'+rows.map(function(r,idx){
@@ -666,7 +722,7 @@ function renderCompSupervisores(){
     return '<tr><td>'+(idx+1)+'</td><td><strong>'+r.sup+'</strong></td><td>'+r.sec+'</td><td>'+turnoLabel(r.turno)+'</td>'+
       '<td class="num st-'+st[0]+'">'+fmtNum(r.inc)+'</td>'+
       '<td class="num">'+fmtNum(r.partes)+'</td>'+
-      '<td class="num">'+fmtNum(r.ratio)+'</td>'+
+      '<td class="num">'+fmtNum(r.delitos)+'</td>'+
       '<td class="num st-'+st[1]+'">'+fmtNum(s.robosFrustrados)+'</td>'+
       '<td class="num st-'+st[2]+'">'+fmtNum(s.operativosCount)+'</td>'+
       '<td class="num st-'+respStatus(s.tasaResp)+'">'+(s.tasaResp>0?s.tasaResp.toFixed(1)+' min':'—')+'</td>'+
@@ -871,6 +927,12 @@ function loadData(turnoFilter){
     CACHED_FRANJAS_FULL=franjasTurnosFull(incidencias,
       document.getElementById('fechaInicio').value,
       document.getElementById('fechaFin').value);
+    CACHED_DELITOS_FULL=franjasDelitosFull(incidencias,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
+    CACHED_DELITOS_TIPOS_FULL=franjasDelitosTiposFull(incidencias,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
     const rows = await fetchSheetData();
     const supData = buildSupervisoresFromSheet(rows);
     if(supData){
@@ -898,6 +960,12 @@ function onTurnoChange(){
     CACHED_FRANJAS_FULL=franjasTurnosFull(CACHED_INCIDENCIAS,
       document.getElementById('fechaInicio').value,
       document.getElementById('fechaFin').value);
+    CACHED_DELITOS_FULL=franjasDelitosFull(CACHED_INCIDENCIAS,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
+    CACHED_DELITOS_TIPOS_FULL=franjasDelitosTiposFull(CACHED_INCIDENCIAS,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
     SECTORES=processIncidencias(CACHED_INCIDENCIAS,CACHED_JEFES,turno,
       document.getElementById('fechaInicio').value,
       document.getElementById('fechaFin').value);
@@ -913,6 +981,12 @@ function onFechaChange(){
   if(CACHED_INCIDENCIAS.length>0&&Object.keys(CACHED_JEFES).length>0){
     var turno=document.getElementById('selTurno').value;
     CACHED_FRANJAS_FULL=franjasTurnosFull(CACHED_INCIDENCIAS,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
+    CACHED_DELITOS_FULL=franjasDelitosFull(CACHED_INCIDENCIAS,
+      document.getElementById('fechaInicio').value,
+      document.getElementById('fechaFin').value);
+    CACHED_DELITOS_TIPOS_FULL=franjasDelitosTiposFull(CACHED_INCIDENCIAS,
       document.getElementById('fechaInicio').value,
       document.getElementById('fechaFin').value);
     SECTORES=processIncidencias(CACHED_INCIDENCIAS,CACHED_JEFES,turno,
