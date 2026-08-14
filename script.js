@@ -771,7 +771,7 @@ function processIncidencias(incidencias, jefesConfig, turnoFilter, fStart, fEnd)
     s.franjas[clasificarFranja(row.turno)]++;
 
     var tVal=parseFloat(row.time_minimo);
-    if(!isNaN(tVal)&&tVal>0)s.responseTimes.push(tVal);
+    if(!isNaN(tVal)&&tVal>0 && String(row.sub_clasificacion||'').toLowerCase().trim()==='delitos')s.responseTimes.push(tVal);
   });
 
   return Object.keys(sd).map(function(id){

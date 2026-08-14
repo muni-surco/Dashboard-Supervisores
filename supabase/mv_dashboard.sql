@@ -18,8 +18,8 @@ SELECT
     ELSE '0006'
   END AS franja,
   COUNT(*) AS inc_total,
-  COALESCE(AVG(i.time_minimo) FILTER (WHERE i.time_minimo > 0)::NUMERIC, 0) AS tasa_resp,
-  COUNT(*) FILTER (WHERE i.time_minimo > 0) AS n_tasa,
+  COALESCE(AVG(i.time_minimo) FILTER (WHERE i.time_minimo > 0 AND LOWER(BTRIM(i.sub_clasificacion)) = 'delitos')::NUMERIC, 0) AS tasa_resp,
+  COUNT(*) FILTER (WHERE i.time_minimo > 0 AND LOWER(BTRIM(i.sub_clasificacion)) = 'delitos') AS n_tasa,
   COALESCE(ARRAY_AGG(DISTINCT i.cia) FILTER (WHERE i.cia IS NOT NULL AND i.cia != ''), '{}'::TEXT[]) AS comisarias,
   COUNT(*) FILTER (WHERE LOWER(i.tipo) LIKE '%robo frustrado%') AS robos_frustrados,
   COUNT(*) FILTER (WHERE LOWER(i.tipo) LIKE '%operativo%') AS operativos,

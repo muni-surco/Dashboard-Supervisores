@@ -585,11 +585,11 @@ function renderCompSectores(){
     textStyle:{fontFamily:ECH_FONT,color:DS.g7},
     tooltip:{trigger:'axis',axisPointer:{type:'shadow'},valueFormatter:function(v){ return formatNum(v); }},
     legend:{bottom:0,left:'center',textStyle:{fontSize:10,color:DS.g7}},
-    grid:{left:8,right:16,top:30,bottom:56,containLabel:true},
+    grid:{left:8,right:16,top:30,bottom:92,containLabel:true},
     xAxis:{type:'category',data:secs.map(function(s){ return s.id; }),axisTick:{show:false},axisLine:{lineStyle:{color:'rgba(0,0,0,.1)'}},axisLabel:{fontSize:11}},
     yAxis:{type:'value',splitLine:{lineStyle:{color:'rgba(0,0,0,.05)'}},axisLabel:{fontSize:11}},
     series:tipos.map(function(t,i){ return {
-      name:t[0],type:'bar',barMaxWidth:16,itemStyle:{borderRadius:[4,4,0,0],color:SECTOR_COLORS[i%SECTOR_COLORS.length]},
+      name:t[0],type:'bar',barMaxWidth:14,itemStyle:{borderRadius:[4,4,0,0],color:SECTOR_COLORS[i%SECTOR_COLORS.length]},
       data:secs.map(function(s){ return valSubclas(s,t[0]); })
     };})
   });

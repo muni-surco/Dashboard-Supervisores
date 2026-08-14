@@ -51,6 +51,8 @@ Hay **dos variantes** del dashboard que se mantienen en paralelo:
 
 ## Convenciones de código
 
+- **Regla de entrega**: después de cada cambio, generar/actualizar siempre los archivos GAS en `gas/` (`Codigo.gs`, `Index.html`, `Script.html`, `Styles.html`) listos para pegar en Apps Script y publicar nueva versión. No dejar cambios solo en la variante standalone.
+
 - **Indentación**: 2 espacios (HTML, JS y GAS). No usar tabs.
 - **Finales de línea**: `.gitattributes` normaliza a LF. No forzar CRLF.
 - **Estilo JS**: mezcla de ES5 (`var`, `function`, concatenación con `+`) y ES6 (`const/let`, arrow functions, template literals, `?.`). Seguir el estilo del archivo que se toque — en `Script.html` predomina ES5; en `script.js` hay ambos.
